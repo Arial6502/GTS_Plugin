@@ -6,6 +6,7 @@ namespace GTS {
 		Main,
 		Camera,
 		Havok,
+		PostPhysics,
 	};
 
 	struct OneshotUpdate {
@@ -88,6 +89,7 @@ namespace GTS {
 		virtual void Update() override;
 		virtual void CameraUpdate() override;
 		virtual void HavokUpdate() override;
+		virtual void PostPhysicsUpdate() override;
 		virtual void Reset() override;
 		virtual void OnGameLoaded() override;
 

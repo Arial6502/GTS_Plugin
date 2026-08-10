@@ -166,7 +166,7 @@ namespace {
 			}
 			return true;
 		});
-		TaskManager::ChangeUpdate(name, UpdateKind::Havok);
+		TaskManager::ChangeUpdate(name, UpdateKind::PostPhysics);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -567,7 +567,7 @@ namespace GTS {
 			// All good try another frame
 			return true;
 		});
-		TaskManager::ChangeUpdate(name, UpdateKind::Havok);
+		TaskManager::ChangeUpdate(name, UpdateKind::PostPhysics);
 	}
 
 	void Grab::ExitGrabState(Actor* giant) { // Abort Grab animation

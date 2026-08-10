@@ -12,11 +12,17 @@
 using namespace GTS;
 using namespace BreastAbsorbKillMove;
 namespace { 
+    constexpr float kDegToRad = 3.14159265f / 180.0f;
+
     bool IsAlternativeKillMove() {
-        return Config::KillMove.bAlternativeBreastKillMoves;
+        return Config::KillMove.bThirdPersonBreastKillMove;
     }
 }
 namespace BreastAbsorbKillMove {
+    RE::NiPoint3 AltLookTarget() {
+        return GTS::VictimHeadPos(_victim, _cam.cameraPos, Config::KillMove.fBreastAbsorb_FocusHeightOffset_NoBone * GiantScale(_giant));
+    }
+
     RE::NiPoint3 EnemyAnchorPos() {
         auto player = RE::PlayerCharacter::GetSingleton();
         if (!player) {
@@ -27,9 +33,26 @@ namespace BreastAbsorbKillMove {
         const float pScale = GiantScale(_giant);
         const float angleZ = player->GetAngleZ();
         const float eScale = std::max(VictimScale(_victim), S.MinAnchorScale);
-        const RE::NiPoint3 headPos = GTS::VictimHeadPos(_victim, _cam.cameraPos, SC.fBreastAbsorb_FocusHeightOffset_NoBone * pScale);
+        const RE::NiPoint3 headPos = AltLookTarget();
+
+        if (IsAlternativeKillMove()) {
+            
+            const float t = std::clamp(_TimePassed / std::max(S.AltDuration, 0.001f), 0.0f, 1.0f);
+            const float zoomIn = t * t * (3.0f - 2.0f * t);
+            const float radius = std::lerp(S.AltOrbitDistance, S.AltOrbitRadius_Min, zoomIn) * pScale;
+            const float elevation = S.AltElevationAngle * kDegToRad;
+
+            const float orbitT = Clamp01(_TimePassed / std::max(S.AltOrbitTime, 0.01f));
+            const float orbitAngle = S.AltOrbitAngle * kDegToRad * Ease(orbitT);
+
+            RE::NiPoint3 horizontal(std::sin(angleZ), std::cos(angleZ), 0.0f);
+            RE::NiPoint3 baseOffset = horizontal * (radius * std::cos(elevation));
+            baseOffset.z = radius * std::sin(elevation);
+
+            return headPos + RotateAroundAxis(baseOffset, RE::NiPoint3(0.f, 0.f, 1.f), orbitAngle);
+        }
         
-        // Player's facing direction in world space.
+        // Player facing direction in world space.
         RE::NiPoint3 forward(std::sin(angleZ),std::cos(angleZ),0.0f);
 
         const RE::NiPoint3 up(0.0f, 0.0f, 1.0f);
@@ -47,13 +70,7 @@ namespace BreastAbsorbKillMove {
         const float focusUp = std::lerp(focusUp_small, focusUp_big, scaleCompensation);
         //-----------------
 
-        const RE::NiPoint3 forwardOffset = headPos + forward * (focusForward) + up * (focusUp);
-        if (IsAlternativeKillMove()) {
-            const RE::NiPoint3 forwardOffset_Alt = headPos + forward * (SC.fBreastAbsorb_ForwardFromGTS_AtLarge * pScale) + up * (SC.fBreastAbsorb_FocusHeightOffset_AtLarge * eScale);
-            return forwardOffset_Alt;
-        }
-
-        return forwardOffset;
+        return headPos + forward * (focusForward) + up * (focusUp);
     }
 
     RE::NiPoint3 GiantNodeOrHeadPos() {
@@ -81,8 +98,15 @@ namespace BreastAbsorbKillMove {
         float rampT = AdvanceStageTimer(_cam, dt, _settings.SlowMoRampTime);
 
         _cam.cameraPos = GTS::SmoothTowards(_cam.cameraPos, EnemyAnchorPos(), dt, _settings.PositionSmoothHalflife); // camera stays glued to the same anchor near the enemy, smoothed to avoid jitter (see PositionSmoothHalflife)
-        RE::NiPoint3 node = GiantNodeOrHeadPos();
-        if (_cam.timer >= 0.25f) {
+
+        RE::NiPoint3 node;
+        if (IsAlternativeKillMove()) {
+            node = AltLookTarget(); // watch the victim
+        } else {
+            node = GiantNodeOrHeadPos();
+        }
+
+        if (_cam.timer >= 0.25f && !IsAlternativeKillMove()) {
             if (_victim && _victim->GetAlpha() > 0.0f) {
                 _victim->SetAlpha(0.0f); // Hide vicitm
             }
@@ -124,7 +148,7 @@ namespace BreastAbsorbKillMove {
         float pullT = Clamp01(_cam.timer / std::max(_settings.postDeathTransitionTime, 1e-4f));
         RE::NiPoint3 blendedAnchor = Lerp(_cam.stageFromPos, EnemyAnchorPos(), Ease(pullT));
         _cam.cameraPos = GTS::SmoothTowards(_cam.cameraPos, blendedAnchor, dt, _settings.PositionSmoothHalflife);
-        RE::NiPoint3 node = GiantNodeOrHeadPos();
+        RE::NiPoint3 node = IsAlternativeKillMove() ? AltLookTarget() : GiantNodeOrHeadPos();
 
         float bt = AdvanceBlend(_cam, dt);
         RE::NiMatrix3 liveTarget = BuildLookAt(_cam.cameraPos, node);
@@ -151,6 +175,7 @@ namespace BreastAbsorbKillMove {
             _giant = nullptr;
             _giantNode = nullptr;
             _cam.active = false;
+            _TimePassed = 0.0f;
             _state = BreastAbsorbPOVState::None;
         }
     }
@@ -183,11 +208,14 @@ namespace GTS {
         _cam.blendDuration = 0.0f;
         _cam.impactActive = false;
         _cam.impactTimer = 0.0f;
+        _settings.AltOrbitAngle = _OrbitAngleTarget * (RandomBool() ? -1.0f : 1.0f);
+        
 
         _giant = giant;
         _victim = victim;
         _giantNode = giantLookNode;
         _returnFromSGTM = 1.0f;
+        _TimePassed = 0.0f;
 
         _cam.stageFromPos = _cam.startPos; 
         EnterStage(_cam, _state, BreastAbsorbPOVState::EnterEnemyPOV);
@@ -212,8 +240,8 @@ namespace GTS {
             case BreastAbsorbPOVState::ReturnCamera:      UpdateReturnCamera(dt);       break;
             default: break;
         }
-
         ApplyImpactSlowMo(_cam, dt, _settings.SlowMoMin, _settings.ImpactSlowMoExtra, _settings.ImpactSlowMoInTime, _settings.ImpactSlowMoTime);
+        AdvanceCustomTimer(dt, _settings.AltDuration, _TimePassed);
     }
 
     bool UpdateBreastAbsorbKillMove() {
@@ -238,8 +266,8 @@ namespace GTS {
         if (!_cam.active) {
             return false;
         }
-
-        target = _cam.cameraPos;
+        
+        target = IsAlternativeKillMove() ? _victim->GetPosition() : _cam.cameraPos;
         return true;
     }
 }

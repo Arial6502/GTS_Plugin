@@ -14,7 +14,13 @@ namespace BreastSuffocateKillMove {
 
     struct BreastCameraSettings {
         float EnterEnemyPOVTime = 0.6f; 
-        float MinAnchorScale     = 1.0f; 
+        float MinAnchorScale    = 1.0f; 
+
+        float AltOrbitDistance    = 40.0f;  // units, scaled by giant scale and victim scale
+        float AltElevationAngle = 37.5f;  // degrees, camera looks down at the victim from this angle above horizontal
+        float AltOrbitAngle     = 0.0f;  // Managed by _OrbitAngleTarget below
+        float AltOrbitTime      = 20.0f;   // seconds to sweep AltOrbitAngle
+        float AltDuration       = 18.0f;
 
         float ToGiantNodeBlendTime = 0.3f; 
 
@@ -27,7 +33,7 @@ namespace BreastSuffocateKillMove {
 
         float postDeathRecoveryTime = 3.5f;
         float postDeathTimePassed = 0.0f;
-        float ReturnTime = 2.25f; 
+        float ReturnTime = 1.5f; 
         bool PulledOut = false;
     };
 
@@ -41,6 +47,9 @@ namespace BreastSuffocateKillMove {
     inline RE::NiAVObject* _giantNode = nullptr; 
 
     inline float _returnFromSGTM = 1.0f;
+    inline float _TimePassed = 0.0f;
+    inline float _PulledOutTimer = 0.0f;
+    inline float _OrbitAngleTarget = 50.0f; // degrees swept in azimuth over AltOrbitTime, then holds
 
     RE::NiPoint3 EnemyAnchorPos();      
     RE::NiPoint3 GiantNodeOrHeadPos();  

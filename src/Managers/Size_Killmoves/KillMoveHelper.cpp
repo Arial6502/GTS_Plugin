@@ -256,6 +256,16 @@ namespace GTS {
         state.timer += ggtm > 1e-4f ? dt / ggtm : dt;
         return duration > 1e-4f ? Clamp01(state.timer / duration) : 1.0f;
     }
+    void AdvanceCustomTimer(float dt, float duration, float& timer) {
+        const float ggtm = Time::GGTM();
+        const float add = ggtm > 1e-4f ? dt / ggtm : dt;
+
+        timer += add;
+
+        if (duration > 1e-4f) {
+            timer = std::min(timer, duration);
+        }
+    }
 
     float AdvanceStageTimerSafe(CameraSequenceState& state, float dt, float duration) {
         float ggtm = std::max(Time::GGTM(), 0.05f);

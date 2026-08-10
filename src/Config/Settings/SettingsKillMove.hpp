@@ -9,7 +9,7 @@
 struct SettingsKillMove_t {
     // Main settings
     bool bConfigureMode = false;
-    bool bAlternativeBreastKillMoves = true;
+    bool bThirdPersonBreastKillMove = true;
     bool bEnableKillMoves = true;
     //-----Probability--------------------------------------------------------------
     float fKillMoveChance_Death = 5.0f;

@@ -79,6 +79,13 @@ namespace GTS {
 		});
 	}
 
+	void EventDispatcher::DoPostPhysicsUpdate() {
+		ForEachListener([](EventListener* listener) {
+			GTS_PROFILE_SCOPE(listener->DebugName());
+			listener->PostPhysicsUpdate();
+		});
+	}
+
 	void EventDispatcher::DoCameraUpdate() {
 		ForEachListener([](EventListener* listener) {
 			GTS_PROFILE_SCOPE(listener->DebugName());

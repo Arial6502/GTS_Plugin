@@ -18,6 +18,7 @@ namespace GTS {
 		virtual void Update();
 		virtual void PapyrusUpdate();
 		virtual void HavokUpdate();
+		virtual void PostPhysicsUpdate();
 		virtual void CameraUpdate();
 		virtual void Reset();
 		virtual void Enabled();

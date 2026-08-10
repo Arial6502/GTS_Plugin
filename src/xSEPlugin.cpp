@@ -2,6 +2,7 @@
 #include "Hooks/Hooks.hpp"
 #include "Papyrus/Papyrus.hpp"
 #include "Systems/Events/EventRegistry.hpp"
+#include "Hooks/Engine/Main.hpp"
 #include "Utils/Plugin/InitUtils.hpp"
 #include "Utils/Plugin/Logger.hpp"
 
@@ -22,6 +23,7 @@ namespace {
 				case SKSE::MessagingInterface::kDataLoaded: {
 					GTS::EventDispatcher::DoDataReady();
 					GTS::CPrintPluginInfo();
+					Hooks::InstallSMPBridge();
 					break;
 				}
 

@@ -85,8 +85,6 @@ namespace {
             if (lateral.Length() < 1e-3f) {
                 lateral = RE::NiPoint3(0.f, -1.f, 0.f); // fallback if we're already dead-on above the node
             }
-            // node is already heel-corrected (see NodeOrHeadPos), so this only needs
-            // the configured look-down lift - no separate heel math here.
             _nodeEyeTarget = node + lateral + RE::NiPoint3(0.f, 0.f, 1.f) * (_settings.NodeLookDownHeight * giantScale);
         } else {
             _nodeEyeTarget = _cam.cameraPos; // hold position, only the look direction blends

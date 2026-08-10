@@ -223,6 +223,22 @@ namespace GTS {
 		RemoveCompletedTasks(m_taskings, m_taskingsLock, toRemove);
 	}
 
+	void TaskManager::PostPhysicsUpdate() {
+		auto queued = CollectTasksForUpdate(m_taskings, m_taskingsLock, UpdateKind::PostPhysics);
+
+		std::vector<QueuedTask> toRemove;
+		toRemove.reserve(queued.size());
+
+		for (const auto& entry : queued) {
+			if (!entry.task) continue;
+			if (!entry.task->Update()) {
+				toRemove.push_back(entry);
+			}
+		}
+
+		RemoveCompletedTasks(m_taskings, m_taskingsLock, toRemove);
+	}
+
 	void TaskManager::ChangeUpdate(std::string_view name, UpdateKind updateOn) {
 		std::scoped_lock lock(m_taskingsLock);
 

@@ -87,7 +87,7 @@ struct GameplayActionSettings_t {
     bool bHugsStopAtFullHP = true;
 
     // Cleavage offset for forward/back and up/down adjustments
-    std::array<float, 2> f2CleavageOffset = { 0.0f, 0.0f };
+    std::array<float, 2> f2CleavageOffset = { 0.0f, 2.0f };
     
     //Cleavage Settings
     float fGrabPlayVoreOffset_Z = 0.0f;

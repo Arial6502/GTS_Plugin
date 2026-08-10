@@ -49,6 +49,7 @@ namespace GTS {
     };
 
     float AdvanceStageTimer(CameraSequenceState& state, float dt, float duration);
+    void AdvanceCustomTimer(float dt, float duration, float& timer);
     float AdvanceStageTimerSafe(CameraSequenceState& state, float dt, float duration);
 
     template <typename StateEnum>

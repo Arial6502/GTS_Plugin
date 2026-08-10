@@ -18,6 +18,7 @@ namespace GTS {
 		static void DoActorUpdate(RE::Actor* actor);
 		static void DoPapyrusUpdate();
 		static void DoHavokUpdate();
+		static void DoPostPhysicsUpdate();
 		static void DoCameraUpdate();
 		static void DoReset();
 		static void DoEnabled();

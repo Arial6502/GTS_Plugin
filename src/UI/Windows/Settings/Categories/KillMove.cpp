@@ -24,7 +24,7 @@ namespace {
             PSString T2 = "Determines how high the camera will be";
             PSString T3 = "Sets the maximum amount the camera can shift down based on enemy size";
             PSString T4 = "Determines how high the camera will be for enemies that don't have the required bones, such as creatures";
-            ImGui::BeginDisabled(!Config::KillMove.bEnableKillMoves);
+            ImGui::BeginDisabled(!Config::KillMove.bEnableKillMoves || Config::KillMove.bThirdPersonBreastKillMove);
             ImGuiEx::SliderF("Away from GTS", &Config::KillMove.fBreastAbsorb_ForwardFromGTS_AtLarge, -100.0f, 100.0f, T0,"%.1f");
             ImGuiEx::SliderF("Closer to GTS Limit", &Config::KillMove.fBreastAbsorb_ForwardFromGTS_AtLarge_Min, -100.0f, 100.0f, T1,"%.1f");
             ImGuiEx::SliderF("Camera Focus Height", &Config::KillMove.fBreastAbsorb_FocusHeightOffset_AtLarge, -100.0f, 100.0f, T2,"%.1f");
@@ -41,7 +41,7 @@ namespace {
             PSString T2 = "Determines how high the camera will be";
             PSString T3 = "Sets the maximum amount the camera can shift down based on enemy size";
             PSString T4 = "Determines how high the camera will be for enemies that don't have the required bones, such as creatures";
-            ImGui::BeginDisabled(!Config::KillMove.bEnableKillMoves);
+            ImGui::BeginDisabled(!Config::KillMove.bEnableKillMoves || Config::KillMove.bThirdPersonBreastKillMove);
             ImGuiEx::SliderF("Away from GTS", &Config::KillMove.fBreastAbsorb_ForwardFromGTS_AtSmall, -100.0f, 100.0f, T0,"%.1f");
             ImGuiEx::SliderF("Closer to GTS Limit", &Config::KillMove.fBreastAbsorb_ForwardFromGTS_AtSmall_Min, -100.0f, 100.0f, T1,"%.1f");
             ImGuiEx::SliderF("Camera Focus Height", &Config::KillMove.fBreastAbsorb_FocusHeightOffset_AtSmall, -100.0f, 100.0f, T2,"%.1f");
@@ -60,7 +60,7 @@ namespace {
             PSString T4 = "Determines the height limit of camera after GTS pull a tiny out of her breasts with her hand";
             PSString T5 = "Determines how high the camera will be";
             PSString T6 = "Determines how high the camera will be for enemies that don't have the required bones, such as creatures";
-            ImGui::BeginDisabled(!Config::KillMove.bEnableKillMoves);
+            ImGui::BeginDisabled(!Config::KillMove.bEnableKillMoves || Config::KillMove.bThirdPersonBreastKillMove);
             ImGuiEx::SliderF("Away from GTS", &Config::KillMove.fBreastSuffocate_ForwardFromGTS_AtLarge, -100.0f, 100.0f, T0,"%.1f");
             ImGuiEx::SliderF("Pulled Out: Camera Distance", &Config::KillMove.fBreastSuffocate_PulledOutForwardOffset_AtLarge, -100.0f, 100.0f, T2,"%.1f");
             ImGuiEx::SliderF("Pulled Out: Height", &Config::KillMove.fBreastSuffocate_PulledOutUpOffset, -100.0f, 100.0f, T3,"%.1f");
@@ -75,7 +75,7 @@ namespace {
             PSString T0 = "Determines how far the camera will zoom away from GTS by default";
             PSString T2 = "Limits closes the distance increase with GTS based on how small the target is";
             PSString T3 = "Determines how far the camera moves away after GTS pulls a tiny out of her breasts with her hand";
-            ImGui::BeginDisabled(!Config::KillMove.bEnableKillMoves);
+            ImGui::BeginDisabled(!Config::KillMove.bEnableKillMoves || Config::KillMove.bThirdPersonBreastKillMove);
             ImGuiEx::SliderF("Away from GTS", &Config::KillMove.fBreastSuffocate_ForwardFromGTS_AtSmall, -100.0f, 100.0f, T0,"%.1f");
             ImGuiEx::SliderF("Camera Focus Height", &Config::KillMove.fBreastSuffocate_FocusHeightOffset_AtSmall, -100.0f, 100.0f, T2,"%.1f");
             ImGuiEx::SliderF("Pulled Out: Camera Distance", &Config::KillMove.fBreastSuffocate_PulledOutForwardOffset_AtSmall, -100.0f, 100.0f, T3,"%.1f");
@@ -108,7 +108,7 @@ namespace GTS {
             PSString THelp1 = "Configuration Mode slows down game time to 0.025x during Breast Kill-Moves\n"
                 "It is needed because Breast Offsets are unique to each Player model\n"
                 "With some models, the camera position may be too far from or too close to the character\n"
-                "Which can cause clipping or poor positioning\n"
+                "Which can cause clipping or poor positioning, requiring manual adjustments\n"
                 "- To use this mode, you need to disable game pausing in the GTS UI\n"
                 "- Navigate to the following section in GTS UI: \n"
                 "- Interface -> UI Settings -> disable 'Pause Game'";
@@ -117,8 +117,20 @@ namespace GTS {
                 ImGuiEx::HelpText("What is Size Kill-Move", THelp);
                 ImGuiEx::HelpText("What is configuration Mode", THelp1);
                 ImGuiEx::CheckBox("Enable Size-Based Kill-Moves", &Config::KillMove.bEnableKillMoves, T0);
+                ImGui::BeginDisabled(Config::KillMove.bThirdPersonBreastKillMove);
                 ImGuiEx::CheckBox("Configuration Mode", &Config::KillMove.bConfigureMode, T1);
+                ImGui::EndDisabled();
                 ImGui::BeginDisabled(!Config::KillMove.bEnableKillMoves);
+                ImGui::Spacing();
+            }
+            ImGui::EndDisabled();
+        }
+
+        ImUtil_Unique {
+            PSString T0 = "Enables or disables third person POV for breast Absorb/Suffocate kill-moves";
+            if (ImGui::CollapsingHeader("Breast Absorb/Suffocate POV", ImUtil::HeaderFlagsDefaultOpen)) {
+                ImGui::BeginDisabled(!Config::KillMove.bEnableKillMoves);
+                ImGuiEx::CheckBox("Third Person POV", &Config::KillMove. bThirdPersonBreastKillMove, T0);
                 ImGui::Spacing();
             }
             ImGui::EndDisabled();

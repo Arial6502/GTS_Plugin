@@ -14,6 +14,8 @@ namespace GTS {
 
 	// Called on Havok update (when processing hitjobs)
 	void EventListener::HavokUpdate() {}
+	// Called around FSMP update
+	void EventListener::PostPhysicsUpdate() {}
 
 	// Called when the camera update event is fired (in the TESCameraState)
 	void EventListener::CameraUpdate() {}

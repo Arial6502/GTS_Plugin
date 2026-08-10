@@ -45,7 +45,7 @@ namespace {
 						"This prevents a large Player from moving unrealistically fast.\n"
 						"The speed reduction smoothly scales from the start threshold to the maximum threshold.";
 		PSString T0 = "Enable or fully disable this effect";
-		PSString T1 = "Prevents the Player from sprinting at or above the 'Start Player Speed Clamp' scale.";
+		PSString T1 = "Prevents the Player from sprinting at or above the 'Start Reducing Player Speed At' scale.";
 		PSString T2_1 = "The size scale at which size-based movement speed reduction begins.\n"
 						"If Player Sprint Prevention is enabled, sprinting is also disabled at this scale.";
 		PSString T2_2 = "The size scale at which the Player speed multiplier reaches the minimum value set below.";

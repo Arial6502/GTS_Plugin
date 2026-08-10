@@ -18,6 +18,14 @@ namespace BreastAbsorbKillMove {
 
         float MinAnchorScale     = 0.05f; 
 
+        float AltOrbitDistance    = 60.0f;  // units, scaled by giant scale and victim scale
+        float AltOrbitRadius_Min= 25.0f;
+        float AltMinAnchorScale = 0.05f;  // floor for the victim-scale part of AltOrbitDistance, so it never collapses to zero
+        float AltElevationAngle = 45.0f;  // degrees, camera looks down at the victim from this angle above horizontal
+        float AltOrbitAngle     = 0.0f;  // Managed by _OrbitAngleTarget below
+        float AltOrbitTime      = 5.25f;   // seconds to sweep AltOrbitAngle
+        float AltDuration       = 4.5f;
+
         float ToGiantNodeBlendTime = 0.3f; 
 
         float PositionSmoothHalflife = 0.08f;
@@ -48,6 +56,8 @@ namespace BreastAbsorbKillMove {
     inline RE::NiAVObject* _giantNode = nullptr; 
 
     inline float _returnFromSGTM = 1.0f;
+    inline float _TimePassed = 0.0f;
+    inline float _OrbitAngleTarget = 30.0f; // degrees swept in azimuth over AltOrbitTime, then holds
 
     RE::NiPoint3 EnemyAnchorPos();      
     RE::NiPoint3 GiantNodeOrHeadPos();  
