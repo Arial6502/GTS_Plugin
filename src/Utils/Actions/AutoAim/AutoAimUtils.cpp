@@ -56,7 +56,7 @@ namespace {
         return final_distance <= max_distance;
     }
     bool ShouldAutoAim(float final_distance, float max_distance, float dx, float modifier = 0.0f) {
-        float ignore_past = std::clamp(Config::AutoAim.fAimAssist_IgnoreBehindAfter + modifier, 0.0f, 1.0f);
+        float ignore_past = 1.0f; //std::clamp(Config::AutoAim.fAimAssist_IgnoreBehindAfter + modifier, 0.0f, 1.0f);
         return final_distance <= max_distance && dx >= -(max_distance * ignore_past); 
         // Allows to auto-aim if enemy is a bit behind
     }

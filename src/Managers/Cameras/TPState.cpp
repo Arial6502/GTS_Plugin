@@ -4,6 +4,7 @@
 
 #include "Managers/Cameras/CamUtil.hpp"
 #include "Managers/GTSSizeManager.hpp"
+#include "Managers/Size_Killmoves/KillMoveHelper.hpp"
 
 
 using namespace GTS;

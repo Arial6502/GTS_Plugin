@@ -41,24 +41,25 @@ namespace {
 							     "This can either mean that you didn't run Nemesis/Pandora or are using another tool to generate them.";
 
 	void DrawMovement_Player() {
-		PSString T2Help = "Movement speed clamping gradually reduces Player movement speed as Player exceeds certain size threshold.\n"
-							"This prevents large Player from moving unrealistically fast.\n"
-							"The speed reduction scales smoothly between the start and maximum thresholds.";
+		PSString T2Help = "Player movement speed is gradually reduced as the Player grows beyond the configured size threshold.\n"
+						"This prevents a large Player from moving unrealistically fast.\n"
+						"The speed reduction smoothly scales from the start threshold to the maximum threshold.";
 		PSString T0 = "Enable or fully disable this effect";
-		PSString T1 = "Prevents player sprint animation when at or above 'Start Player Speed Clamp' scale";
-		PSString T2_1 = "The scale at which sprinting is disabled and the speed reduction begins.";
-		PSString T2_2 = "The scale at which the Player speed multiplier is fully clamped to the value set below.";
+		PSString T1 = "Prevents the Player from sprinting at or above the 'Start Player Speed Clamp' scale.";
+		PSString T2_1 = "The size scale at which size-based movement speed reduction begins.\n"
+						"If Player Sprint Prevention is enabled, sprinting is also disabled at this scale.";
+		PSString T2_2 = "The size scale at which the Player speed multiplier reaches the minimum value set below.";
 		PSString T2_3 =
-			"Controls how slow Player is allowed to become when size-based speed clamping is applied.\n"
-			"For example, 80%% means Player will still move at least at 80%% of their normal run/jog speed,\n"
-			"even when past the max clamping threshold scale. 0%% effectively disables this feature.";
+			"Controls the minimum movement-speed multiplier allowed by size-based speed clamping.\n"
+			"For example, 80%% means the Player will retain at least 80%% of their slow walk movement speed,\n"
+			"even after reaching the maximum clamping threshold.";
 
 		ImGuiEx::HelpText("What is this", T2Help);
 		ImGuiEx::CheckBox("Enable this effect", &GTS::Config::General.bAlterPlayerMaxSpeed, T0);
 		ImGuiEx::CheckBox("Prevent Player Sprint", &GTS::Config::General.bPreventPlayerSprint, T1);
-		ImGuiEx::SliderF("Start Player Speed Clamp", &GTS::Config::General.fPlayerMaxSpeedMultClampStartAt, 1.0f, 20.0f, T2_1, "When larger than %.1fx");
-		ImGuiEx::SliderF("Player Max Clamp", &GTS::Config::General.fPlayerMaxSpeedMultClampMaxAt, GTS::Config::General.fPlayerMaxSpeedMultClampStartAt, GTS::Config::General.fPlayerMaxSpeedMultClampStartAt + 20.f, T2_2, "At %.1fx");
-		ImGuiEx::SliderF("Lowest Speed Offset %", &GTS::Config::General.fPlayerMaxSpeedMultLerpTargetPercent, 0.0f, 100.f, T2_3, "%.0f%% Of Walk Speed");
+		ImGuiEx::SliderF("Start Reducing Player Speed At", &GTS::Config::General.fPlayerMaxSpeedMultClampStartAt, 1.0f, 20.0f, T2_1, "When larger than %.1fx");
+		ImGuiEx::SliderF("Reach Minimum Player Speed At", &GTS::Config::General.fPlayerMaxSpeedMultClampMaxAt, GTS::Config::General.fPlayerMaxSpeedMultClampStartAt, GTS::Config::General.fPlayerMaxSpeedMultClampStartAt + 20.f, T2_2, "At %.1fx");
+		ImGuiEx::SliderF("Minimum Speed %", &GTS::Config::General.fPlayerMaxSpeedMultLerpTargetPercent, 0.0f, 100.f, T2_3, "%.0f%% Of Walk Speed");
 		ImGui::Spacing();
 	}
 
@@ -75,9 +76,9 @@ namespace {
 			"even when past the max clamping threshold scale. 0%% effectively disables this feature.";
 
 		ImGuiEx::HelpText("What is this", T2Help);
-		ImGuiEx::SliderF("Start NPC Speed Clamp", &GTS::Config::General.fNPCMaxSpeedMultClampStartAt, 1.0f, 20.0f, T2_1, "When larger than %.1fx");
-		ImGuiEx::SliderF("NPC Max Clamp", &GTS::Config::General.fNPCMaxSpeedMultClampMaxAt, GTS::Config::General.fNPCMaxSpeedMultClampStartAt, GTS::Config::General.fNPCMaxSpeedMultClampStartAt + 20.f, T2_2, "At %.1fx");
-		ImGuiEx::SliderF("Lowest Speed Offset %", &GTS::Config::General.fNPCMaxSpeedMultLerpTargetPercent, 0.0f, 100.f, T2_3, "%.0f%% Of Walk Speed");
+		ImGuiEx::SliderF("Start Reducing NPC Speed At", &GTS::Config::General.fNPCMaxSpeedMultClampStartAt, 1.0f, 20.0f, T2_1, "When larger than %.1fx");
+		ImGuiEx::SliderF("Reach Minimum NPC Speed At", &GTS::Config::General.fNPCMaxSpeedMultClampMaxAt, GTS::Config::General.fNPCMaxSpeedMultClampStartAt, GTS::Config::General.fNPCMaxSpeedMultClampStartAt + 20.f, T2_2, "At %.1fx");
+		ImGuiEx::SliderF("Minimum Speed %", &GTS::Config::General.fNPCMaxSpeedMultLerpTargetPercent, 0.0f, 100.f, T2_3, "%.0f%% Of Walk Speed");
 		ImGui::Spacing();
     }
 

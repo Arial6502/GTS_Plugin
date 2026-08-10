@@ -32,24 +32,6 @@ namespace GTS {
                 ImGui::Spacing();
 			}
 		}
-        //------ Visuals
-
-        ImUtil_Unique
-		{
-
-            PSString T0 = "Determines Kill-Move chance when enemy is going to die.\n"
-                        "- Stacks with 'Chance on Death'\n"
-                        "- Total chance cannot exceed 100%. Set to 0 to disable";
-            PSString T1 = "Additional Kill-Move chance when enemy is below crush threshold\n"
-                        "- Stacks with 'Chance below crush threshold'\n"
-                        "- Total chance cannot exceed 100%. Set to 0 to disable";
-
-            if (ImGui::CollapsingHeader("Size-related Kill-moves", ImUtil::HeaderFlagsDefaultOpen)) {
-                ImGuiEx::SliderF("Chance below crush threshold", &Config::General.fKillMoveChance_Crush, 0.0f, 100.0f, T0, "%.0f%%");
-                ImGuiEx::SliderF("Chance on Death", &Config::General.fKillMoveChance_Death, 0.0f, 100.0f, T1, "%.0f%%");
-                ImGui::Spacing();
-            }
-        }
 		//------ Visuals
 
         ImUtil_Unique

@@ -247,7 +247,7 @@ namespace GTS {
             "Higher values make Auto-Aim less likely to target enemies behind you.";
             PSString T1 = "Reduces the priority of dead enemies.\n"
             "Higher values make Auto-Aim less likely to target dead enemies.";
-            PSString T2 = "Enemies behind you are ignored once they exceed this percentage of the search collider's range.";
+            //PSString T2 = "Enemies behind you are ignored once they exceed this percentage of the search collider's range.";
             PSString T3 = "Multiplies the animation blend values used by Auto-Aim.\n"
             "Higher values improve targeting near the edges of the search collider.";
             PSString T4 = "Controls how much the X and Z animation blend values are randomized when no target is found.";
@@ -255,7 +255,7 @@ namespace GTS {
             if (ImGui::CollapsingHeader("Automatic Aim Behavior Settings", ImUtil::HeaderFlagsDefaultOpen)) {
                 ImGuiEx::SliderF("Behind Target Penalty", &Config::AutoAim.fAimAssist_BackPenalty, 0.01f, 100.0f, T0, "%.2f");
                 ImGuiEx::SliderF("Dead Target Penalty", &Config::AutoAim.fAimAssist_DeadPenalty, 0.01f, 100.0f, T1, "%.2f");
-                ImGuiEx::SliderF("Ignore Rear Targets After", &Config::AutoAim.fAimAssist_IgnoreBehindAfter, 0.0f, 1.0f, T2, "%.2f");
+                //ImGuiEx::SliderF("Ignore Rear Targets After", &Config::AutoAim.fAimAssist_IgnoreBehindAfter, 0.0f, 1.0f, T2, "%.2f");
                 ImGuiEx::SliderF("Auto-Aim Blend Multiplier", &Config::AutoAim.fAimAssist_AimMagnitudeMultiplier, 1.0f, 1.5f, T3, "%.2fx");
                 ImGuiEx::SliderF("Blend Randomization on Miss", &Config::AutoAim.fAimAssist_NoHitValueRandomRange, 0.0f, 1.0f, T4, "%.2fx");
                 ImGui::Spacing();

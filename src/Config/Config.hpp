@@ -7,6 +7,7 @@
 #include "Config/Settings/SettingsAudio.hpp"
 #include "Config/Settings/SettingsBalance.hpp"
 #include "Config/Settings/SettingsAutoAim.hpp"
+#include "Config/Settings/SettingsKillMove.hpp"
 #include "Config/Settings/SettingsCamera.hpp"
 #include "Config/Settings/SettingsCollision.hpp"
 #include "Config/Settings/SettingsGameplay.hpp"
@@ -36,6 +37,7 @@ namespace GTS {
         static inline SettingsGameplay_t Gameplay     = {};
         static inline SettingsBalance_t Balance       = {};
         static inline SettingsAutoAim_t AutoAim       = {};
+        static inline SettingsKillMove_t KillMove     = {};
         static inline SettingsAudio_t Audio           = {};
         static inline SettingsAI_t AI                 = {};
         static inline SettingsCamera_t Camera         = {};

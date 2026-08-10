@@ -145,6 +145,7 @@ namespace GraphVars {
 	//Bools
 	constexpr PSString _IsBoobsDoting          = "GTS_Isboobs_doting";         // Enabled when we do the boobing state damage over time
 	constexpr PSString _IsSuffocating          = "GTS_IsSuffocating";          // Enabled when we're suffocating a tiny bin the Cleavage state
+	constexpr PSString _isBreastAbsorbing	   = "GTS_IsAbsorbing";			   // Enabled when GTS is breast absorbing someone
 	constexpr PSString _IsBoobsLeaving         = "GTS_Isboobs_leaving";        // Enabled when GTS leaves DOT state through another anim
 
 
@@ -543,6 +544,7 @@ namespace GTS::AnimationVars {
 		//Bool
 		bool IsBoobsDoting(RE::Actor* a_actor)     { return GetBool(a_actor, GraphVars::_IsBoobsDoting); }
 		bool IsSuffocating(RE::Actor* a_actor)     { return GetBool(a_actor, GraphVars::_IsSuffocating); }
+		bool isBreastAbsorbing(RE::Actor* a_actor) {return GetBool(a_actor, GraphVars::_isBreastAbsorbing);}
 		bool IsExitingStrangle(RE::Actor* a_actor) { return GetBool(a_actor, GraphVars::_IsBoobsLeaving); }
 
 		//---- SETTERS

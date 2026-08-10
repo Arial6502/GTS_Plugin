@@ -370,7 +370,21 @@ namespace GTS {
         }
 
         // ---- Multipiers
+        ImUtil_Unique {
+            PSString T0 = "Decreases Health Regeneration, making enemies easier to damage\n"
+                        "- Needed because at large sizes, enemies can outheal the damage they receive\n"
+                        "- Reduces healing received from any source based on the size\n"
+                        "- Affects all NPCs, but not the player";
 
+            PSString T1 = "Decreases Health Regeneration for the Player\n"
+                        "- Reduces healing received from any source based on the player's current size\n"
+                        "- Affects only the player";
+            if (ImGui::CollapsingHeader("Reduce healing based on size", ImUtil::HeaderFlagsDefaultOpen)) {
+                ImGuiEx::CheckBox("Enemies/Followers", &Config::Balance.bReducedHealthRegeneration_NPC, T0);
+                ImGui::SameLine();
+                ImGuiEx::CheckBox("Player", &Config::Balance.bReducedHealthRegeneration_PC, T1);
+            }
+        }
         ImUtil_Unique 
 		{
 
@@ -382,6 +396,7 @@ namespace GTS {
                         "- By default, damage scales linearly with size difference\n"
                         "- When enabled, scaling becomes non-linear\n"
                         "- Larger size differences still increase damage, but with diminishing returns";
+            
 
             if (ImGuiEx::ConditionalHeader("Multipiers", "Balance Mode Active", true)) {
                 ImGuiEx::CheckBox("Reduced Size-Related Damage Scaling", &Config::Balance.bReducedSizeDamage, T4);

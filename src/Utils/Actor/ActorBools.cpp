@@ -1,4 +1,6 @@
 #include "Managers/Size_Killmoves/SizeKillMove_WrathfulCalamity.hpp"
+#include "Managers/Size_Killmoves/SizeKillMove_BreastSuffocate.hpp"
+#include "Managers/Size_Killmoves/SizeKillMove_BreastAbsorb.hpp"
 #include "Managers/Size_Killmoves/SizeKillMove_Calamity.hpp"
 #include "Managers/Animation/Utils/CooldownManager.hpp"
 #include "Utils/Actions/VoreUtils.hpp"
@@ -234,6 +236,11 @@ namespace GTS {
 	}
 	bool ShouldHeadTrackCalamityVictim(Actor* actor) {
 		return actor->IsPlayerRef() && (WrathfulCalamity::_state != WrathfulCalamity::WrathfulPOVState::None || Calamity::_state != Calamity::TinyPOVState::None);
+	}
+	bool ShouldHeadTrackBreastVictim(Actor* actor) {
+		const bool BreastSuffocate = BreastSuffocateKillMove::_state != BreastSuffocateKillMove::BreastSuffocatePOVState::None;
+		const bool BreastAbsorb = BreastAbsorbKillMove::_state != BreastAbsorbKillMove::BreastAbsorbPOVState::None;
+		return actor->IsPlayerRef() && (BreastSuffocate || BreastAbsorb);
 	}
 	bool IsHeadtracking(Actor* giant) { // Used to report True when we lock onto something, should be Player Exclusive.
 		if (giant) {

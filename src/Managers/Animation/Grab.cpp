@@ -196,7 +196,7 @@ namespace {
 			DisableCollisions(grabbed, &data.giant); // Do it once more just in case
 		}
 
-		Rumbling::Once("GrabCatch", &data.giant, 2.0f, 0.15f);
+		Rumbling::Once("GrabCatch", &data.giant, 1.0f, 0.05f);
 	}
 
 	void GTSGrab_Catch_End(AnimationEventData& data) {

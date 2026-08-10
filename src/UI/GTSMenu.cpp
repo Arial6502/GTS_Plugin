@@ -299,14 +299,9 @@ namespace GTS {
 			if (m_localSlowMoCount.fetch_add(1, std::memory_order_acq_rel) == 0) {
 
 				// A killmove camera sequence continuously drives Time::SGTM() itself
-				// and restores it correctly on its own once it finishes. If one is
-				// active right now, Time::GGTM() is whatever mid-sequence value it
-				// currently holds (e.g. 0.25) - not "normal" speed - so capturing it
-				// here as m_originalGameTime and writing that back later (possibly
-				// well after the killmove has already finished and correctly reset
-				// SGTM itself) is exactly what left the game stuck slowed. Simplest
-				// fix: don't touch SGTM at all while a killmove owns it.
-				if (IsInGTSKillMove()) {
+				// And if we open GTS UI during it - SGTM will get messed up
+				// So it needs a fix
+				if (IsInAnyGTSKillMove()) {
 					m_slowMoAppliedByUs.store(false, std::memory_order_release);
 					return;
 				}
@@ -326,8 +321,8 @@ namespace GTS {
 					if (prev == 1 && m_slowMoAppliedByUs.exchange(false, std::memory_order_acq_rel)) {
 						// Mirror the same check on the way out: if a killmove sequence
 						// has since taken ownership of time (or is still holding it),
-						// don't stomp its current value with our stale snapshot.
-						if (!IsInGTSKillMove()) {
+						// don't override its current value with our stale snapshot.
+						if (!IsInAnyGTSKillMove()) {
 							const float original = m_originalGameTime.load(std::memory_order_acquire);
 							Time::SGTM(original);
 						}

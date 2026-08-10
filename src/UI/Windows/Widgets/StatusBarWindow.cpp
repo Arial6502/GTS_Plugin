@@ -1,7 +1,9 @@
-#include "UI/GTSMenu.hpp"
+
+#include "Managers/Size_Killmoves/KillMoveHelper.hpp"
 #include "UI/Windows/Widgets/StatusBarWindow.hpp"
-#include "UI/Core/ImColorUtils.hpp"
 #include "UI/Windows/Settings/SettingsWindow.hpp"
+#include "UI/Core/ImColorUtils.hpp"
+#include "UI/GTSMenu.hpp"
 
 namespace {
 
@@ -84,7 +86,9 @@ namespace GTS {
 		if (!State::InGame()) {
 			return false;
 		}
-
+		if (IsInAnyGTSKillMove()) { // Disable interface in GTS Killmoves
+            return false;
+        }
 		if (!GetBaseSettings().bVisible) {
 			return false;
 		}

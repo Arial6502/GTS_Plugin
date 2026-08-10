@@ -66,9 +66,6 @@ namespace GTS {
         virtual std::string DebugName() override;
         virtual void Reset() override;
 
-        // Generic per-(actor, source) "last triggered" timestamp - replaces
-        // the old CooldownData struct's one-named-field-per-source layout.
-        // Adding a source never touches this.
         double& GetLastTime(Actor* actor, CooldownSource source);
 
         private:
@@ -77,14 +74,6 @@ namespace GTS {
             std::array<double, static_cast<size_t>(CooldownSource::Total)> times;
         };
 
-        // Flat vector + linear scan instead of a hash map: only a handful of
-        // actors (3-5, occasionally more) are ever tracked at once, and at
-        // that size a scan over contiguous memory beats hashing + chasing a
-        // bucket/node pointer - no per-actor heap allocation, everything
-        // fits in a cache line or two. _lastAccessedIndex additionally skips
-        // the scan entirely for the common case of several cooldown checks
-        // in a row on the same actor within one frame. An index (not a
-        // pointer) is used so it stays valid across vector reallocation.
         std::vector<ActorCooldowns> _lastActionTimes;
         int _lastAccessedIndex = -1;
     };

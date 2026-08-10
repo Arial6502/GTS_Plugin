@@ -203,7 +203,7 @@ namespace GTS {
 				case DeathType::kAbsorbed:
 				case DeathType::kBreastAbsorbed: 
 				{
-					DeathTypeStr = "Absorbed";
+					DeathTypeStr = RandomBool() ? "Engulfed" : "Absorbed";
 					break;
 				}
 				case DeathType::kThighSuffocated:

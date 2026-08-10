@@ -31,6 +31,7 @@ namespace GTS {
                 updateRes &= a_conf.UpdateTOMLFromStruct(a_toml, a_conf.Gameplay,  std::string(toml::refl::GetFriendlyName(a_conf.Gameplay)));
                 updateRes &= a_conf.UpdateTOMLFromStruct(a_toml, a_conf.Balance,   std::string(toml::refl::GetFriendlyName(a_conf.Balance)));
                 updateRes &= a_conf.UpdateTOMLFromStruct(a_toml, a_conf.AutoAim,   std::string(toml::refl::GetFriendlyName(a_conf.AutoAim)));
+                updateRes &= a_conf.UpdateTOMLFromStruct(a_toml, a_conf.KillMove,   std::string(toml::refl::GetFriendlyName(a_conf.KillMove)));
                 updateRes &= a_conf.UpdateTOMLFromStruct(a_toml, a_conf.Audio,     std::string(toml::refl::GetFriendlyName(a_conf.Audio)));
                 updateRes &= a_conf.UpdateTOMLFromStruct(a_toml, a_conf.AI,        std::string(toml::refl::GetFriendlyName(a_conf.AI)));
                 updateRes &= a_conf.UpdateTOMLFromStruct(a_toml, a_conf.Camera,    std::string(toml::refl::GetFriendlyName(a_conf.Camera)));
@@ -76,6 +77,7 @@ namespace GTS {
                 loadRes &= a_conf.LoadStructFromTOML(a_toml, a_conf.Gameplay,   std::string(toml::refl::GetFriendlyName(a_conf.Gameplay)));
                 loadRes &= a_conf.LoadStructFromTOML(a_toml, a_conf.Balance,    std::string(toml::refl::GetFriendlyName(a_conf.Balance)));
                 loadRes &= a_conf.LoadStructFromTOML(a_toml, a_conf.AutoAim,    std::string(toml::refl::GetFriendlyName(a_conf.AutoAim)));
+                loadRes &= a_conf.LoadStructFromTOML(a_toml, a_conf.KillMove,    std::string(toml::refl::GetFriendlyName(a_conf.KillMove)));
                 loadRes &= a_conf.LoadStructFromTOML(a_toml, a_conf.Audio,      std::string(toml::refl::GetFriendlyName(a_conf.Audio)));
                 loadRes &= a_conf.LoadStructFromTOML(a_toml, a_conf.AI,         std::string(toml::refl::GetFriendlyName(a_conf.AI)));
                 loadRes &= a_conf.LoadStructFromTOML(a_toml, a_conf.Camera,     std::string(toml::refl::GetFriendlyName(a_conf.Camera)));
@@ -118,6 +120,7 @@ namespace GTS {
             a_conf.Audio     = SettingsAudio_t{};
             a_conf.Balance   = SettingsBalance_t{};
             a_conf.AutoAim   = SettingsAutoAim_t{};
+            a_conf.KillMove  = SettingsKillMove_t{};
             a_conf.Camera    = SettingsCamera_t{};
             a_conf.Gameplay  = SettingsGameplay_t{};
             a_conf.UI        = SettingsUI_t{};

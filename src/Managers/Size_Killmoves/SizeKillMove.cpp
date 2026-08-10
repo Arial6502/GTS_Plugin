@@ -11,7 +11,6 @@
 
 using namespace GTS;
 namespace {
-    float Scale() { return _enemy ? get_visual_scale(_enemy) : 1.0f; }
 
     RE::NiPoint3 HeadPos() {
         if (_enemy) {
@@ -40,23 +39,16 @@ namespace {
     }
     RE::NiPoint3 CameraAnchor() {
         float scale = GetSizeFromBoundingBox(_enemy);
-        float moveFrom = _settings.MoveFromEnemyOffset * std::clamp(get_visual_scale(_enemy), 0.4f, 1.0f);
+        float moveFrom = _settings.MoveFromEnemyOffset * std::clamp(VictimScale(_enemy), 0.4f, 1.0f);
         float distance = (_settings.MoveToEnemyDistance + moveFrom) * scale;
         float rise = _settings.RiseHeight * _settings.MoveToEnemyRiseFrac * scale;
 
         return HeadPos() + Forward3D() * distance + RE::NiPoint3(0.f, 0.f, 1.f) * rise;
     }
-    // Position of the giant (the one doing the killing) used for the node
-    // proximity check and for scaling world-space distances, mirroring how
-    // DeathHoldDistance already scales off the player's visual scale below.
+
     RE::NiPoint3 GiantPos() {
         auto player = RE::PlayerCharacter::GetSingleton();
         return player ? player->GetPosition() : _cam.cameraPos;
-    }
-
-    float GiantScale() {
-        auto player = RE::PlayerCharacter::GetSingleton();
-        return player ? get_visual_scale(player) : 1.0f;
     }
 
     bool ResolveLookPos(RE::NiPoint3& outPos) {
@@ -82,16 +74,12 @@ namespace {
         return false;
     }
 
-    // Kicks off the LookAtFace -> LookAtNode hand-off. lookDown selects the
-    // proximity-triggered framing (camera lifts above the node and looks
-    // down at it) vs. the plain timed cut (camera holds still, only the
-    // look direction blends).
     void TransitionToLookAtNode(const RE::NiPoint3& node, bool lookDown, float blendTime) {
         _nodeLookDown = lookDown;
         _cam.rotBlendFrom = _cam.cameraRot;
 
         if (lookDown) {
-            float giantScale = GiantScale();
+            float giantScale = GiantScale(PlayerCharacter::GetSingleton());
             RE::NiPoint3 lateral = _cam.cameraPos - node;
             lateral.z = 0.f;
             if (lateral.Length() < 1e-3f) {
@@ -119,9 +107,7 @@ namespace {
         _cam.stageToPos = CameraAnchor();
         _cam.cameraPos = Lerp(_cam.stageFromPos, _cam.stageToPos, eased);
 
-        // Bow the path upward at the midpoint so the camera arcs above the
-        // enemy instead of cutting a straight line through their model.
-        float arc = std::sin(Clamp01(t) * 3.14159265f) * (_settings.MoveToEnemyArcHeight * Scale());
+        float arc = std::sin(Clamp01(t) * 3.14159265f) * (_settings.MoveToEnemyArcHeight * VictimScale(_enemy));
         _cam.cameraPos.z += arc;
         
         _cam.cameraRot = BuildLookAt(_cam.cameraPos, HeadPos());
@@ -129,9 +115,7 @@ namespace {
         Time::SGTM(1.0f - (1.0f - _settings.SlowMoTarget) * t);
 
         if (t >= 1.0f) {
-            // Finish rising the remaining portion of RiseHeight (stage 1 already
-            // banked MoveToEnemyRiseFrac of it in the approach point).
-            float remainingRise = _settings.RiseHeight * (1.0f - _settings.MoveToEnemyRiseFrac) * Scale();
+            float remainingRise = _settings.RiseHeight * (1.0f - _settings.MoveToEnemyRiseFrac) * VictimScale(_enemy);
             _cam.stageToPos = _cam.cameraPos + RE::NiPoint3(0.f, 0.f, 1.f) * remainingRise;
             EnterStage(_cam, _state, SizeKillMoveState::RiseAboveEnemy);
         }
@@ -150,12 +134,9 @@ namespace {
     void UpdateLookAtFace(float dt) {
         float t = AdvanceStageTimer(_cam, dt, _settings.LookAtFaceTime);
         _cam.cameraRot = BuildLookAt(_cam.cameraPos, HeadPos());
-        // Early-out: if the tracked node has already closed in on the giant,
-        // cut over immediately instead of waiting out the fixed timer - this
-        // is what stops the node from "swallowing" the enemy while the
-        // camera is still staring at their old (pre-collision) position.
+
         RE::NiPoint3 node = NodeOrHeadPos();
-        float proximityRadius = _settings.NodeProximityRadius * GiantScale();
+        float proximityRadius = _settings.NodeProximityRadius * GiantScale(PlayerCharacter::GetSingleton());
         bool nodeIsClose = (node - GiantPos()).Length() <= proximityRadius;
 
         if (nodeIsClose) {
@@ -174,8 +155,6 @@ namespace {
         RE::NiPoint3 node = NodeOrHeadPos();
         float bt = AdvanceBlend(_cam, dt);
 
-        // Cross-fade both position and look direction from where LookAtFace
-        // left off onto the live node target, instead of snapping onto it.
         _cam.cameraPos = Lerp(_cam.stageFromPos, _nodeEyeTarget, bt);
 
         // Keep the camera at a configurable distance from the target node.
@@ -184,7 +163,7 @@ namespace {
             toCamera = RE::NiPoint3(1.f, 0.f, 0.f);
         }
         toCamera.Unitize();
-        _cam.cameraPos = node + toCamera * (_settings.LookAtNodeDistance * get_visual_scale(PlayerCharacter::GetSingleton()));
+        _cam.cameraPos = node + toCamera * (_settings.LookAtNodeDistance * GiantScale(PlayerCharacter::GetSingleton()));
 
         RE::NiMatrix3 liveTarget = BuildLookAt(_cam.cameraPos, node);
         _cam.cameraRot = SlerpMatrix(_cam.rotBlendFrom, liveTarget, bt);
@@ -232,10 +211,6 @@ namespace {
 
         _cam.cameraRot = BuildLookAt(_cam.cameraPos, node);
 
-        // Note: whether the player is still "busy" (i.e. the killmove animation
-        // is still playing) is checked centrally in UpdateSizeKillmove(), which
-        // will force us straight into ReturnCamera the moment it isn't - so
-        // this stage only needs its own safety timeout.
         bool timedOut = _cam.timer >= (_settings.DeathFlyOffTime + _settings.OrbitTime + _settings.PostDeathMaxWait) * 4.0f;
 
         if (timedOut) {
@@ -246,14 +221,7 @@ namespace {
     void UpdateReturnCamera(float dt) {
         float t = AdvanceStageTimer(_cam, dt, _settings.ReturnTime);
         float eased = Ease(t);
-        _cam.cameraPos = Lerp(_cam.stageFromPos, _cam.startPos, eased);
-
-        // Slerp straight toward the exact captured start rotation, rather than
-        // continuously re-aiming at the player's current look direction and
-        // then hard-snapping to startRot once t hits 1 - that mismatch (a
-        // live look-at target vs. a frozen final rotation) is what caused the
-        // visible jerk right as the camera finished returning.
-        _cam.cameraRot = SlerpMatrix(_cam.stageFromRot, _cam.startRot, eased);
+        EaseCameraToStart(_cam, eased);
 
         Time::SGTM(_settings.SlowMoTarget + (1.0f - _settings.SlowMoTarget) * t);
 
@@ -293,6 +261,7 @@ namespace GTS {
             logger::info("Can't start killmove");
             return;
         }
+        
         auto camera = RE::PlayerCamera::GetSingleton();
         auto root = camera->cameraRoot.get();
 
@@ -316,12 +285,8 @@ namespace GTS {
         _nodeLookDown = false;
         _isFoot = params.isFootAttack;
 
-        float scale = Scale();
         RE::NiPoint3 headPos = HeadPos();
 
-        // The approach point already banks part of RiseHeight so stage 1
-        // ends above the enemy rather than level with (or inside) their face;
-        // stage 2 (RiseAboveEnemy) then finishes the climb.
         _cam.stageToPos = CameraAnchor();
 
         EnterStage(_cam, _state, SizeKillMoveState::MoveToEnemy);
@@ -332,11 +297,6 @@ namespace GTS {
             return;
         }
 
-        // Safety net: if the player's killmove animation stops being "busy"
-        // for any reason (interrupted, cancelled, ended early) while we're
-        // still tracking the enemy, don't keep the camera glued to them -
-        // ease back out immediately instead of waiting for a stage-specific
-        // timeout to eventually notice.
         if (_state != SizeKillMoveState::None && _state != SizeKillMoveState::ReturnCamera && !IsPlayerAnimBusy()) {
             EnterStage(_cam, _state, SizeKillMoveState::ReturnCamera);
         }
@@ -353,19 +313,12 @@ namespace GTS {
             default: break;
         }
 
-        // Applied last so the impact hit-stop overrides whatever SGTM value
-        // the stage above just set, for as long as it's still running.
         ApplyImpactSlowMo(_cam, dt, _settings.SlowMoTarget, _settings.ImpactSlowMoExtra, _settings.ImpactSlowMoInTime, _settings.ImpactSlowMoTime);
     }
 
     RE::NiPoint3 NodeOrHeadPos() {
         RE::NiPoint3 pos;
         if (ResolveLookPos(pos)) {
-            // The skeleton bone itself doesn't move when heels go on - HighHeelManager's
-            // offset is a purely visual effect the game doesn't bake into the node
-            // transform. Correct for it here, once, so every caller downstream (proximity
-            // checks, look-down framing, orbit anchor, death-hold distance) automatically
-            // works off the true heel-adjusted height instead of each re-deriving it.
             pos.z -= ApplyHeelOffset(_isFoot);
             return pos;
         }
@@ -376,10 +329,11 @@ namespace GTS {
         if (_state == SizeKillMoveState::None) {
             return false;
         }
+        UpdateSizeKillmove();
         if (!DriveCameraWithCollision(_cam, NodeOrHeadPos())) {
             return false;
         }
-        UpdateSizeKillmove();
+        
         return true;
     }
 

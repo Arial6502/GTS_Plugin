@@ -2,6 +2,36 @@
 #include "Hooks/Util/HookUtil.hpp"
 #include "Managers/AttributeManager.hpp"
 #include "Managers/AI/AIFunctions.hpp"
+#include "Config/Config.hpp"
+
+using namespace GTS;
+
+namespace {
+	bool IsHealingEffect(RE::ActorValue a_akValue) {
+		bool health = a_akValue == ActorValue::kHealth;
+		return health;
+	}
+	float ReduceHealingEfficiency(Actor* a_actor, ActorValue a_akValue, float original) {
+		if (original > 0.0f) { // >0 means gaining positive health/regeneration, also protection against negative regen (being damaged)
+			const bool isEnabled_NPC 	= 	!a_actor->IsPlayerRef()	&& Config::Balance.bReducedHealthRegeneration_NPC;
+			const bool isEnabled_PC 	= 	a_actor->IsPlayerRef() 	&& Config::Balance.bReducedHealthRegeneration_PC;
+		
+			const bool isDowned = GetAV(a_actor, ActorValue::kHealth) < 0.0f; // Followers can go down, we don't want to increase recovery time
+			const bool isAllowed = (isEnabled_NPC || isEnabled_PC);
+
+			if (isAllowed && !isDowned) {
+				const float size = std::max(get_visual_scale(a_actor), 1.0f);
+				float reduction = original * (1.0f / size);
+				logger::info("Reducing healing effect: {}, value pre: {}, value post: {}, size: {}", a_actor->GetDisplayFullName(), original, reduction, size);
+				return reduction;
+			}
+		} else if (original < 0.0f) {
+			logger::info("Original is < 0: {}", original);
+		}
+		
+		return original;
+	}
+}
 
 namespace Hooks {
 
@@ -39,7 +69,7 @@ namespace Hooks {
 	};
 
 	//Unused
-	struct GetPermanentActorValue {
+	/*struct GetPermanentActorValue {
 
 		static constexpr std::size_t funcIndex = 0x02;
 
@@ -57,8 +87,7 @@ namespace Hooks {
 
 		template<int ID>
 		FUNCTYPE_VFUNC_UNIQUE func;
-
-	};
+	};*/
 
 	struct GetBaseActorValue {
 
@@ -112,6 +141,29 @@ namespace Hooks {
 
 	};
 
+	struct RestoreActorValue {
+
+		static constexpr std::size_t funcIndex = 0x06;
+
+		template<int ID>
+		static void thunk(ActorValueOwner* a_owner, ACTOR_VALUE_MODIFIER a_modifier, ActorValue a_akValue, float a_value) {
+
+			{
+				GTS_PROFILE_ENTRYPOINT_UNIQUE("ActorValueOwner::SetActorValue", ID);
+
+				const auto actor = skyrim_cast<Actor*>(a_owner);
+				if (actor && IsHealingEffect(a_akValue)) {
+					a_value = ReduceHealingEfficiency(actor, a_akValue, a_value); // Nerf health regen on huge actors
+				}
+			}
+
+			func<ID>(a_owner, a_modifier, a_akValue, a_value);
+		}
+
+		template<int ID>
+		FUNCTYPE_VFUNC_UNIQUE func;
+	};
+
 	void Hook_ActorValueOwner::Install() {
 
 		logger::info("Installing ActorValueOwner VTABLE MultiHooks...");
@@ -119,7 +171,6 @@ namespace Hooks {
 		stl::write_vfunc_unique<GetActorValue, 1>(VTABLE_Character[5]);
 		stl::write_vfunc_unique<GetActorValue, 2>(VTABLE_PlayerCharacter[5]);
 
-		//Unused
 		/*stl::write_vfunc_unique<GetPermanentActorValue, 1>(VTABLE_Character[5]);
 		stl::write_vfunc_unique<GetPermanentActorValue, 2>(VTABLE_Actor[5]);*/
 
@@ -129,5 +180,7 @@ namespace Hooks {
 		stl::write_vfunc_unique<SetBaseActorValue, 1>(VTABLE_Character[5]);
 		stl::write_vfunc_unique<SetBaseActorValue, 2>(VTABLE_PlayerCharacter[5]);
 
+		stl::write_vfunc_unique<RestoreActorValue, 1>(VTABLE_Character[5]);
+		stl::write_vfunc_unique<RestoreActorValue, 2>(VTABLE_PlayerCharacter[5]);
 	}
 }

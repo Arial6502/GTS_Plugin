@@ -1,4 +1,6 @@
 #include "Managers/Animation/CleavageEvents.hpp"
+#include "Managers/Size_Killmoves/SizeKillMove_BreastSuffocate.hpp"
+#include "Managers/Size_Killmoves/SizeKillMove_BreastAbsorb.hpp"
 
 #include "Managers/Animation/Controllers/VoreController.hpp"
 #include "Managers/Animation/Utils/CooldownManager.hpp"
@@ -510,6 +512,8 @@ namespace {
     void GTS_BS_PullTiny(const AnimationEventData& data) {
         auto tiny = Grab::GetHeldActor(&data.giant);
         if (tiny) {
+            BreastSuffocateKillMove::_settings.PulledOut = true;
+
             Task_FacialEmotionTask_Smile(&data.giant, 1.6f, "SufoPullOut", 0.25f);
             Rumbling::Once("PullOut_R", &data.giant, 0.75f, 0.0f, "L Breast02", 0.0f);
             Rumbling::Once("PullOut_L", &data.giant, 0.75f, 0.0f, "R Breast02", 0.0f);
@@ -550,7 +554,22 @@ namespace {
 
     ///=================================================================== Utils
 
-    void GTS_BS_SwitchToObjectB(const AnimationEventData& data) {Attachment_SetTargetNode(&data.giant, AttachToNode::ObjectB);}
+    void GTS_BS_SwitchToObjectB(const AnimationEventData& data) {
+        Attachment_SetTargetNode(&data.giant, AttachToNode::ObjectB);
+
+        if (AnimationVars::Action::IsInCleavageState(&data.giant)) {
+            const bool Absorbing = AnimationVars::Cleavage::isBreastAbsorbing(&data.giant);
+            const bool Suffocating = AnimationVars::Cleavage::IsSuffocating(&data.giant);
+            if (auto tiny = Grab::GetHeldActor(&data.giant); auto giant = &data.giant) {
+                const auto node = find_node(giant, "NPC Head [Head]");
+                if (Absorbing) {
+                    StartBreastAbsorbKillmove(giant, tiny, node, DamageSource::BreastAbsorb, 9000.0f, 0.1f, false, true);
+                } else if (Suffocating) {
+                    StartBreastSuffocateKillmove(giant, tiny, node, DamageSource::BreastAbsorb, 9000.0f, 0.1f, false, true);
+                }
+            }
+        }
+    }
     void GTS_BS_SwitchToCleavage(const AnimationEventData& data) {Attachment_SetTargetNode(&data.giant, AttachToNode::None);}
 
     void GTS_BS_Poke(const AnimationEventData& data) {

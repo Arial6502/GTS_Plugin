@@ -71,6 +71,8 @@ struct SettingsBalance_t {
     float fBMShrinkOnHitMult = 1.0f;
     bool bSharePerks = false;
     bool bReducedSizeDamage = true;
+    bool bReducedHealthRegeneration_NPC = true;
+    bool bReducedHealthRegeneration_PC = false;
 
 };
 TOML_SERIALIZABLE(SettingsBalance_t);

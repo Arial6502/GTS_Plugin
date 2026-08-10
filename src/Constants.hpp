@@ -80,7 +80,7 @@ namespace GTS {
 	constexpr float Damage_Breast_Squish = 2.2f;
 	constexpr float Damage_Breast_Strangle = 0.00980f;
 
-    constexpr float Damage_SizeDifferenceReductionMult = 0.65f;
+    constexpr float Damage_SizeDifferenceReductionMult = 0.6f;
     ////////////////Defaults
 
     constexpr float Damage_Default_Underfoot = 0.003f; // when we just stand still

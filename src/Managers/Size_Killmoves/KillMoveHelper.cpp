@@ -1,6 +1,9 @@
 #include "Managers/Size_Killmoves/SizeKillMove_WrathfulCalamity.hpp"
+#include "Managers/Size_Killmoves/SizeKillMove_BreastSuffocate.hpp"
+#include "Managers/Size_Killmoves/SizeKillMove_BreastAbsorb.hpp"
 #include "Managers/Size_Killmoves/SizeKillMove_Calamity.hpp"
 #include "Managers/Size_Killmoves/KillMoveParamObtainer.hpp"
+#include "Managers/Animation/Utils/AnimationUtils.hpp"
 #include "Managers/Size_Killmoves/KillMoveHelper.hpp"
 #include "Managers/Size_Killmoves/SizeKillMove.hpp"
 #include "Managers/Damage/Utils/SizeDamageUtils.hpp"
@@ -23,6 +26,9 @@ namespace {
 }
 
 namespace GTS {
+    float VictimScale(Actor* a_victim) { return a_victim ? get_visual_scale(a_victim) : 1.0f; }
+    float GiantScale(Actor* a_giant)  { return a_giant  ? get_visual_scale(a_giant)  : 1.0f; }
+
     float PredictDamage(Actor* giant, Actor* enemy, DamageSource Cause, float baseDamage) {
         if (DamageAllowed(giant, enemy, Cause)) {
             float finalDamage = CalculateSizeDamage(giant, enemy, Cause, baseDamage);
@@ -39,16 +45,18 @@ namespace GTS {
 
     bool CanTriggerKillMove(Actor* giant, Actor* enemy, DamageSource Cause, float baseDamage, float crushModifier, float killMoveChance_Crush) {
         if (get_scale_difference(giant, enemy, SizeType::VisualScale, false, false) >= Action_Crush * crushModifier) {
-            killMoveChance_Crush = Config::General.fKillMoveChance_Crush;
+            killMoveChance_Crush = Config::KillMove.fKillMoveChance_Crush;
         }
-        const float combinedChance = std::clamp(Config::General.fKillMoveChance_Death + killMoveChance_Crush, 0.0f, 100.0f);
+        const float combinedChance = std::clamp(Config::KillMove.fKillMoveChance_Death + killMoveChance_Crush, 0.0f, 100.0f);
         const float predictedDamage = PredictDamage(giant, enemy, Cause, baseDamage);
 
+        
         const bool isEnemyLowHealth = predictedDamage >= GetAV(enemy, ActorValue::kHealth);
+        const bool isEnabled = Config::KillMove.bEnableKillMoves;
         const bool isRandomTrue = RandomBool(combinedChance);
         const bool isEnemyAlive = !enemy->IsDead();
 
-        const bool canStartKillMove = isEnemyAlive && isRandomTrue && isEnemyLowHealth;
+        const bool canStartKillMove = isEnabled && isEnemyAlive && isRandomTrue && isEnemyLowHealth;
         
         return canStartKillMove;
     }
@@ -59,6 +67,46 @@ namespace GTS {
             // Returns offset * 0.01f by default, so we * by 100 to convert to game units
         }
         return 0.0f;
+    }
+
+    RE::NiPoint3 VictimHeadPos(Actor* victim, const RE::NiPoint3& fallback, float noBoneOffsetZ) {
+        if (!victim) {
+            return fallback;
+        }
+        if (auto head = find_node(victim, "NPC Head [Head]")) {
+            return head->world.translate;
+        }
+        return victim->GetPosition() + RE::NiPoint3(0.0f, 0.0f, noBoneOffsetZ);
+    }
+
+    RE::NiMatrix3 VictimHeadRot(Actor* victim) {
+        if (victim) {
+            if (auto head = find_node(victim, "NPC Head [Head]")) {
+                return head->world.rotate;
+            }
+        }
+        return RE::NiMatrix3();
+    }
+
+    RE::NiPoint3 GiantHeadPos(Actor* giant, const RE::NiPoint3& fallback) {
+        if (!giant) {
+            return fallback;
+        }
+        if (auto head = find_node(giant, "NPC Head [Head]")) {
+            return head->world.translate;
+        }
+        return giant->GetPosition();
+    }
+
+    RE::NiPoint3 GiantNodeOrHeadPos(RE::NiAVObject* node, Actor* giant, const RE::NiPoint3& fallback, bool applyHeels) {
+        if (node) {
+            RE::NiPoint3 pos = node->world.translate;
+            if (applyHeels) {
+                pos.z -= ApplyHeelOffset(true);
+            }
+            return pos;
+        }
+        return GiantHeadPos(giant, fallback);
     }
 
     // ---------------------------------------------------------------------
@@ -108,11 +156,6 @@ namespace GTS {
             RE::NiPoint3(right.z, forward.z, up.z)
         );
     }
-
-    // ---------------------------------------------------------------------
-    // quaternion helpers, used only to slerp between two camera rotations
-    // during a face/eye -> node hand-off (NiMatrix3 has no built-in slerp)
-    // ---------------------------------------------------------------------
 
     Quat MatrixToQuat(const RE::NiMatrix3& m) {
         Quat q{};
@@ -177,7 +220,6 @@ namespace GTS {
         }
 
         if (dot > 0.9995f) {
-            // nearly identical rotations - linear interpolation avoids a div-by-zero below
             Quat r{ a.w + (b.w - a.w) * t, a.x + (b.x - a.x) * t,
                     a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t };
             float len = std::sqrt(r.w * r.w + r.x * r.x + r.y * r.y + r.z * r.z);
@@ -187,7 +229,7 @@ namespace GTS {
             return r;
         }
 
-        float theta0 = std::acos(std::clamp(dot, -1.0f, 1.0f)); // clamp guards fp drift pushing dot slightly past 1
+        float theta0 = std::acos(std::clamp(dot, -1.0f, 1.0f)); 
         float theta = theta0 * t;
         float sinTheta0 = std::sin(theta0);
         float sinTheta = std::sin(theta);
@@ -212,6 +254,12 @@ namespace GTS {
     float AdvanceStageTimer(CameraSequenceState& state, float dt, float duration) {
         float ggtm = Time::GGTM();
         state.timer += ggtm > 1e-4f ? dt / ggtm : dt;
+        return duration > 1e-4f ? Clamp01(state.timer / duration) : 1.0f;
+    }
+
+    float AdvanceStageTimerSafe(CameraSequenceState& state, float dt, float duration) {
+        float ggtm = std::max(Time::GGTM(), 0.05f);
+        state.timer += dt / ggtm;
         return duration > 1e-4f ? Clamp01(state.timer / duration) : 1.0f;
     }
 
@@ -244,15 +292,11 @@ namespace GTS {
         float dip = slowMoTarget * (1.0f - impactExtra);
  
         if (state.impactTimer < impactInTime) {
-            // Phase 1: ease DOWN into the dip instead of snapping to it the
-            // instant death is detected - this is what removes the visible
-            // "instant" jump right as the hit-stop kicks in.
             float t = Clamp01(impactInTime > 1e-4f ? state.impactTimer / impactInTime : 1.0f);
             Time::SGTM(slowMoTarget - (slowMoTarget - dip) * Ease(t));
             return true;
         }
  
-        // Phase 2: ease back UP from the dip to slowMoTarget.
         float t = Clamp01((state.impactTimer - impactInTime) / std::max(impactOutTime, 0.01f));
         Time::SGTM(dip + (slowMoTarget - dip) * Ease(t));
  
@@ -293,6 +337,29 @@ namespace GTS {
         return true;
     }
 
+    RE::NiPoint3 SmoothTowards(const RE::NiPoint3& current, const RE::NiPoint3& target, float dt, float halflife) {
+        if (isInConfiguringMode()) {
+            halflife *= configureModeTimeSlowdown;
+        }
+        float t = 1.0f - std::exp(-dt / std::max(halflife, 1e-3f));
+        return Lerp(current, target, t);
+    }
+
+    RE::NiPoint3 ComputeImpactShakeOffset(const CameraSequenceState& state, float magnitude, float frequency, float scale, float decay) {
+        RE::NiPoint3 right = { state.stageFromRot.entry[0][0], state.stageFromRot.entry[1][0], state.stageFromRot.entry[2][0] };
+        RE::NiPoint3 up     = { state.stageFromRot.entry[0][2], state.stageFromRot.entry[1][2], state.stageFromRot.entry[2][2] };
+
+        float wobble = std::sin(state.timer * frequency);
+        float sway   = std::cos(state.timer * frequency * 0.7f);
+
+        return (right * wobble + up * sway) * (magnitude * scale * decay);
+    }
+
+    void EaseCameraToStart(CameraSequenceState& state, float easedT) {
+        state.cameraPos = Lerp(state.stageFromPos, state.startPos, easedT);
+        state.cameraRot = SlerpMatrix(state.stageFromRot, state.startRot, easedT);
+    }
+
     void TryKillMove(Actor* giant, const AimOutcome& aim, KillMoveParameters params) {
         if (!aim.victim) {
             logger::info("No victim");
@@ -316,12 +383,43 @@ namespace GTS {
         );
     }
 
-    bool IsInGTSKillMove() {
+    void RecordKillMoveCameraPositions() {
+        RecordWrathfulCalamityStartingPosition();
+		RecordCalamityStartingPosition();
+		RecordBreastSuffocateStartingPosition();
+		RecordBreastAbsorbStartingPosition();
+		RecordStartingPosition();
+    }
+
+     void ResetKillMoveCameraTracking() {// At the moment camera snaps back at the end of size actions instead of returning to original pos smoothly
+        // It happens because bone tracking adds offset to the camera, but im unsure how to fix it at the moment. 
+        // This function doesn't help no matter where i put it.
+        const auto PC = PlayerCharacter::GetSingleton();
+        if (SizeManager::GetSingleton().GetTrackedBone(PC) != CameraTracking::None) {
+		    SizeManager::GetSingleton().SetTrackedBone(PC, false, CameraTracking::None);
+        }
+    }
+    
+    bool UpdatingAnyKillMove() {
+        bool KillMove = UpdateKillMove();
+        bool Calamity = UpdateCalamityKillMove();
+        bool WrathfulCalamity = UpdateWrathfulCalamityKillMove();
+        bool BreastSuffocate = UpdateBreastSuffocateKillMove();
+        bool BreastAbsorb = UpdateBreastAbsorbKillMove();
+        bool InKillMove = KillMove || Calamity || WrathfulCalamity || BreastSuffocate || BreastAbsorb;
+        return InKillMove;
+    }
+    bool IsInAnyGTSKillMove() {
+        const bool BreastAbsorb     = BreastAbsorbKillMove::_state != BreastAbsorbKillMove::BreastAbsorbPOVState::None;
+        const bool BreastSuffocate  = BreastSuffocateKillMove::_state != BreastSuffocateKillMove::BreastSuffocatePOVState::None;
 		const bool WrathfulCalamity = WrathfulCalamity::_state != WrathfulCalamity::WrathfulPOVState::None;
 		const bool Calamity 		= Calamity::_state != Calamity::TinyPOVState::None;		
 		const bool SizeKillMove		= _state != SizeKillMoveState::None;
 
-		const bool InKillMove		= Calamity || WrathfulCalamity || SizeKillMove;
+		const bool InKillMove		= Calamity || WrathfulCalamity || SizeKillMove || BreastAbsorb || BreastSuffocate;
 		return InKillMove;
 	}
+    bool isInConfiguringMode() {
+        return Config::KillMove.bConfigureMode;
+    }
 }

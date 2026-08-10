@@ -1,4 +1,6 @@
 #include "Managers/Size_Killmoves/SizeKillMove_WrathfulCalamity.hpp"
+#include "Managers/Size_Killmoves/SizeKillMove_BreastSuffocate.hpp"
+#include "Managers/Size_Killmoves/SizeKillMove_BreastAbsorb.hpp"
 #include "Managers/Size_Killmoves/SizeKillMove_Calamity.hpp"
 #include "Hooks/Actor/HeadTracking.hpp"
 #include "Hooks/Util/HookUtil.hpp"
@@ -40,12 +42,16 @@ namespace {
 		}
 	}
 	
-	void ForceLookAtKillMoveVictim(Actor* actor, NiPoint3& target) { // Forces someone to look at killmove victim, works only during WrathfulCalamity/TinyCalamityShrink
-		if (!ShouldHeadTrackCalamityVictim(actor)) {
-			return;
+	void ForceLookAtKillMoveVictim(Actor* actor, NiPoint3& target) { // Forces Player to look at killmove victim, works only with specific killmoves
+		if (ShouldHeadTrackCalamityVictim(actor) || ShouldHeadTrackBreastVictim(actor)) {
+			if (OverrideHeadtracking_WrathfulCalamity(target) || 
+				OverrideHeadtracking_BreastSuffocate(target) ||
+				OverrideHeadtracking_BreastAbsorb(target)
+			) {
+			}  // These functions just override NiPoint3 &target
+			else if (OverrideHeadtracking_TinyCalamity(target)) {
+			}
 		}
-		if (OverrideWrathfulCalamityHeadtracking(target)) 	{}  // These functions just override NiPoint3 &target
-		else if (OverrideCalamityHeadtracking(target)) 		{}
 	}
 
 	float GetRacemenuScale(Actor* giant) { // Used only on NPC's since we don't want to apply Natural Scale to them

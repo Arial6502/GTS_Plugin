@@ -108,7 +108,7 @@ namespace Hooks {
 		template<int ID>
 		static bool thunk(void* a_this, RE::InputEvent* a_event) {
 			if (a_event->GetEventType() == INPUT_EVENT_TYPE::kMouseMove || a_event->GetEventType() == INPUT_EVENT_TYPE::kThumbstick) {
-				if (IsInGTSKillMove()) {
+				if (IsInAnyGTSKillMove()) {
 					return false;
 				}
 			}

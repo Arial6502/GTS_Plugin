@@ -254,6 +254,7 @@ namespace GTS::AnimationVars {
 
 		bool IsBoobsDoting(RE::Actor* a_actor);
 		bool IsSuffocating(RE::Actor* a_actor);
+		bool isBreastAbsorbing(RE::Actor* a_actor);
 		bool IsExitingStrangle(RE::Actor* a_actor);
 
 		bool SetIsBoobsDoting(RE::Actor* a_actor, bool a_value);
