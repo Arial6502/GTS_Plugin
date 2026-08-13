@@ -137,6 +137,7 @@ namespace {
         set(CooldownSource::Misc_TinyCalamity_Hit,              { .staticCooldown = TINYCALAMITY_MELEEHIT_PUSH });
         set(CooldownSource::Misc_TinyCalamity_RunPushAway,      { .staticCooldown = TINYCALAMITY_RUN_PUSHAWAY });
         set(CooldownSource::Misc_TinyCalamity_Ragdoll,          { .staticCooldown = TINYCALAMITY_MELEEHIT_RAGDOLL });
+        set(CooldownSource::Misc_AutoAim_Cooldown,              { .staticCooldown = AUTOAIM_COOLDOWN});
         set(CooldownSource::Footstep_Right,                     { .dynamicCooldown = Calculate_FootstepTimer });
         set(CooldownSource::Footstep_Left,                      { .dynamicCooldown = Calculate_FootstepTimer });
         set(CooldownSource::Footstep_JumpLand,                  { .dynamicCooldown = Calculate_FootstepTimer });
@@ -156,27 +157,19 @@ namespace GTS {
 
     double& CooldownManager::GetLastTime(Actor* actor, CooldownSource source) {
         size_t idx = static_cast<size_t>(source);
-        if (_lastAccessedIndex >= 0 && static_cast<size_t>(_lastAccessedIndex) < _lastActionTimes.size()
-            && _lastActionTimes[_lastAccessedIndex].actor == actor) {
-            return _lastActionTimes[_lastAccessedIndex].times[idx];
+
+        if (_lastAccessedActor == actor && _lastAccessedTimes) {
+            return (*_lastAccessedTimes)[idx];
         }
 
-        for (size_t i = 0; i < _lastActionTimes.size(); ++i) {
-            if (_lastActionTimes[i].actor == actor) {
-                _lastAccessedIndex = static_cast<int>(i);
-                return _lastActionTimes[i].times[idx];
-            }
+        auto [it, inserted] = _lastActionTimes.try_emplace(actor);
+        if (inserted) {
+            it->second.fill(-1.0e8);
         }
 
-        // Fresh actor - defaults every source to "never triggered", same
-        // intent as the old struct's -1.0e8 field defaults.
-        _lastActionTimes.push_back({});
-        ActorCooldowns& entry = _lastActionTimes.back();
-        entry.actor = actor;
-        entry.times.fill(-1.0e8);
-
-        _lastAccessedIndex = static_cast<int>(_lastActionTimes.size() - 1);
-        return entry.times[idx];
+        _lastAccessedActor = actor;
+        _lastAccessedTimes = &it->second;
+        return it->second[idx];
     }
 
     void ApplyActionCooldown(Actor* giant, CooldownSource source) {
@@ -187,6 +180,7 @@ namespace GTS {
     }
 
     float GetRemainingCooldown(Actor* giant, CooldownSource source) {
+        GTS_PROFILE_ENTRYPOINT("CooldownManager::GetRamainingCooldown");
         if (!giant) {
             return 0.0;
         }
@@ -197,6 +191,7 @@ namespace GTS {
     }
 
     bool IsActionOnCooldown(Actor* giant, CooldownSource source) {
+        GTS_PROFILE_ENTRYPOINT("CooldownManager::IsActionOnCooldown");
         // Keep the global cooldowns-disabled toggle for Action_*/*_TinyCalamity_* sources.
         if (!Config::Advanced.bCooldowns && (Enum_Contains<CooldownSource>(source, "Action") || Enum_Contains<CooldownSource>(source, "TinyCalamity"))) {
             return false;
@@ -210,7 +205,8 @@ namespace GTS {
 
     void CooldownManager::Reset() {
         _lastActionTimes.clear();
-        _lastAccessedIndex = -1;
+        _lastAccessedActor = nullptr;
+        _lastAccessedTimes = nullptr;
         logger::info("Cooldowns cleared");
     }
 }

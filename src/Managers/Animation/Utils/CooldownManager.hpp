@@ -33,6 +33,7 @@ namespace GTS {
         Misc_TinyCalamity_Hit,
         Misc_TinyCalamity_RunPushAway,
         Misc_TinyCalamity_Ragdoll,
+        Misc_AutoAim_Cooldown,
         Footstep_Right,
         Footstep_Left,
         Footstep_JumpLand,
@@ -69,12 +70,8 @@ namespace GTS {
         double& GetLastTime(Actor* actor, CooldownSource source);
 
         private:
-        struct ActorCooldowns {
-            Actor* actor = nullptr;
-            std::array<double, static_cast<size_t>(CooldownSource::Total)> times;
-        };
-
-        std::vector<ActorCooldowns> _lastActionTimes;
-        int _lastAccessedIndex = -1;
+        std::unordered_map<Actor*, std::array<double, static_cast<size_t>(CooldownSource::Total)>> _lastActionTimes;
+        Actor* _lastAccessedActor = nullptr;
+        std::array<double, static_cast<size_t>(CooldownSource::Total)>* _lastAccessedTimes = nullptr;
     };
 }

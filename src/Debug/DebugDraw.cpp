@@ -464,6 +464,17 @@ namespace GTS {
 			}
 		}
 	}
+	void DebugDraw::DrawConvexVertices(const std::vector<RE::hkVector4>& hkVerts, glm::vec3 origin, const glm::mat4& transform, int liftetimeMS, const glm::vec4& color, float lineThickness) {
+		std::vector<glm::vec3> vertices;
+		vertices.reserve(hkVerts.size());
+
+		for (int32_t i = 0; i < hkVerts.size(); ++i) {
+			const RE::hkVector4& hkVert = hkVerts[i];
+			vertices.emplace_back(hkVert.quad.m128_f32[0], hkVert.quad.m128_f32[1], hkVert.quad.m128_f32[2]);
+		}
+
+		DrawConvexVertices(vertices, origin, transform, liftetimeMS, color, lineThickness);
+	}
 
 	void DebugDraw::DrawConvexVertices(const RE::hkArray<RE::hkVector4>& hkVerts, glm::vec3 origin, const glm::mat4& transform, int liftetimeMS, const glm::vec4& color, float lineThickness) {
 		std::vector<glm::vec3> vertices;

@@ -55,10 +55,8 @@ namespace {
         // Without it - Giantess uses same left/right attack without any variety
         return final_distance <= max_distance;
     }
-    bool ShouldAutoAim(float final_distance, float max_distance, float dx, float modifier = 0.0f) {
-        float ignore_past = 1.0f; //std::clamp(Config::AutoAim.fAimAssist_IgnoreBehindAfter + modifier, 0.0f, 1.0f);
-        return final_distance <= max_distance && dx >= -(max_distance * ignore_past); 
-        // Allows to auto-aim if enemy is a bit behind
+    bool ShouldAutoAim(float final_distance, float max_distance, float dx) {
+        return final_distance <= max_distance; 
     }
 
     bool IsVictimAlive(Actor* victim) {
@@ -69,10 +67,10 @@ namespace {
         return std::clamp(value * Config::AutoAim.fAimAssist_AimMagnitudeMultiplier * multiplier, -1.0f, 1.0f);
     }
 
-    void DebugLogBlend(Actor* victim, float x, float y) {
+    void DebugLogBlend(Actor* giant, Actor* victim, float x, float y, std::string_view name) {
         if (Config::AutoAim.bDebugAutoAim) {
-            logger::info("Blend2D X:{}, Y:{} | Victim:{}", x, y, victim->GetDisplayFullName());
-            Cprint("Blend2D X:{}, Y:{} | Victim:{}", x, y, victim->GetDisplayFullName());
+            logger::info("Source: {}, Blend2D X:{}, Y:{} | Victim:{}", name, x, y, victim->GetDisplayFullName());
+            Cprint("Source: {}, Blend2D X:{}, Y:{} | Victim:{}, IsGtsBusy: {}", name, x, y, victim->GetDisplayFullName(), AnimationVars::General::IsBusy(giant));
         }
     }
 
@@ -110,8 +108,8 @@ namespace {
         return victim;
     }
 
-    bool FinalizeAim(Actor* giant, bool& left, Actor* victim, AnimationBlendInfo& params, AimAssistResult* out_result, float modifier = 0.0f) {
-        bool AutoAim = ShouldAutoAim(params.finalDistance, params.maxDistance, params.outDistanceX, modifier);
+    bool FinalizeAim(Actor* giant, bool& left, Actor* victim, AnimationBlendInfo& params, AimAssistResult* out_result) {
+        bool AutoAim = ShouldAutoAim(params.finalDistance, params.maxDistance, params.outDistanceX);
         if (AutoAim) {
             if (out_result) {
                 out_result->hit = true;
@@ -121,7 +119,7 @@ namespace {
                 out_result->distance = params.finalDistance;
                 out_result->victim = victim;
             } else {
-                SetStompBlendValues(giant, params.blendX, params.blendY);
+                SetStompBlendValues(giant, params.blendX, params.blendY, "Finalize Aim Function");
             }
         } else if (IsInRange(params.finalDistance, params.maxDistance)) {
             left = RandomBool();
@@ -150,7 +148,6 @@ namespace GTS {
             NiPoint3 footPos, victimPos;
             auto victim = FindAndDebugTwoPointTarget(giant, footPos_L, footPos_R, max_distance, left, Kick_Color, footPos, victimPos);
             if (!victim) {
-                left = !left;
                 return left;
             }
             AnimationBlendInfo params;
@@ -218,11 +215,11 @@ namespace GTS {
                 out_result->distance = params.finalDistance;
                 out_result->victim = victim;
             } else {
-                SetStompBlendValues(giant, params.blendX, params.blendY);
+                SetStompBlendValues(giant, params.blendX, params.blendY, "Breast Slam");
             }
             return true;
         }
-        bool AutoAim_Crawl_TryButtSlam(Actor* giant, bool& left_butt, AimAssistResult* out_result) {
+        bool AutoAim_Sneak_TryButtSlam(Actor* giant, bool& left_butt, AimAssistResult* out_result) {
             if (!giant) return false;
             if (giant->IsPlayerRef() && IsFreeCameraEnabled()) return false;
 
@@ -235,7 +232,9 @@ namespace GTS {
 
             NiPoint3 buttPos, victimPos;
             auto victim = FindAndDebugTwoPointTarget(giant, buttPos_L, buttPos_R, max_distance, left_butt, Breast_Color, buttPos, victimPos);
-            if (!victim) return false; // No victim found
+            if (!victim) {
+                return false; // No victim found
+            } 
 
             AnimationBlendInfo params;
             params.maxDistance = max_distance;
@@ -244,9 +243,9 @@ namespace GTS {
 
             params.blendX = ApplyMagnitude(params.blendX);
             params.blendY = ApplyMagnitude(params.blendY, 1.5f);
-            DebugLogBlend(victim, params.blendX, params.blendY);
+            DebugLogBlend(giant, victim, params.blendX, params.blendY, "Sneak Butt Slam");
 
-            return FinalizeAim(giant, left_butt, victim, params, out_result, 0.25f);
+            return FinalizeAim(giant, left_butt, victim, params, out_result);
         }
         bool AutoAim_Hand_TryHandAim_Far(Actor* giant, bool& left_hand, bool strong_Attack, AimAssistResult* out_result) {
             if (!giant) return false;
@@ -267,16 +266,21 @@ namespace GTS {
 
             NiPoint3 handPos, victimPos;
             auto victim = FindAndDebugTwoPointTarget(giant, handPos_L, handPos_R, max_distance, left_hand, Far_Stomp_Color, handPos, victimPos);
-            if (!victim) return false;
+            if (!victim) {
+                return false;
+            }
 
             AnimationBlendInfo params;
             params.maxDistance = max_distance;
 
+            //---------- Needed for back-stomps, we just want to fill X value here
+            CalculateDirectionalBlend2D(giant, handPos, victimPos, params); 
+            // Fill Y value, Far Stomps have only Side Blends
             CalculateAngleBasedSideBlend(giant, handPos, victimPos, params);
 
             params.blendX = ApplyMagnitude(params.blendX);
             params.blendY = ApplyMagnitude(params.blendY);
-            DebugLogBlend(victim, params.blendX, params.blendY);
+            DebugLogBlend(giant, victim, params.blendX, params.blendY, "Hand Aim Far");
 
             return FinalizeAim(giant, left_hand, victim, params, out_result);
         }
@@ -303,25 +307,25 @@ namespace GTS {
 
             NiPoint3 handPos, victimPos;
             auto victim = FindAndDebugTwoPointTarget(giant, handPos_L, handPos_R, max_distance, left_hand, Far_Stomp_Color, handPos, victimPos);
-            if (!victim) return false;
+            if (!victim) {
+                return false;
+            }
 
-            float x = 0.0f;
-            float y = 0.0f;
-            float dx = 0.0f;
-            float dy = 0.0f;
-            float final_distance = 0.0f;
             AnimationBlendInfo params;
             params.maxDistance = max_distance;
 
-            if (AnimationVars::Crawl::IsCrawling(giant)) {
-                CalculateDirectionalBlend2D(giant, handPos, victimPos, params);
-            } else {
-                CalculateAngleBasedSideBlend(giant, handPos, victimPos, params);
-            }
+            //---------- Needed for back-stomps, we just want to fill X value here
+            CalculateDirectionalBlend2D(giant, handPos, victimPos, params); 
+            // Fill Y value, Far Stomps have only Side Blends
+            CalculateAngleBasedSideBlend(giant, handPos, victimPos, params);
 
             params.blendX = ApplyMagnitude(params.blendX);
             params.blendY = ApplyMagnitude(params.blendY);
-            DebugLogBlend(victim, params.blendX, params.blendY);
+            std::string debugString = "Hand Aim";
+            if (strong_Attack) {
+                debugString +=" Far Strong";
+            }
+            DebugLogBlend(giant, victim, params.blendX, params.blendY, debugString);
 
             return FinalizeAim(giant, left_hand, victim, params, out_result);
         }
@@ -348,7 +352,9 @@ namespace GTS {
 
             NiPoint3 footPos, victimPos;
             auto victim = FindAndDebugTwoPointTarget(giant, footPos_L, footPos_R, max_distance, left_foot, Close_Stomp_Color, footPos, victimPos);
-            if (!victim) return false;
+            if (!victim) {
+                return false;
+            }
 
             AnimationBlendInfo params;
             params.maxDistance = max_distance;
@@ -357,7 +363,7 @@ namespace GTS {
 
             params.blendX = ApplyMagnitude(params.blendX);
             params.blendY = ApplyMagnitude(params.blendY);
-            DebugLogBlend(victim, params.blendX, params.blendY);
+            DebugLogBlend(giant, victim, params.blendX, params.blendY, "Close Stomp");
 
             return FinalizeAim(giant, left_foot, victim, params, out_result);
         }
@@ -389,7 +395,7 @@ namespace GTS {
 
             params.blendX = ApplyMagnitude(params.blendX);
             params.blendY = ApplyMagnitude(params.blendY);
-            DebugLogBlend(victim, params.blendX, params.blendY);
+            DebugLogBlend(giant, victim, params.blendX, params.blendY, "Far Stomp");
 
             return FinalizeAim(giant, left_foot, victim, params, out_result);
         }
@@ -424,9 +430,11 @@ namespace GTS {
             return RandomBool(); 
         }
 
-        void SetStompBlendValues(Actor* giant, float x, float y) {
+        void SetStompBlendValues(Actor* giant, float x, float y, std::string_view source) {
             AnimationVars::Stomp::SetUnderStompBlend_Legacy(giant, x); // Old one stays for compatibility reasons
             AnimationVars::Stomp::SetUnderStompBlend_X(giant, x); // We added new behavior variables, needs new Behaviors in order to work
             AnimationVars::Stomp::SetUnderStompBlend_Y(giant, y); // We added new behavior variables, needs new Behaviors in order to work
+            logger::info("Applying final blend: X: {}, Y: {}", x, y);
+            Cprint("Applying final blend: X: {}, Y: {}, Source: {}", x, y, source);
         }
     }

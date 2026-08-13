@@ -40,6 +40,7 @@ namespace GTS {
 	constexpr float SHRINK_PARTICLE_COOLDOWN = 0.25f;
 	constexpr float SHRINK_PARTICLE_COOLDOWN_GAZE = 0.25f;
 	constexpr float SHRINK_PARTICLE_COOLDOWN_ANIM = 1.5f;
+    constexpr float AUTOAIM_COOLDOWN = 0.8f;
 
     constexpr float EMOTION_COOLDOWN = 1.5f;
     constexpr float EMOTION_COOLDOWN_LONG = 3.5f;

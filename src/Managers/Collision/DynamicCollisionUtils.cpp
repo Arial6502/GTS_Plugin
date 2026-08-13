@@ -408,8 +408,10 @@ namespace GTS {
 							NiPoint3 ContollerNiPosition = hkVec4ToNiPoint(ControllerPosition) * *reinterpret_cast<float*>(Offset::Havok::WorldScaleInverse.address());
 
 							if (CollisionConvexVertexShape) {
-								hkArray<hkVector4> Verts{};
-								CollisionConvexVertexShape->GetOriginalVertices(Verts);
+								std::vector<hkVector4> Verts{};
+								if (auto tranData = Transient::GetActorData(const_cast<Actor*>(a_actor))) {
+									Verts = tranData->cachedConvexVerticesShape;
+								}
 
 								// Scale vertices from Havok units to game world units and add controller position
 								for (int32_t i = 0; i < Verts.size(); ++i) {

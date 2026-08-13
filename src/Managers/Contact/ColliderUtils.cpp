@@ -39,9 +39,11 @@ namespace GTS {
 		return distSq <= totalRadius * totalRadius;
 	}
 
-	bool SphereOverlapsConvex(hkpConvexVerticesShape* convex, const hkVector4& center, float radiusSq, const hkTransform& transform) {
-		hkArray<hkVector4> verts{};
-		const_cast<hkpConvexVerticesShape*>(convex)->GetOriginalVertices(verts);
+	bool SphereOverlapsConvex(Actor* a_actor, hkpConvexVerticesShape* convex, const hkVector4& center, float radiusSq, const hkTransform& transform) {
+		std::vector<hkVector4> verts{};
+		if (auto tranData = Transient::GetActorData(a_actor)) {
+			verts = tranData->cachedConvexVerticesShape;
+		}
 		if (verts.empty()) return false;
 
 		const __m128 tr = transform.translation.quad;
@@ -61,24 +63,24 @@ namespace GTS {
 		return distSq <= radiusSq;
 	}
 
-	bool SphereOverlapsShape(const hkpShape* shape, const hkVector4& center, float radiusSq, const hkTransform& transform, float angleZ) {
+	bool SphereOverlapsShape(Actor* a_actor, const hkpShape* shape, const hkVector4& center, float radiusSq, const hkTransform& transform, float angleZ) {
 		if (!shape) return false;
 
 		switch (shape->type) {
 		case hkpShapeType::kCapsule:
 			return SphereOverlapsCapsule(static_cast<const hkpCapsuleShape*>(shape), center, radiusSq, transform, angleZ);
 		case hkpShapeType::kConvexVertices:
-			return SphereOverlapsConvex(const_cast<hkpConvexVerticesShape*>(static_cast<const hkpConvexVerticesShape*>(shape)), center, radiusSq, transform);
+			return SphereOverlapsConvex(a_actor, const_cast<hkpConvexVerticesShape*>(static_cast<const hkpConvexVerticesShape*>(shape)), center, radiusSq, transform);
 		case hkpShapeType::kList: {
 			auto* list = static_cast<const hkpListShape*>(shape);
 			for (int i = 0; i < static_cast<int>(list->childInfo.size()); ++i) {
-				if (SphereOverlapsShape(list->childInfo[i].shape, center, radiusSq, transform, angleZ)) return true;
+				if (SphereOverlapsShape(a_actor, list->childInfo[i].shape, center, radiusSq, transform, angleZ)) return true;
 			}
 			return false;
 		}
 		case hkpShapeType::kMOPP: {
 			auto* mopp = static_cast<const hkpMoppBvTreeShape*>(shape);
-			return SphereOverlapsShape(mopp->child.childShape, center, radiusSq, transform, angleZ);
+			return SphereOverlapsShape(a_actor, mopp->child.childShape, center, radiusSq, transform, angleZ);
 		}
 		default: return false;
 		}
@@ -103,7 +105,7 @@ namespace GTS {
 		return nullptr;
 	}
 
-    void DebugDrawShape(const hkpShape* shape, const hkTransform& transform, float angleZ, float toSkyrim, int duration) {
+    void DebugDrawShape(Actor* a_actor, const hkpShape* shape, const hkTransform& transform, float angleZ, float toSkyrim, int duration) {
         if (!shape) return;
 
         auto TransformCapsuleVertex = [&](const __m128 v) -> glm::vec3 {
@@ -155,8 +157,10 @@ namespace GTS {
         }
         case hkpShapeType::kConvexVertices: {
             auto* convex = const_cast<hkpConvexVerticesShape*>(static_cast<const hkpConvexVerticesShape*>(shape));
-            hkArray<hkVector4> verts{};
-            convex->GetOriginalVertices(verts);
+            std::vector<hkVector4> verts{};
+			if (auto tranData = Transient::GetActorData(a_actor)) {
+				verts = tranData->cachedConvexVerticesShape;
+			}
             if (verts.empty()) break;
 
             glm::vec3 mn = TransformConvexVertex(verts[0].quad);
@@ -191,13 +195,13 @@ namespace GTS {
         case hkpShapeType::kList: {
             auto* list = static_cast<const hkpListShape*>(shape);
             for (int i = 0; i < static_cast<int>(list->childInfo.size()); ++i) {
-                DebugDrawShape(list->childInfo[i].shape, transform, angleZ, toSkyrim, duration);
+                DebugDrawShape(a_actor, list->childInfo[i].shape, transform, angleZ, toSkyrim, duration);
             }
             break;
         }
         case hkpShapeType::kMOPP: {
             auto* mopp = static_cast<const hkpMoppBvTreeShape*>(shape);
-            DebugDrawShape(mopp->child.childShape, transform, angleZ, toSkyrim, duration);
+            DebugDrawShape(a_actor, mopp->child.childShape, transform, angleZ, toSkyrim, duration);
             break;
         }
         default: break;

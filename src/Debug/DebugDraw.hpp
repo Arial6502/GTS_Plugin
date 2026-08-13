@@ -44,6 +44,7 @@ namespace GTS {
 		static void DrawRhomb(const glm::vec3& origin, float radius, float rotation = 0.0f, int lifetimeMS = 10, const glm::vec4& color = { 1.0f, 0.0f, 0.0f, 1.0f }, float lineThickness = 1.0f);
 		static void DrawCircle(glm::vec3, float radius, glm::vec3 eulerAngles, int liftetimeMS = 10, const glm::vec4& color = { 1.0f, 0.0f, 0.0f, 1.0f }, float lineThickness = 1.0f);
 		static void DrawHalfCircle(glm::vec3, float radius, glm::vec3 eulerAngles, int liftetimeMS = 10, const glm::vec4& color = { 1.0f, 0.0f, 0.0f, 1.0f }, float lineThickness = 1.0f);
+		static void DrawConvexVertices(const std::vector<RE::hkVector4>& hkVerts, glm::vec3 origin, const glm::mat4& transform, int liftetimeMS, const glm::vec4& color, float lineThickness);
 		static void DrawConvexVertices(const std::vector<glm::vec3>& vertices, glm::vec3 origin, const glm::mat4& transform = glm::mat4(1.0f), int liftetimeMS = 10, const glm::vec4& color = {1.0f, 0.0f, 0.0f, 1.0f}, float lineThickness = 1.0f);
 		static void DrawConvexVertices(const RE::hkArray<RE::hkVector4>& hkVerts, glm::vec3 origin, const glm::mat4& transform = glm::mat4(1.0f), int liftetimeMS = 10, const glm::vec4& color = { 1.0f, 0.0f, 0.0f, 1.0f }, float lineThickness = 1.0f);
 		static void DrawCapsule(glm::vec3 start, glm::vec3 end, float radius, glm::mat4 transform = glm::mat4(1.0f), int liftetimeMS = 10, const glm::vec4& color = { 1.0f, 0.0f, 0.0f, 1.0f }, float lineThickness = 1.0f, int longitudinal_steps = 4, int latitude_steps = 4);

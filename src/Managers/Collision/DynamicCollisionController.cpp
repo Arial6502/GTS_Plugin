@@ -121,8 +121,6 @@ namespace GTS {
 				if (TESObjectCELL* cell = actor->GetParentCell()) {
 					if (bhkWorld* world = cell->GetbhkWorld()) {
 
-
-
 						//bhkCharacterController is the base class
 						//bhkCharRigidBodyController is used by every actor except the player
 						//the player has a bhkCharProxyController instead
@@ -464,6 +462,9 @@ namespace GTS {
 							{
 								BSWriteLockGuard lock(world->worldLock);
 								SetNewVerticesShape(controller, modifiedVerts);
+								if (auto tranData = Transient::GetActorData(actor)) {
+									tranData->cachedConvexVerticesShape = modifiedVerts;
+								}
 							}
 
 							// ---- Bumper Capsule
@@ -573,6 +574,9 @@ namespace GTS {
 								{
 									BSWriteLockGuard lock(world->worldLock);
 									SetNewVerticesShape(controller, modifiedVerts);
+									if (auto tranData = Transient::GetActorData(actor)) {
+										tranData->cachedConvexVerticesShape = modifiedVerts;
+									}
 								}
 							}
 

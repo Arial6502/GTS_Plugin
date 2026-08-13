@@ -154,6 +154,8 @@ namespace GTS {
 		float LastAppliedBreastsScale = 0.0f;
 		float LastAppliedBellyScale = 0.0f;
 
+		std::vector<hkVector4> cachedConvexVerticesShape;
+
 		explicit TransientActorData(Actor* a_Actor) {
 			const auto _BoundValues = get_bound_values(a_Actor);
 			const auto _Scale = get_scale(a_Actor);

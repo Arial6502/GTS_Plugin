@@ -37,7 +37,7 @@ namespace GTS {
 					if (otherActor == actor) continue;
 					if (auto shapeData = GetControllerShapeData(otherActor, toHavok)) {
 						BSReadLockGuard lock(world->worldLock);
-						DebugDrawShape(shapeData->shape, shapeData->transform, shapeData->angleZ, 1.0f / toHavok, duration);
+						DebugDrawShape(otherActor, shapeData->shape, shapeData->transform, shapeData->angleZ, 1.0f / toHavok, duration);
 					}
 				}
 			}
@@ -57,7 +57,7 @@ namespace GTS {
 			for (const NiPoint3& footPt : CoordsToCheck) {
 				hkVector4 center;
 				center.quad = _mm_mul_ps(_mm_set_ps(0.0f, footPt.z, footPt.y, footPt.x), _mm_set1_ps(toHavok));
-				if (SphereOverlapsShape(shapeData->shape, center, sphereRadiusSq, shapeData->transform, shapeData->angleZ)) {
+				if (SphereOverlapsShape(otherActor, shapeData->shape, center, sphereRadiusSq, shapeData->transform, shapeData->angleZ)) {
 					return true;
 					break;
 				}
@@ -76,7 +76,7 @@ namespace GTS {
 	}
 	// Safer optimization that preserves original behavior
 	void CollisionDamage::DoFootCollision(Actor* actor, float damage, float radius, int random, float bbmult, float crush_threshold, DamageSource Cause, bool Right, bool ApplyCooldown, bool ignore_rotation, bool SupportCalamity) {
-
+		GTS_PROFILE_ENTRYPOINT("CollisionDamage::DoFootCollision");
 		if (!actor) return;
 		
 		float giantScale = get_visual_scale(actor) * GetSizeFromBoundingBox(actor);

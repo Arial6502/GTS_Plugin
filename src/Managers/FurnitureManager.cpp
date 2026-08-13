@@ -172,6 +172,7 @@ namespace GTS {
 
     //Fallback check
     void FurnitureManager::ActorUpdate(RE::Actor* actor) {
+        GTS_PROFILE_ENTRYPOINT("FurnitureManager::ActorUpdate");
         if (actor) {
             if (ValidActor(actor)) {
                 if (AIProcess* aiProcess = actor->GetActorRuntimeData().currentProcess) {

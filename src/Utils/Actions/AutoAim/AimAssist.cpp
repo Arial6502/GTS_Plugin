@@ -33,13 +33,13 @@ namespace Scan {
 
         switch (outcome.zone) {
             case AimZone::Far:
-                SetStompBlendValues(giant, farZone.result.blend_x, farZone.result.blend_y);
+                SetStompBlendValues(giant, farZone.result.blend_x, farZone.result.blend_y, "Far Auto Aim Zone");
                 outcome.left = farZone.left;
                 outcome.hit = true;
                 outcome.victim = farZone.result.victim;
                 break;
             case AimZone::Close:
-                SetStompBlendValues(giant, close.result.blend_x, close.result.blend_y);
+                SetStompBlendValues(giant, close.result.blend_x, close.result.blend_y, "Close Auto Aim Zone");
                 outcome.left = close.left;
                 outcome.hit = true;
                 outcome.victim = close.result.victim;
@@ -82,7 +82,7 @@ namespace Scan {
         }
 
         auto close = strong
-            ? TryAim([&](bool& l, AimAssistResult& r) { return AutoAim_Crawl_TryButtSlam(giant, l, &r); })
+            ? TryAim([&](bool& l, AimAssistResult& r) { return AutoAim_Sneak_TryButtSlam(giant, l, &r); })
             : TryAim([&](bool& l, AimAssistResult& r) { return AutoAim_Foot_Directional(giant, l, false, &r); }); // otherwise try to hit someone with foot
         auto farZone = TryAim([&](bool& l, AimAssistResult& r) {
             return AutoAim_Hand_TryHandAim(giant, l, strong, &r); // fallback: land a hand attack
@@ -135,7 +135,8 @@ namespace GTS {
         const float range_y = Config::AutoAim.fAimAssist_NoHitValueRandomRange;
         SetStompBlendValues(giant,
             RandomFloat(0.0f, range_x), 
-            RandomFloat(0.0f, left ? -range_y : range_y)
+            RandomFloat(0.0f, left ? -range_y : range_y),
+            "Randomize Blend"
         );
     }
 
@@ -144,15 +145,17 @@ namespace GTS {
             return false;
         }
         const bool autoAim = Config::AutoAim.bEnableAutoAim;
+        const bool onCooldown = IsActionOnCooldown(giant, CooldownSource::Misc_AutoAim_Cooldown); // Another layer of fixing this bs
         // Some key-binds fight other key-binds, so Tap E overrides Hold E as soon as you release E, overriding Blend we got, messing aim result
-        if (!AnimationVars::General::IsBusy(giant)) {
-            
+        if (!AnimationVars::General::IsBusy(giant) && !onCooldown) {
+            ApplyActionCooldown(giant, CooldownSource::Misc_AutoAim_Cooldown);
             if (autoAim || !giant->IsPlayerRef()) {
                 AimOutcome outcome = Scan::StandingBranchCheck(giant, strong_Attack, trample);
                 if (!outcome.hit) outcome = Scan::SneakBranchCheck(giant, strong_Attack);
                 if (!outcome.hit) outcome = Scan::CrawlBranchCheck(giant, strong_Attack);
 
                 if (!outcome.hit) {
+                    left = !left;
                     RandomizeBlend(giant, left);
                     return RandomBool();
                 }
@@ -163,27 +166,6 @@ namespace GTS {
         }
 
         const bool managedByConfig = Config::AutoAim.bPreventFarStomps && autoAim;
-        return managedByConfig ? true : CrosshairUnderstomp(giant);
-    }
-
-    bool CrosshairUnderstomp(Actor* giant) { // Should be player exclusive
-        if (!giant->IsPlayerRef()) { // NPC's shouldn't be able to use it
-            return true;
-        }
-        //Range is between -1 (looking down) and 1 (looking up)
-        //abs makes it become 1 -> 0 -> 1 for down -> middle -> up
-        const float absPitch = abs(GetCameraRotation().entry[2][1]);
-        //Remap our starting range
-        constexpr float InvLookDownStartAngle = 0.9f; //Starting value of remap. Defines start angle for how down we are looking
-        const float InvLookdownIntensity = std::clamp(Remap(absPitch, 1.0f, InvLookDownStartAngle, 0.0f, 1.0f), 0.0f, 1.0f);
-
-        bool allow = absPitch > InvLookDownStartAngle;
-        // Allow to stomp when looking from above or below
-        if (allow) {
-            float blend = std::clamp(InvLookdownIntensity * 1.2f, 0.0f, 1.0f);
-            SetStompBlendValues(giant, blend, 0.0f);
-            // Blend between "close" and "farZone" under-stomps
-        }
-        return allow;
+        return managedByConfig ? true : RandomBool();
     }
 }

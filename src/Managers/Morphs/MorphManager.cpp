@@ -44,6 +44,7 @@ namespace GTS {
 	}
 
 	void MorphManager::ActorUpdate(RE::Actor* a_actor) {
+		GTS_PROFILE_ENTRYPOINT("MorphManager::ActorUpdate");
 		if (!Racemenu::Loaded()) return;
 		if (!State::InGame()) return;
 		if (!a_actor) return;

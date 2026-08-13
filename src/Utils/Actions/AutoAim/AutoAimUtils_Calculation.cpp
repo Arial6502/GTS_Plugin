@@ -341,7 +341,8 @@ namespace GTS {
 
             float begin = halfLength * info.blendOffset;
 
-            info.blendX = std::clamp((info.outDistanceX - begin) / (halfLength - begin), 0.0f, 1.0f);
+            info.blendX = std::clamp((info.outDistanceX - begin) / (halfLength - begin), -1.0f, 1.0f);
+            info.blendY = std::clamp((info.outDistanceY - begin) / (halfLength - begin), -1.0f, 1.0f);
             info.isInsideRectangle = std::abs(info.outDistanceX) <= halfLength && std::abs(info.outDistanceY) <= halfWidth;
 
             if (info.isInsideRectangle) {

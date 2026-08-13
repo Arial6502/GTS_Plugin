@@ -36,21 +36,18 @@ namespace {
 	const std::string_view RNode = "NPC R Foot [Rft ]";
 	const std::string_view LNode = "NPC L Foot [Lft ]";
 
-	void DoStompOrUnderStomp(Actor* player, const std::string_view name) {
+	void DoStompOrUnderStomp(Actor* player, const std::string_view name, bool Understomp) {
 		float WasteStamina = 70.0f * GetWasteMult(player);
 
 		std::string_view message = "You're too tired to perform heavy stomp";
-
-		if (player->IsSneaking()) {
-			if (AnimationVars::Crawl::IsCrawling(player) && CrosshairUnderstomp(player)) {
-				if (!AnimationVars::Crawl::IsCrawling(player)) {
-					message = "You're too tired to perform sneak butt crush";
-					WasteStamina *= 1.8f;
-				} else {
-					message = "You're too tired to perform sneak breast crush";
-					WasteStamina *= 2.5f;
-				}	
-			}
+		if (player->IsSneaking() && Understomp) {
+			if (!AnimationVars::Crawl::IsCrawling(player)) {
+				message = "You're too tired to perform sneak butt crush";
+				WasteStamina *= 1.8f;
+			} else {
+				message = "You're too tired to perform sneak breast crush";
+				WasteStamina *= 2.5f;
+			}	
 		}
 
 		if (GetAV(player, ActorValue::kStamina) > WasteStamina) {
@@ -232,7 +229,7 @@ namespace {
 
 		const std::string_view StompType_R = UnderStomp ? "UnderStompStrongRight" : "StrongStompRight";
 		const std::string_view StompType_L = UnderStomp ? "UnderStompStrongLeft" : "StrongStompLeft";
-		DoStompOrUnderStomp(player, Left ? StompType_L : StompType_R);
+		DoStompOrUnderStomp(player, Left ? StompType_L : StompType_R, UnderStomp);
 	}
 }
 
