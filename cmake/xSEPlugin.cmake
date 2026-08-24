@@ -1,6 +1,5 @@
 find_package(CommonLibSSE CONFIG REQUIRED)
 
-
 #mimicks add_commonlibsse_plugin but without the PluginInfo Insertion
 add_library("${PROJECT_NAME}" SHARED ${headers} ${sources})
 target_compile_definitions("${PROJECT_NAME}"
@@ -52,14 +51,8 @@ set(Boost_USE_STATIC_RUNTIME ON)
 add_compile_definitions(NOMINMAX)
 add_compile_definitions(_UNICODE)
 
-# --- Common compiler options for all configurations ---
-target_compile_options(
-    "${PROJECT_NAME}"
-    PRIVATE
+set(GTS_COMMON_COMPILE_OPTIONS
     /MP
-    $<$<BOOL:${GTS_STRICT_COMPILE}>:/W4>
-    $<$<NOT:$<BOOL:${GTS_STRICT_COMPILE}>>:/W1>
-    /WX
     /permissive-
     /utf-8
     /Zc:alignedNew
@@ -81,10 +74,13 @@ target_compile_options(
     /Zc:threadSafeInit
     /Zc:trigraphs
     /Zc:wchar_t
-    /external:anglebrackets
-    /external:I${CMAKE_CURRENT_SOURCE_DIR}/src/UI/Lib
-    /external:W0
+)
 
+set(GTS_WARNING_OPTIONS
+    /W1
+    /WX
+    /external:anglebrackets
+    /external:W0
     /w14263 # member function does not override any base class virtual function
     /w14264 # no override available for virtual member function; function is hidden
     /w14265 # class has virtual functions but destructor is not virtual
@@ -117,16 +113,17 @@ target_compile_options(
     /wd4457 # declaration of 'identifier' hides function parameter
     /wd4189 # 'identifier' : local variable is initialized but not referenced
 )
-file(GLOB GTS_VENDORED_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/UI/Lib/*.cpp")
 
-if(GTS_VENDORED_SOURCES)
-    set_source_files_properties(
-        ${GTS_VENDORED_SOURCES}
-        PROPERTIES COMPILE_OPTIONS "/W0"
-    )
-    list(LENGTH GTS_VENDORED_SOURCES GTS_VENDORED_COUNT)
-    message(STATUS "Vendored sources compiled at /W0: ${GTS_VENDORED_COUNT}")
-endif()
+target_compile_options(
+    "${PROJECT_NAME}"
+    PRIVATE
+    ${GTS_COMMON_COMPILE_OPTIONS}
+    ${GTS_WARNING_OPTIONS}
+)
+
+# --- Vendored third-party libraries ---
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/lib")
+target_link_libraries("${PROJECT_NAME}" PRIVATE imgui)
 
 # --- Linker Options ---
 target_link_options(

@@ -129,13 +129,11 @@
 #include <glaze/json/read.hpp>            //https://github.com/stephenberry/glaze
 #include <re2/re2.h>                      //https://github.com/google/re2
 
-//Imgui
-#define IMGUI_DISABLE_OBSOLETE_FUNCTIONS
-#define IMGUI_DEFINE_MATH_OPERATORS
-#include "UI/Lib/imgui.h"
-#include "UI/Lib/imgui_internal.h"
-#include "UI/Lib/imgui_stdlib.h"
-#include "UI/Lib/imgui_impl_dx11.h"
+//Imgui - https://github.com/ocornut/imgui
+#include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
+#include <imgui/imgui_stdlib.h>
+#include <imgui/imgui_impl_dx11.h>
 
 //Tbb - https://github.com/uxlfoundation/oneTBB
 #include <tbb/concurrent_vector.h>
@@ -169,7 +167,6 @@ namespace Hooks {
 //Project-Wide Defines
 #define GTS_PROFILER_ENABLED //<---- Enable The Performance Profiller. Accessible by opening the debug menu.
 //#define GTS_DISABLE_PLUGIN   //<---- If defined, Disables the entire plugin but keeps serialization active to preserve cosave data.
-
 
 
 // ---- Own Includes ----

@@ -19,7 +19,6 @@ set(PROJECT_NAME "${PROJECT_NAME}")
 set(PROJECT_FRIENDLY_NAME "${PROJECT_NAME}")
 #set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Options
-option(GTS_STRICT_COMPILE "Enable strict compilation flags (treat warnings as errors)" OFF)
 option(GTS_DEPLOY_TO_FOLDER "Copy The Built DLL and PDB to the EnvVar Defined Target location" ON)
 option(GTS_BUILD_DISTRIBUTION "Construct a distribution folder after each build" ON)
 
