@@ -153,14 +153,27 @@ namespace GTS {
             volume *= Config::Audio.fVoiceVolumeMult;
 
             switch (Source) {
-                case EmotionTriggerSource::Crushing:
-                    SoundToPlay = ObtainGTSMoanLaughSound(Scale, Laugh_Crush);                   break;
-                case EmotionTriggerSource::Struggle:
-                    SoundToPlay = ObtainGTSMoanLaughSound(Scale, Laugh_Struggle);                break;
-                case EmotionTriggerSource::Overkill:
-                    SoundToPlay = ObtainGTSMoanLaughSound(Scale, Laugh_Overkill);                break;
+				case EmotionTriggerSource::Crushing: 
+            	{
+					SoundToPlay = ObtainGTSMoanLaughSound(Scale, Laugh_Crush);
+					break;
+				}
+                case EmotionTriggerSource::Struggle: 
+            	{
+                    SoundToPlay = ObtainGTSMoanLaughSound(Scale, Laugh_Struggle);
+                    break;
+                }
+                case EmotionTriggerSource::Overkill: 
+            	{
+                    SoundToPlay = ObtainGTSMoanLaughSound(Scale, Laugh_Overkill);
+					break;
+				}
                 case EmotionTriggerSource::Superiority:
-                    SoundToPlay = ObtainGTSMoanLaughSound(Scale, Laugh_Superiority);             break;
+            	{
+                    SoundToPlay = ObtainGTSMoanLaughSound(Scale, Laugh_Superiority);            
+					break;
+				}
+                default: {}
             }
             if (!SoundToPlay.empty()) {
 
@@ -194,18 +207,39 @@ namespace GTS {
             volume *= Config::Audio.fVoiceVolumeMult;
             
             switch (Source) {
-                case EmotionTriggerSource::Absorption:
-                    SoundToPlay = ObtainGTSMoanLaughSound(Scale, Moan_Absorption);                  break;
+                case EmotionTriggerSource::Absorption: 
+            	{
+                    SoundToPlay = ObtainGTSMoanLaughSound(Scale, Moan_Absorption);
+                    break;
+                }
                 case EmotionTriggerSource::Crushing:
-                    SoundToPlay = ObtainGTSMoanLaughSound(Scale, Moan_Crush);                       break;
+                {
+                    SoundToPlay = ObtainGTSMoanLaughSound(Scale, Moan_Crush);
+                    break;
+                }
                 case EmotionTriggerSource::Vore:
-                    SoundToPlay = ObtainGTSMoanLaughSound(Scale, Moan_Vore);                        break;
+                {
+
+                }
+                    
                 case EmotionTriggerSource::Growth:
-                    SoundToPlay = ObtainGTSMoanLaughSound(Scale, Moan_Growth);                      break;
+                {
+                    SoundToPlay = ObtainGTSMoanLaughSound(Scale, Moan_Vore);
+                    break;
+                }
+                    
                 case EmotionTriggerSource::RipCloth:
-                    SoundToPlay = ObtainGTSMoanLaughSound(Scale, Moan_RipCloth);                    break;
+                {
+                    SoundToPlay = ObtainGTSMoanLaughSound(Scale, Moan_RipCloth);
+                    break;
+                }
+                    
                 case EmotionTriggerSource::HugDrain:
-                    SoundToPlay = ObtainGTSMoanLaughSound(Scale, Moan_HugDrain);                    break;
+                {
+                    SoundToPlay = ObtainGTSMoanLaughSound(Scale, Moan_HugDrain);
+                    break;
+                }
+                default: {}
             }
 
             if (!PlaySexLabMoans(actor, volume, FallOff)) { // If it returns true = we play Sexlab moans instead

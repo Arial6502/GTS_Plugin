@@ -111,7 +111,7 @@ namespace {
 			if(selectedExportIndex < 0) {
 				statusText = fmt::format("Select an export first", fileNames[selectedExportIndex]);
 			}
-			else if (selectedExportIndex >= 0 && selectedExportIndex < exportFiles.size()) {
+			else if (selectedExportIndex >= 0 && selectedExportIndex < static_cast<int>(exportFiles.size())) {
 				if (GTS::Config::LoadFromExport(exportFiles[selectedExportIndex].string())) {
 					GTS::EventDispatcher::DispatchModConfigRefresh();
 					statusText = fmt::format("✓ Applied {}", fileNames[selectedExportIndex]);
@@ -129,7 +129,7 @@ namespace {
 			if (selectedExportIndex < 0) {
 				statusText = fmt::format("Select an export first", fileNames[selectedExportIndex]);
 			}
-			else if (selectedExportIndex >= 0 && selectedExportIndex < exportFiles.size()) {
+			else if (selectedExportIndex >= 0 && selectedExportIndex < static_cast<int>(exportFiles.size())) {
 				GTS::Config::DeleteExport(exportFiles[selectedExportIndex].string());
 				statusText = fmt::format("Deleted {}", fileNames[selectedExportIndex]);
 				selectedExportIndex = -1;
@@ -152,12 +152,12 @@ namespace {
 
 		// Combo box for selecting exports
 		const char* previewValue = (
-			selectedExportIndex >= 0 && selectedExportIndex < fileNames.size()) ?
+			selectedExportIndex >= 0 && selectedExportIndex < static_cast<int>(fileNames.size())) ?
 			fileNames[selectedExportIndex].c_str() :
 			"Select export file...";
 
 		if (ImGui::BeginCombo("##ExportCombo", previewValue)) {
-			for (int i = 0; i < fileNames.size(); i++) {
+			for (int i = 0; i < static_cast<int>(fileNames.size()); i++) {
 				bool isSelected = (selectedExportIndex == i);
 				if (ImGui::Selectable(fileNames[i].c_str(), isSelected)) {
 					selectedExportIndex = i;

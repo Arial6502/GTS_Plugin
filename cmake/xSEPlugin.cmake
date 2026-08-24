@@ -57,8 +57,9 @@ target_compile_options(
     "${PROJECT_NAME}"
     PRIVATE
     /MP
-    $<$<BOOL:${GTS_STRICT_COMPILE}>:/W4;/WX>
+    $<$<BOOL:${GTS_STRICT_COMPILE}>:/W4>
     $<$<NOT:$<BOOL:${GTS_STRICT_COMPILE}>>:/W1>
+    /WX
     /permissive-
     /utf-8
     /Zc:alignedNew
@@ -80,22 +81,10 @@ target_compile_options(
     /Zc:threadSafeInit
     /Zc:trigraphs
     /Zc:wchar_t
-    #/Zc:char8_t- JSONCpp needs it
-
-    # --- External header noise suppression ---
-    # Required for the warnings below to be usable. Promoting a warning to level 1
-    # promotes it everywhere, including inside CommonLibSSE, the STL and vcpkg
-    # headers, which would bury our own hits and (under GTS_STRICT_COMPILE) fail
-    # the build on code we do not own. This project includes third-party headers
-    # with <> and its own with "", so the angle-bracket rule maps cleanly.
-    # Caveat: vendored ImGui in src/UI/Lib is quoted, so it stays in scope.
     /external:anglebrackets
+    /external:I${CMAKE_CURRENT_SOURCE_DIR}/src/UI/Lib
     /external:W0
 
-    # --- Correctness warnings ---
-    # These are off by default or sit at /W3-/W4. /w1NNNN forces each to level 1
-    # so it is reported even in the default /W1 build. Selected for bug-finding
-    # value only: nothing here is about style, naming or unused entities.
     /w14263 # member function does not override any base class virtual function
     /w14264 # no override available for virtual member function; function is hidden
     /w14265 # class has virtual functions but destructor is not virtual
@@ -112,7 +101,13 @@ target_compile_options(
     /w14928 # illegal copy-initialization; more than one user-defined conversion
     /w14946 # reinterpret_cast used between related classes
     /w14287 # unsigned/negative constant mismatch
-
+    /w15205 # delete of an abstract class with a non-virtual destructor (UB)
+    /w14548 # expression before comma has no effect
+    /w14319 # zero-extending to a greater size
+    /w14062 # unhandled enumerator in switch with no default label
+    /w14388 # signed/unsigned mismatch in comparison
+    /w14267 # conversion from size_t, possible loss of data
+    /w14191 # unsafe function-pointer conversion
     /wd4200 # nonstandard extension used : zero-sized array in struct/union
     /wd4100 # 'identifier' : unreferenced formal parameter
     /wd4101 # 'identifier': unreferenced local variable
@@ -122,6 +117,16 @@ target_compile_options(
     /wd4457 # declaration of 'identifier' hides function parameter
     /wd4189 # 'identifier' : local variable is initialized but not referenced
 )
+file(GLOB GTS_VENDORED_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/UI/Lib/*.cpp")
+
+if(GTS_VENDORED_SOURCES)
+    set_source_files_properties(
+        ${GTS_VENDORED_SOURCES}
+        PROPERTIES COMPILE_OPTIONS "/W0"
+    )
+    list(LENGTH GTS_VENDORED_SOURCES GTS_VENDORED_COUNT)
+    message(STATUS "Vendored sources compiled at /W0: ${GTS_VENDORED_COUNT}")
+endif()
 
 # --- Linker Options ---
 target_link_options(

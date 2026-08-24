@@ -83,26 +83,33 @@ namespace {
 	std::vector<NiAVObject*> get_landing_nodes(Actor* actor, const FootEvent& foot_kind) {
 		GTS_PROFILE_SCOPE("Impact: GetLandingNodes");
 		std::vector<NiAVObject*> results;
-		const std::string_view left_foot = "NPC L Foot [Lft ]";
-		const std::string_view right_foot = "NPC R Foot [Rft ]";
-		const std::string_view left_arm = "NPC L Hand [LHnd]";
-		const std::string_view right_arm = "NPC R Hand [RHnd]";
+		constexpr std::string_view left_foot = "NPC L Foot [Lft ]";
+		constexpr std::string_view right_foot = "NPC R Foot [Rft ]";
+		constexpr std::string_view left_arm = "NPC L Hand [LHnd]";
+		constexpr std::string_view right_arm = "NPC R Hand [RHnd]";
 
 		NiAVObject* result;
 		switch (foot_kind) {
-			case FootEvent::Left:
+			case FootEvent::Left: 
+			{
 				result = find_node(actor, left_foot);
 				if (result) {
 					results.push_back(result);
 				}
 				break;
-			case FootEvent::Right:
+			}
+				
+			case FootEvent::Right: 
+			{
 				result = find_node(actor, right_foot);
 				if (result) {
 					results.push_back(result);
 				}
 				break;
-			case FootEvent::Front:
+			}
+				
+			case FootEvent::Front: 
+			{
 				result = find_node(actor, left_arm);
 				if (result) {
 					results.push_back(result);
@@ -112,7 +119,10 @@ namespace {
 					results.push_back(result);
 				}
 				break;
-			case FootEvent::Back:
+			}
+				
+			case FootEvent::Back: 
+			{
 				result = find_node(actor, left_foot);
 				if (result) {
 					results.push_back(result);
@@ -122,7 +132,10 @@ namespace {
 					results.push_back(result);
 				}
 				break;
-			case FootEvent::JumpLand:
+			}
+				
+			case FootEvent::JumpLand: 
+			{
 				result = find_node(actor, left_foot);
 				if (result) {
 					results.push_back(result);
@@ -132,6 +145,8 @@ namespace {
 					results.push_back(result);
 				}
 				break;
+			}
+			default: {}
 		}
 		return results;
 	}

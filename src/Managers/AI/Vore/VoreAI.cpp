@@ -151,7 +151,7 @@ namespace GTS {
 			passed++;
 		}
 
-		if (passed == a_PotentialPrey.size()) { // All passed check, can start Vore anim now
+		if (passed == static_cast<int>(a_PotentialPrey.size())) { // All passed check, can start Vore anim now
 			for (auto Prey : a_PotentialPrey) {
 				VoreData.AddTiny(Prey);
 			}

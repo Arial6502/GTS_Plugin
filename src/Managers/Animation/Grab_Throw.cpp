@@ -135,7 +135,7 @@ namespace {
 
 			auto charcont = otherActor->GetCharController();
 			if (charcont) {
-				charcont->SetLinearVelocityImpl((0.0f, 0.0f, 0.0f, 0.0f)); // Needed so Actors won't fall down.
+				charcont->SetLinearVelocityImpl({ 0.0f, 0.0f, 0.0f, 0.0f }); // Needed so Actors won't fall down.
 			}
 
 			auto bone = find_node(giant, "NPC L Hand [LHnd]"); 
@@ -183,7 +183,7 @@ namespace {
 
 				auto charcont = tiny->GetCharController();
 				if (charcont) {
-					charcont->SetLinearVelocityImpl((0.0f, 0.0f, 0.0f, 0.0f)); // Stop actor moving in space, just in case
+					charcont->SetLinearVelocityImpl({ 0.0f, 0.0f, 0.0f, 0.0f }); // Stop actor moving in space, just in case
 				}
 				float throw_mult = TinyCalamityActive(giant) ? 5.0f : 2.0f;
 				float Z = 35.0f;

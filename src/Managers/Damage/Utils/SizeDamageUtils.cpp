@@ -1,30 +1,23 @@
-#include "Managers/Animation/Utils/CooldownManager.hpp"
-#include "Managers/Animation/Utils/AnimationUtils.hpp"
 #include "Managers/Damage/Utils/SizeDamageUtils.hpp"
 
 #include "Hooks/Experiments/Experiments_FootColliders.hpp"
 #include "Config/Config.hpp"
 
-#include "Managers/Damage/SizeHitEffects.hpp"
-#include "Managers/Damage/TinyCalamity.hpp"
 #include "Managers/Audio/GoreAudio.hpp"
 #include "Managers/CrushManager.hpp"
 #include "Managers/GTSSizeManager.hpp"
 
 #include "Magic/Effects/Common.hpp"
-#include "Managers/Contact/ColliderUtils.hpp"
-
 #include "Utils/DeathReport.hpp"
-#include "Utils/MovementForce.hpp"
-
-
 
 using namespace GTS;
 
 namespace GTS {
+
 	bool IsIdleDamage(DamageSource cause) {
 		return cause == DamageSource::FootIdleL || cause == DamageSource::FootIdleR;
 	}
+
 	bool StrongGore(DamageSource cause) {
 		bool Strong = false;
 		switch (cause) {
@@ -51,9 +44,11 @@ namespace GTS {
 			case DamageSource::Booty:
 				Strong = true;
 			break;
+			default: {}
 		}
 		return Strong;
 	}
+
 	bool Allow_Damage(Actor* giant, Actor* tiny, DamageSource cause, float difference) {
 		float threshold = 3.0f;
 
@@ -70,16 +65,15 @@ namespace GTS {
 		switch (cause) {
 			case DamageSource::WalkLeft:
 			case DamageSource::WalkRight:
-				PreventDamage = true;
-			break;
 			case DamageSource::KneeLeft:
 			case DamageSource::KneeRight:
-				PreventDamage = true;
-			break;
 			case DamageSource::HandCrawlLeft:
 			case DamageSource::HandCrawlRight:
+			{
 				PreventDamage = true;
-			break;
+				break;
+			}
+			default: {}
 		}
 		if (PreventDamage) {
 			// goal of this function is to deal heavily decreased damage on normal walk footsteps to actors
@@ -102,6 +96,7 @@ namespace GTS {
 			sizemanager.ModSizeVulnerability(tiny, damage * 0.0010f);
 		}
 	}
+
 	bool DamageAllowed(Actor* giant, Actor* tiny, DamageSource Cause) {
 		float size_difference = get_scale_difference(giant, tiny, SizeType::VisualScale, false, true);
 		bool SMT = TinyCalamityActive(giant);
@@ -116,21 +111,19 @@ namespace GTS {
 		}
 		return false;
 	}
-	bool ApplyHighHeelBonus(Actor* giant, DamageSource cause) {
+
+	bool ApplyHighHeelBonus(DamageSource cause) {
 		bool HighHeel = false;
 		switch (cause) {
 			case DamageSource::CrushedRight:
-				HighHeel = true;
-			break;
 			case DamageSource::CrushedLeft:
-				HighHeel = true;
-			break;
 			case DamageSource::WalkRight:
+			case DamageSource::WalkLeft: 
+			{
 				HighHeel = true;
-			break;
-			case DamageSource::WalkLeft:
-				HighHeel = true;
-			break;
+				break;
+			}
+			default: {}
 		}
 		return HighHeel;
 	}
@@ -141,17 +134,14 @@ namespace GTS {
 
 		switch (Cause) {
 			case DamageSource::CrushedRight:
-				matches = true;
-			break;
 			case DamageSource::CrushedLeft:
-				matches = true;
-			break;
 			case DamageSource::WalkRight:
-				matches = true;
-			break;
 			case DamageSource::WalkLeft:
+			{
 				matches = true;
-			break;
+				break;
+			}
+			default: {}
 		}
 		if (matches) {
 			bool rumbling_feet = Runtime::HasPerkTeam(giant, Runtime::PERK.GTSPerkRumblingFeet);
@@ -212,7 +202,7 @@ namespace GTS {
 				float vulnerability = 1.0f + sizemanager.GetSizeVulnerability(tiny); // Get size damage debuff from enemy
 				float normaldamage = std::clamp(SizeManager::GetSizeAttribute(giant, SizeAttribute::Normal) * 0.30f, 0.30f, 1000000.0f);
 
-				float highheelsdamage = ApplyHighHeelBonus(giant, Cause) ? GetHighHeelsBonusDamage(giant, true) : 1.0f;
+				float highheelsdamage = ApplyHighHeelBonus(Cause) ? GetHighHeelsBonusDamage(giant, true) : 1.0f;
 
 				float sprintdamage = 1.0f; // default Sprint damage of 1.0
 				float weightdamage = 1.0f + (giant->GetWeight() * 0.01f);

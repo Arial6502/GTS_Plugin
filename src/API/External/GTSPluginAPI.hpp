@@ -128,7 +128,18 @@ namespace GTSPluginAPI {
 		typedef void* (*Singleton)(const InterfaceVersion interfaceVersion);
 
 		auto handle = GetModuleHandleW(L"GtsPlugin.dll");
+
+		#ifdef _MSC_VER
+		#	pragma warning(push)
+		#	pragma warning(disable: 4191)
+		#endif
+
 		Singleton SingletonPtr = reinterpret_cast<Singleton>(GetProcAddress(handle, "RequestPluginAPI"));
+		
+		#ifdef _MSC_VER
+		#	pragma warning(pop)
+		#endif
+
 		if (SingletonPtr) {
 			return SingletonPtr(a_interfaceVersion);
 		}

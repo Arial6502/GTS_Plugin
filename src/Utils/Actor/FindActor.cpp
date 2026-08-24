@@ -12,13 +12,13 @@ namespace GTS {
 
 		const ProcessLists* const process_list = ProcessLists::GetSingleton();
 		const auto& handles = process_list->highActorHandles;
-		const std::size_t n = handles.size();
+		const uint32_t n = handles.size();
 
 		std::vector<Actor*> result;
 		result.reserve(n + 1);
 
-		for (std::size_t i = 0; i < n; ++i) {
-			if (const auto& a = handles[i].get(); a && a->Get3D1(false)) {
+		for (std::uint32_t i = 0; i < n; ++i) {
+			if (const NiPointer<Actor>& a = handles[i].get(); a && a->Get3D1(false)) {
 				result.emplace_back(a.get());
 			}
 		}

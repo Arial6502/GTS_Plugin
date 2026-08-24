@@ -739,8 +739,8 @@ namespace GTS {
 		static std::string CurrentOther = OtherWidgetList[0];
 
 		const auto& tmplist = GTSMenu::WindowManager->GetCachedTeamMateList();
-		for (uint8_t i = 1; i <= 5; i++) {
-			if (i - 1 < tmplist.size() && tmplist[i - 1]) {
+		for (uint32_t i = 1; i <= 5; i++) {
+			if (i - 1 < static_cast<uint32_t>(tmplist.size()) && tmplist[i - 1]) {
 				SizebarList[i] = fmt::format("Size Bar - {}", tmplist[i - 1]->GetName());
 			}
 			else {
@@ -751,7 +751,7 @@ namespace GTS {
 		ImGui::BeginChild("##Options", { -FLT_MIN, 0.0f }, ImGuiChildFlags_AlwaysAutoResize | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_FrameStyle);
 		{
 			if (ImGui::BeginCombo("Select Widget", CurrentOther.c_str())) {
-				for (size_t i = 0; i < OtherWidgetList.size(); ++i) {
+				for (uint32_t i = 0; i < OtherWidgetList.size(); ++i) {
 					bool selected = (CurrentOther == OtherWidgetList[i]);
 					if (ImGui::Selectable(OtherWidgetList[i].c_str(), selected)) {
 						CurrentOther = OtherWidgetList[i];
@@ -772,7 +772,7 @@ namespace GTS {
 			if (CurrentOther == "Size Bars") {
 
 				if (ImGui::BeginCombo("Select Size Bar", CurrentSizebar.c_str())) {
-					for (size_t i = 0; i < SizebarList.size(); ++i) {
+					for (uint32_t i = 0; i < SizebarList.size(); ++i) {
 						bool selected = (CurrentSizebar == SizebarList[i]);
 						if (ImGui::Selectable(SizebarList[i].c_str(), selected)) {
 							CurrentSizebar = SizebarList[i];

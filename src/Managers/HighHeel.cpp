@@ -33,15 +33,15 @@ namespace {
 		
 		switch (ActorState) {
 			case SIT_SLEEP_STATE::kIsSitting:
-				Sitting = true;
-			break;
 			case SIT_SLEEP_STATE::kIsSleeping:
 			case SIT_SLEEP_STATE::kWaitingForSleepAnim:
 			case SIT_SLEEP_STATE::kWantToWake:
+			{
 				Sleeping = true;
-			break;
+				break;
+			}
+			default: {}
 		}
-		
 		bool ShouldBeDisabled = (DisableFurniture && Sitting) || (Sleeping);
 		return ShouldBeDisabled;
 	}

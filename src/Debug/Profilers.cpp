@@ -143,7 +143,7 @@ namespace GTS {
 
 					// Clip & draw
 					ImGuiListClipper clipper;
-					clipper.Begin(entries.size());
+					clipper.Begin(static_cast<int>(entries.size()));
 
 					while (clipper.Step()) {
 						for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
@@ -248,7 +248,7 @@ namespace GTS {
 					}
 
 					ImGuiListClipper clipper;
-					clipper.Begin(entries.size());
+					clipper.Begin(static_cast<int>(entries.size()));
 
 					while (clipper.Step()) {
 						for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
@@ -342,7 +342,7 @@ namespace GTS {
 						specs->SpecsDirty = false;
 					}
 
-					ImGuiListClipper clipper; clipper.Begin(entries.size());
+					ImGuiListClipper clipper; clipper.Begin(static_cast<int>(entries.size()));
 					while (clipper.Step()) {
 						for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
 							auto& [name, elapsed] = entries[i];
@@ -406,7 +406,7 @@ namespace GTS {
 						specs->SpecsDirty = false;
 					}
 
-					ImGuiListClipper clipper; clipper.Begin(entries.size());
+					ImGuiListClipper clipper; clipper.Begin(static_cast<int>(entries.size()));
 					while (clipper.Step()) {
 						for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
 							auto& [name, elapsed] = entries[i];

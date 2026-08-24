@@ -231,14 +231,14 @@ namespace GTS {
 		if (validIndices.size() < 3) return;
 
 		auto validate_apex_and_ring = [&](int apexIdx, const std::array<int, 8>& ring) -> bool {
-			if (apexIdx < 0 || apexIdx >= vertices.size()) return false;
+			if (apexIdx < 0 || apexIdx >= static_cast<int>(vertices.size())) return false;
 
 			const glm::vec3& apex = vertices[apexIdx];
 			glm::vec3 ringCentroid(0.0f);
 			int validRingVerts = 0;
 
 			for (int ringIdx : ring) {
-				if (ringIdx >= 0 && ringIdx < vertices.size()) {
+				if (ringIdx >= 0 && ringIdx < static_cast<int>(vertices.size())) {
 					ringCentroid += vertices[ringIdx];
 					validRingVerts++;
 				}
@@ -254,7 +254,7 @@ namespace GTS {
 		auto is_ring_valid = [&](const std::array<int, 8>& ring) -> bool {
 			int validCount = 0;
 			for (int idx : ring) {
-				if (idx >= 0 && idx < vertices.size()) {
+				if (idx >= 0 && idx < static_cast<int>(vertices.size())) {
 					validCount++;
 				}
 			}
@@ -277,11 +277,11 @@ namespace GTS {
 				// Fall through to generic handler
 				// Pre-transform all ring vertices
 				std::array<glm::vec3, 8> topRingWorld, bottomRingWorld;
-				for (size_t i = 0; i < 8; ++i) {
-					if (topRing[i] < vertices.size()) {
+				for (int i = 0; i < 8; ++i) {
+					if (topRing[i] < static_cast<int>(vertices.size())) {
 						topRingWorld[i] = apply_transform_with_origin(vertices[topRing[i]]);
 					}
-					if (bottomRing[i] < vertices.size()) {
+					if (bottomRing[i] < static_cast<int>(vertices.size())) {
 						bottomRingWorld[i] = apply_transform_with_origin(vertices[bottomRing[i]]);
 					}
 				}
@@ -290,19 +290,19 @@ namespace GTS {
 				glm::vec3 bottomApexPos = bottomApexValid ? apply_transform_with_origin(vertices[bottomApex]) : glm::vec3(0.0f);
 
 				// Draw top ring
-				for (size_t i = 0; i < topRing.size(); ++i) {
-					if (topRing[i] >= vertices.size()) continue;
-					size_t next = (i + 1) % topRing.size();
-					if (topRing[next] >= vertices.size()) continue;
+				for (int i = 0; i < static_cast<int>(topRing.size()); ++i) {
+					if (topRing[i] >= static_cast<int>(vertices.size())) continue;
+					int next = (i + 1) % topRing.size();
+					if (topRing[next] >= static_cast<int>(vertices.size())) continue;
 
 					DrawLineForMS(topRingWorld[i], topRingWorld[next], liftetimeMS, color, lineThickness);
 				}
 
 				// Draw bottom ring
 				for (size_t i = 0; i < bottomRing.size(); ++i) {
-					if (bottomRing[i] >= vertices.size()) continue;
+					if (bottomRing[i] >= static_cast<int>(vertices.size())) continue;
 					size_t next = (i + 1) % bottomRing.size();
-					if (bottomRing[next] >= vertices.size()) continue;
+					if (bottomRing[next] >= static_cast<int>(vertices.size())) continue;
 
 					DrawLineForMS(bottomRingWorld[i], bottomRingWorld[next], liftetimeMS, color, lineThickness);
 				}
@@ -320,26 +320,26 @@ namespace GTS {
 
 				// Draw spokes from apexes
 				if (topApexValid) {
-					for (size_t i = 0; i < topRing.size(); ++i) {
-						if (topRing[i] < vertices.size()) {
+					for (int i = 0; i < static_cast<int>(topRing.size()); ++i) {
+						if (topRing[i] < static_cast<int>(vertices.size())) {
 							DrawLineForMS(topApexPos, topRingWorld[i], liftetimeMS, color, lineThickness * 0.7f);
 						}
 					}
 				}
 
 				if (bottomApexValid) {
-					for (size_t i = 0; i < bottomRing.size(); ++i) {
-						if (bottomRing[i] < vertices.size()) {
+					for (int i = 0; i < static_cast<int>(bottomRing.size()); ++i) {
+						if (bottomRing[i] < static_cast<int>(vertices.size())) {
 							DrawLineForMS(bottomApexPos, bottomRingWorld[i], liftetimeMS, color, lineThickness * 0.7f);
 						}
 					}
 				}
 
 				// Draw cross-sections
-				if (topRing[0] < vertices.size() && topRing[4] < vertices.size()) {
+				if (topRing[0] < static_cast<int>(vertices.size()) && topRing[4] < static_cast<int>(vertices.size())) {
 					DrawLineForMS(topRingWorld[0], topRingWorld[4], liftetimeMS, color * glm::vec4(1.0f, 1.0f, 1.0f, 0.5f), lineThickness * 0.5f);
 				}
-				if (bottomRing[0] < vertices.size() && bottomRing[4] < vertices.size()) {
+				if (bottomRing[0] < static_cast<int>(vertices.size()) && bottomRing[4] < static_cast<int>(vertices.size())) {
 					DrawLineForMS(bottomRingWorld[0], bottomRingWorld[4], liftetimeMS, color * glm::vec4(1.0f, 1.0f, 1.0f, 0.5f), lineThickness * 0.5f);
 				}
 				return;
@@ -359,11 +359,11 @@ namespace GTS {
 			else {
 				// Pre-transform all ring vertices
 				std::array<glm::vec3, 8> topRingWorld, bottomRingWorld;
-				for (size_t i = 0; i < 8; ++i) {
-					if (topRing[i] < vertices.size()) {
+				for (int i = 0; i < 8; ++i) {
+					if (topRing[i] < static_cast<int>(vertices.size())) {
 						topRingWorld[i] = apply_transform_with_origin(vertices[topRing[i]]);
 					}
-					if (bottomRing[i] < vertices.size()) {
+					if (bottomRing[i] < static_cast<int>(vertices.size())) {
 						bottomRingWorld[i] = apply_transform_with_origin(vertices[bottomRing[i]]);
 					}
 				}
@@ -371,18 +371,18 @@ namespace GTS {
 				glm::vec3 bottomApexPos = bottomApexValid ? apply_transform_with_origin(vertices[bottomApex]) : glm::vec3(0.0f);
 
 				// Draw rings
-				for (size_t i = 0; i < topRing.size(); ++i) {
-					if (topRing[i] >= vertices.size()) continue;
-					size_t next = (i + 1) % topRing.size();
-					if (topRing[next] >= vertices.size()) continue;
+				for (int i = 0; i < static_cast<int>(topRing.size()); ++i) {
+					if (topRing[i] >= static_cast<int>(vertices.size())) continue;
+					int next = (i + 1) % static_cast<int>(topRing.size());
+					if (topRing[next] >= static_cast<int>(vertices.size())) continue;
 
 					DrawLineForMS(topRingWorld[i], topRingWorld[next], liftetimeMS, color, lineThickness);
 				}
 
-				for (size_t i = 0; i < bottomRing.size(); ++i) {
-					if (bottomRing[i] >= vertices.size()) continue;
-					size_t next = (i + 1) % bottomRing.size();
-					if (bottomRing[next] >= vertices.size()) continue;
+				for (int i = 0; i < static_cast<int>(bottomRing.size()); ++i) {
+					if (bottomRing[i] >= static_cast<int>(vertices.size())) continue;
+					int next = (i + 1) % static_cast<int>(bottomRing.size());
+					if (bottomRing[next] >= static_cast<int>(vertices.size())) continue;
 
 					DrawLineForMS(bottomRingWorld[i], bottomRingWorld[next], liftetimeMS, color, lineThickness);
 				}
@@ -393,21 +393,21 @@ namespace GTS {
 					{3, 14}, {15, 16}, {5,  13}, {10, 9}
 				}};
 
-				for (size_t i = 0; i < ringConnections.size(); ++i) {
+				for (int i = 0; i < static_cast<int>(ringConnections.size()); ++i) {
 					DrawLineForMS(topRingWorld[i], bottomRingWorld[i], liftetimeMS, color, lineThickness);
 				}
 
 				// Bottom apex spokes
 				if (bottomApexValid) {
-					for (size_t i = 0; i < bottomRing.size(); ++i) {
-						if (bottomRing[i] < vertices.size()) {
+					for (int i = 0; i < static_cast<int>(bottomRing.size()); ++i) {
+						if (bottomRing[i] < static_cast<int>(vertices.size())) {
 							DrawLineForMS(bottomApexPos, bottomRingWorld[i], liftetimeMS, color, lineThickness * 0.7f);
 						}
 					}
 				}
 
 				// Top ring cross-section
-				if (topRing[0] < vertices.size() && topRing[4] < vertices.size()) {
+				if (topRing[0] < static_cast<int>(vertices.size()) && topRing[4] < static_cast<int>(vertices.size())) {
 					DrawLineForMS(topRingWorld[0], topRingWorld[4], liftetimeMS, color * glm::vec4(1.0f, 1.0f, 1.0f, 0.5f), lineThickness * 0.5f);
 				}
 				return;
@@ -468,7 +468,7 @@ namespace GTS {
 		std::vector<glm::vec3> vertices;
 		vertices.reserve(hkVerts.size());
 
-		for (int32_t i = 0; i < hkVerts.size(); ++i) {
+		for (int32_t i = 0; i < static_cast<int32_t>(hkVerts.size()); ++i) {
 			const RE::hkVector4& hkVert = hkVerts[i];
 			vertices.emplace_back(hkVert.quad.m128_f32[0], hkVert.quad.m128_f32[1], hkVert.quad.m128_f32[2]);
 		}
@@ -650,7 +650,7 @@ namespace GTS {
 	}
 
 	std::optional<std::reference_wrapper<std::unique_ptr<DebugUtil::DebugLine>>> DebugDraw::GetExistingLine(const glm::vec3& from, const glm::vec3& to, const glm::vec4& color, float lineThickness) {
-		for (int i = 0; i < LinesToDraw.size(); i++) {
+		for (int i = 0; i < static_cast<int>(LinesToDraw.size()); i++) {
 			std::unique_ptr<DebugUtil::DebugLine>& line = LinesToDraw[i];
 
 			if (

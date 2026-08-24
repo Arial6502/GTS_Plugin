@@ -28,14 +28,21 @@ namespace {
 				case FootEvent::Right:
 				case FootEvent::Front:
 				case FootEvent::Back:
+				{
 					CreateParticle(actor, position, scale);
-				break;
+					break;
+				}
 				case FootEvent::JumpLand:
+				{
 					CreateParticle(actor, position, scale);
-				break;
-				case FootEvent::Butt:
-					CreateParticle(actor, position, scale);	
-				break;
+					break;
+				}
+				case FootEvent::Butt: 
+				{
+					CreateParticle(actor, position, scale);
+					break;
+				}
+				default: {}
 			}
 		}
 	}

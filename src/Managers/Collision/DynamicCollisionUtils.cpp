@@ -414,7 +414,7 @@ namespace GTS {
 								}
 
 								// Scale vertices from Havok units to game world units and add controller position
-								for (int32_t i = 0; i < Verts.size(); ++i) {
+								for (int32_t i = 0; i < static_cast<int32_t>(Verts.size()); ++i) {
 									Verts[i].quad.m128_f32[0] = Verts[i].quad.m128_f32[0] * *gWorldScaleInverse;
 									Verts[i].quad.m128_f32[1] = Verts[i].quad.m128_f32[1] * *gWorldScaleInverse;
 									Verts[i].quad.m128_f32[2] = Verts[i].quad.m128_f32[2] * *gWorldScaleInverse;

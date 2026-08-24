@@ -1,5 +1,4 @@
 #include "Managers/Damage/LaunchActor.hpp"
-#include "Managers/GTSSizeManager.hpp"
 
 #include "Config/Config.hpp"
 
@@ -7,18 +6,12 @@
 #include "Utils/DeathReport.hpp"
 
 #include "Managers/CrushManager.hpp"
-
 #include "Managers/HighHeel.hpp"
 #include "Managers/Damage/LaunchObject.hpp"
-
 #include "Managers/Animation//Utils/CooldownManager.hpp"
 #include "Managers/Animation/Utils/AnimationUtils.hpp"
 #include "Managers/Damage/Utils/SizeDamageUtils.hpp"
-
 #include "Managers/Audio/MoansLaughs.hpp"
-#include "Managers/Audio/GoreAudio.hpp"
-
-
 
 using namespace GTS;
 
@@ -119,8 +112,6 @@ namespace GTS {
 		}
 
 		float threshold = 6.0f;
-		float SMT = 1.0f;
-
 		bool OwnsPerk = false;
 
 		if (TinyCalamityActive(giant)) {
@@ -198,17 +189,27 @@ namespace GTS {
 		if (giant->IsPlayerRef() || IsTeammate(giant) || EffectsForEveryone(giant)) {
 			switch (kind) {
 				case FootEvent::Left: 
+				{
 					LaunchAtFoot(giant, radius, power, false);
-				break;
-				case FootEvent::Right:
+					break;
+				}
+				case FootEvent::Right: 
+				{
 					LaunchAtFoot(giant, radius, power, true);
-				break;
+					break;
+				}
 				case FootEvent::Butt: 
+				{
 					LaunchAtThighs(giant, radius, power);
-				break;
-				case FootEvent::Breasts:
+					break;
+				}
+				
+				case FootEvent::Breasts: 
+				{
 					LaunchAtCleavage(giant, radius, power);
-				break;
+					break;
+				}
+				default: {}
 			}
 		}
 	}
@@ -255,8 +256,6 @@ namespace GTS {
 			}
 			
 			std::vector<NiPoint3> LaunchObjectPoints = {point};
-
-			NiPoint3 giantLocation = giant->GetPosition();
 
 			bool IsFoot = (node->name == "NPC R Foot [Rft ]" || node->name == "NPC L Foot [Lft ]");
 
