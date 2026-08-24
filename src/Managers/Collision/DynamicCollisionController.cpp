@@ -105,7 +105,10 @@ namespace {
 			cloningProcess.scale = a_scale;
 		}
 
-		auto clone = reinterpret_cast<T*>(a_object->Clone(cloningProcess));
+		// Clone() hands back an NiObject*, and nothing guarantees the clone really is
+		// a T. netimmerse_cast walks the NiRTTI chain and yields nullptr on mismatch
+		// instead of a mistyped pointer.
+		auto clone = netimmerse_cast<T*>(a_object->Clone(cloningProcess));
 		return clone;
 	}
 }

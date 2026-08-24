@@ -10,13 +10,6 @@ using namespace GTS;
 
 namespace {
 
-	enum class CameraDataMode {
-		State,
-		Transform,
-	};
-
-	constexpr CameraDataMode currentMode = CameraDataMode::State;
-
 	BoneTarget GetBoneTarget_Anim(CameraTracking Camera_Anim) {
 
 		switch (Camera_Anim) {
@@ -376,68 +369,40 @@ namespace GTS {
 	}
 
 	static NiPoint3 GetCameraPosition() {
+
 		NiPoint3 cameraLocation;
-		switch (currentMode) {
-			case CameraDataMode::State: {
-				auto camera = PlayerCamera::GetSingleton();
-				if (camera) {
-					auto currentState = camera->currentState;
-					if (currentState) {
-						currentState->GetTranslation(cameraLocation);
-					}
-				}
-			}
-			case CameraDataMode::Transform: {
-				auto camera = PlayerCamera::GetSingleton();
-				if (camera) {
-					auto cameraRoot = camera->cameraRoot;
-					if (cameraRoot) {
-						cameraLocation = cameraRoot->world.translate;
-					}
-				}
-			}
+
+		auto camera = PlayerCamera::GetSingleton();
+		if (!camera) {
+			return cameraLocation;
 		}
+
+		if (auto cameraRoot = camera->cameraRoot) {
+			cameraLocation = cameraRoot->world.translate;
+		}
+		else if (auto currentState = camera->currentState) {
+			// Only reachable with no camera root, matching the old fall-through.
+			currentState->GetTranslation(cameraLocation);
+		}
+
 		return cameraLocation;
 	}
 
 	NiMatrix3 GetCameraRotation() {
-		NiMatrix3 cameraRot;
-		switch (currentMode) {
-			case CameraDataMode::State: {
-				//log::info("Camera State: State");
-				auto camera = PlayerCamera::GetSingleton();
-				if (camera) {
-					auto& currentState = camera->currentState;
-					if (currentState) {
-						NiQuaternion cameraQuat;
-						currentState->GetRotation(cameraQuat);
-						cameraRot = QuatToMatrix(cameraQuat);
-					}
-				}
-				break;
-			}
-			case CameraDataMode::Transform: {
-				//log::info("Camera State: Transform");
-				auto camera = PlayerCamera::GetSingleton();
-				if (camera) {
-					auto& cameraRoot = camera->cameraRoot;
-					if (cameraRoot) {
-						cameraRot = cameraRoot->world.rotate;
-					}
-				}
-				break;
-			}
-		}
+
+		NiMatrix3 cameraRot; // identity until there is a state to read
+
 		auto camera = PlayerCamera::GetSingleton();
-		if (camera) {
-			auto currentState = camera->currentState;
-			if (currentState) {
-				NiQuaternion cameraQuat;
-				currentState->GetRotation(cameraQuat);
-				cameraRot = QuatToMatrix(cameraQuat);
-			}
+		if (!camera) {
+			return cameraRot;
 		}
-			
+
+		if (auto& currentState = camera->currentState) {
+			NiQuaternion cameraQuat;
+			currentState->GetRotation(cameraQuat);
+			cameraRot = QuatToMatrix(cameraQuat);
+		}
+
 		return cameraRot;
 	}
 

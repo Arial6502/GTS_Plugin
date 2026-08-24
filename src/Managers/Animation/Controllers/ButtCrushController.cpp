@@ -252,7 +252,7 @@ namespace GTS {
 		float prey_distance = (pred->GetPosition() - prey->GetPosition()).Length();
 		if (prey_distance <= MINIMUM_DISTANCE * pred_scale && sizedifference < MINIMUM_BUTTCRUSH_SCALE) {
 			if (pred->IsPlayerRef()) {
-				std::string_view message = fmt::format("{} is too big for Butt Crush: x{:.2f}/{:.2f}", prey->GetDisplayFullName(), sizedifference, MINIMUM_BUTTCRUSH_SCALE);
+				std::string message = fmt::format("{} is too big for Butt Crush: x{:.2f}/{:.2f}", prey->GetDisplayFullName(), sizedifference, MINIMUM_BUTTCRUSH_SCALE);
 				if (!AnimationVars::Crawl::IsCrawling(pred) && pred->IsSneaking()) {
 					message = fmt::format("{} is too big for Knee Crush: x{:.2f}/{:.2f}", prey->GetDisplayFullName(), sizedifference, MINIMUM_BUTTCRUSH_SCALE);
 				} else if (AnimationVars::Crawl::IsCrawling(pred)) {
@@ -270,7 +270,7 @@ namespace GTS {
 				return false; // Disallow to butt crush flying dragons
 			}
 			if ((!prey->IsPlayerRef() && !CanPerformActionOn(pred, prey, false))) {
-				std::string_view message = std::format("{} is Essential", prey->GetDisplayFullName());
+				std::string message = std::format("{} is Essential", prey->GetDisplayFullName());
 				NotifyWithSound(pred, message);
 				return false;
 			}

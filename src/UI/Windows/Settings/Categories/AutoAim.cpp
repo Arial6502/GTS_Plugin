@@ -64,9 +64,9 @@ namespace {
 
     void DrawHandSlamSettings_Crawl() {
         PSString THelp = "Hand slam is a light stomp variation, but for the crawl state\n"
-        "Giantess slams the ground with her hand";
-        PSString T0 = "[Radius] Determines collider size.";
-        "Default: 32.0";
+    	                 "Giantess slams the ground with her hand";
+        PSString T0 = "[Radius] Determines collider size.\n"
+    	              "Default: 32.0";
         PSString T1 = "[Offset] left/right offset of the initial target search collider.";
         PSString T2 = "[Offset] back/forward offset of the initial target search collider.";
         ImGuiEx::HelpText("What is crawl hand slam", THelp);

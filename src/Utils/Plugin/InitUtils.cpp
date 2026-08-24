@@ -36,10 +36,10 @@ namespace GTS {
 		logger::info("GTSPlugin {}", GTSPlugin::ModVersion.string());
 		logger::info("Dll Build Date: {} {}", __DATE__, __TIME__);
 
-		const std::string_view git_commit = fmt::format("\t -- Commit: {}", git_CommitSubject());
-		const std::string_view git_sha1 = fmt::format("\t -- SHA1: {}", git_CommitSHA1());
-		const std::string_view git_date = fmt::format("\t -- Date: {}", git_CommitDate());
-		const std::string_view git_ditry = fmt::format("\t -- Uncommited Changes: {}", git_AnyUncommittedChanges() ? "Yes" : "No");
+		const std::string git_commit = fmt::format("\t -- Commit: {}", git_CommitSubject());
+		const std::string git_sha1 = fmt::format("\t -- SHA1: {}", git_CommitSHA1());
+		const std::string git_date = fmt::format("\t -- Date: {}", git_CommitDate());
+		const std::string git_ditry = fmt::format("\t -- Uncommited Changes: {}", git_AnyUncommittedChanges() ? "Yes" : "No");
 
 		logger::info("Git Info:\n{}\n{}\n{}\n{}", git_commit, git_sha1, git_date, git_ditry);
 	}

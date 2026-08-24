@@ -16,7 +16,7 @@ namespace GTS {
 		if (body->parent) {
 			body = body->parent;
 		}
-		auto root = reinterpret_cast<const hkpCollidable*>(body);
+		auto root = static_cast<const hkpCollidable*>(body);
 
 		output.rootCollidable = root;
 		output.hitFraction = a_hitInfo.hitFraction;

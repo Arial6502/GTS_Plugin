@@ -469,7 +469,7 @@ namespace GTS {
 			}
 			if (!IsHumanoid(Grab::GetHeldActor(target))) {
 				if (target->IsPlayerRef()) {
-					std::string_view message = std::format("You don't want to play with {}", Grab::GetHeldActor(target)->GetDisplayFullName());
+					std::string message = std::format("You don't want to play with {}", Grab::GetHeldActor(target)->GetDisplayFullName());
 					NotifyWithSound(target, message);
 				}
 				return false;

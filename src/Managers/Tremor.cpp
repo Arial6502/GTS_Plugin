@@ -11,7 +11,7 @@ namespace {
 	void DoJumpingRumble(Actor* actor, float tremor, float halflife, std::string_view node_name, float duration) { 
 		// This function is needed since normally jumping doesn't stack with footsteps
 		// And we want to use separate footstep logic for normal walk since footsteps happen too fast and rumble manager behaves a bit incorrectly
-		std::string_view tag = std::format("Tremor_{}_{}_{}", actor->formID, node_name, Time::WorldTimeElapsed());
+		std::string tag = std::format("Tremor_{}_{}_{}", actor->formID, node_name, Time::WorldTimeElapsed());
 		float fallmod = 1.0f + (GetFallModifier(actor) - 1.0f);
 
 		Rumbling::Once(tag, actor, tremor * fallmod, halflife, node_name, duration);

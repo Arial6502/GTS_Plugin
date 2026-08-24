@@ -152,7 +152,7 @@ namespace GTS {
 			if (camera) {
 				camera->ForceThirdPerson();
 				auto playerCamera = RE::PlayerCamera::GetSingleton();
-				auto thirdPersonState = reinterpret_cast<RE::ThirdPersonState*>(playerCamera->cameraStates[RE::CameraState::kThirdPerson].get());
+				auto thirdPersonState = skyrim_cast<RE::ThirdPersonState*>(playerCamera->cameraStates[RE::CameraState::kThirdPerson].get());
 				auto isInThirdPerson = playerCamera->currentState->id == RE::CameraState::kThirdPerson;
 
 				TaskManager::RunOnce([=](auto& update){

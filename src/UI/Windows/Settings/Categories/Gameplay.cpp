@@ -27,7 +27,7 @@ namespace GTS {
                       "- Curse of Growth: You will continiously grow in size like \"Grow\" but in spurts of varying strength up until the specified scale limit which you can change below.\n"
                       "- Curse of the Giantess: You will rapidly grow to the specified size if you are smaller. Spells like \"Restore Size\" will not shrink you below this size.\n"
                       "- Curse of Diminishing: When not in combat or when not performing any giantess actions. You will slowly shrink to the target scale if too large.\n"
-                      "- Size Locked: Combines the effects of both curses. You will grow to the specified size and slowly shrink back to it if larger.\n";
+                      "- Size Locked: Combines the effects of both curses. You will grow to the specified size and slowly shrink back to it if larger.\n"
     				  "- Level Locked: Acts like \"Curse of the Giantess\" with the minimum size being dependent on either game level or GTS Skill level.\n\n"
 		              "Note: Most gamemodes require you to have the colossal growth perk before being able to use them.";
 

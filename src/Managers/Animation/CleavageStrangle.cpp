@@ -157,8 +157,8 @@ namespace {
         auto tiny = Grab::GetHeldActor(&data.giant);
         Actor* giant = &data.giant;
         if (tiny) {
-            std::string_view name = std::format("Suffo_DOT_{}_{}", giant->formID, tiny->formID);
-            std::string_view name_2 = std::format("Hearts_DOT_{}_{}", giant->formID, tiny->formID);
+            std::string name = std::format("Suffo_DOT_{}_{}", giant->formID, tiny->formID);
+            std::string name_2 = std::format("Hearts_DOT_{}_{}", giant->formID, tiny->formID);
             Task_SpawnHeartsOverTime(&data.giant, tiny, name_2);
             Task_SlowlyDamageTiny(&data.giant, tiny, name);
         }
@@ -169,7 +169,7 @@ namespace {
         auto tiny = Grab::GetHeldActor(&data.giant);
         Actor* giant = &data.giant;
         if (tiny) {
-            std::string_view name = std::format("Suffo_DOT_{}_{}", giant->formID, tiny->formID);
+            std::string name = std::format("Suffo_DOT_{}_{}", giant->formID, tiny->formID);
             AnimationManager::StartAnim("Cleavage_DOT_Leave_Tiny", tiny);
             TaskManager::Cancel(name);
         }

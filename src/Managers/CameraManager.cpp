@@ -94,7 +94,7 @@ namespace GTS {
 		CameraState* CurrentState = this->GetCameraState();
 		RecordKillMoveCameraPositions();
 		if (SmoothCam::Enabled()) {
-			if (auto TPState = reinterpret_cast<ThirdPersonCameraState*>(GetCameraStateTP())) {
+			if (auto TPState = dynamic_cast<ThirdPersonCameraState*>(GetCameraStateTP())) {
 				if ((TPState == &this->CamStateFootL ||
 					TPState == &this->CamStateFootR  ||
 					TPState == &this->CamStateFoot   ||

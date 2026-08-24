@@ -510,7 +510,7 @@ namespace GTS {
 
 			if (sizedifference >= GetHugShrinkThreshold(giantref) 
 			|| get_target_scale(tinyref) < Minimum_Actor_Scale) { // Without it, Hugs may shrink into negatives in some cases
-				std::string_view message = fmt::format("{} stole all available size", giantref->GetDisplayFullName());
+				std::string message = fmt::format("{} stole all available size", giantref->GetDisplayFullName());
 				Notify(message);
 				return false;
 			}
@@ -669,7 +669,7 @@ namespace GTS {
 	void HugShrink::CallRelease(Actor* giant) {
 		auto huggedActor = HugShrink::GetHuggiesActor(giant);
 		if (huggedActor) {
-			std::string_view message = fmt::format("{} was saved from hugs of {}", huggedActor->GetDisplayFullName(), giant->GetDisplayFullName());
+			std::string message = fmt::format("{} was saved from hugs of {}", huggedActor->GetDisplayFullName(), giant->GetDisplayFullName());
 			float sizedifference = get_visual_scale(giant)/get_visual_scale(huggedActor);
 			if (giant->IsPlayerRef()) {
 				shake_camera(giant, 0.25f * sizedifference, 0.35f);

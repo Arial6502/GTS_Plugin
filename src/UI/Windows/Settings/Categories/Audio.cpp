@@ -89,7 +89,7 @@ namespace GTS {
 			{
 
 				PSString THelp = "Sexlab/SL P+ has been detected as installed.\n"
-								 "Its voices can be used used as an alternative for moans/laughs.\n";
+								 "Its voices can be used used as an alternative for moans/laughs.\n"
 								 "The voice type can be changed in SL's MCM.\n\n"
 							     "Note: Only The Player / Current Followers will be listed as to not clutter this menu.\n"
 							     "If this menu is empty it means none of the currently loaded actors are elidgible for this feature.";

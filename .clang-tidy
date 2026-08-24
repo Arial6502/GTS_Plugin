@@ -19,9 +19,11 @@ Checks: >
   bugprone-signed-char-misuse,
   bugprone-macro-repeated-side-effects
 
-# Keep findings advisory until the existing backlog is cleared, then promote
-# bugprone-dangling-handle here so regressions break the build.
-WarningsAsErrors: ''
+# The dangling-handle backlog was swept to zero, so it is enforced from here on:
+# a new std::string_view bound to a temporary now fails the run rather than
+# joining a backlog. The remaining checks stay advisory until each is cleared the
+# same way -- promote them one at a time, never as a batch.
+WarningsAsErrors: 'bugprone-dangling-handle'
 
 # Diagnose in our own headers only. Without this, every CommonLibSSE, vcpkg and
 # Windows SDK header gets analysed and the output is unusable.

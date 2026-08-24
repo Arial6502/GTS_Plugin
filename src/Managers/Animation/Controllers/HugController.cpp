@@ -229,7 +229,7 @@ namespace GTS {
 				}
 				if (!IsHuman(prey)) { // Allow hugs with humanoids only
 					if (pred->IsPlayerRef()) {
-						std::string_view message = std::format("You have no desire to hug {}", prey->GetDisplayFullName());
+						std::string message = std::format("You have no desire to hug {}", prey->GetDisplayFullName());
 						NotifyWithSound(pred, message); // Just no. We don't have Creature Anims.
 						shake_camera(pred, 0.45f, 0.30f);
 					}
@@ -238,7 +238,7 @@ namespace GTS {
 				return ShouldAllowWhenTooLarge(pred, prey, sizedifference, this->allow_message);
 			} else {
 				if (pred->IsPlayerRef()) {
-					std::string_view message = std::format("{} is too big to be hugged: x{:.2f}/{:.2f}", prey->GetDisplayFullName(), sizedifference, MINIMUM_HUG_SCALE);
+					std::string message = std::format("{} is too big to be hugged: x{:.2f}/{:.2f}", prey->GetDisplayFullName(), sizedifference, MINIMUM_HUG_SCALE);
 					shake_camera(pred, 0.45f, 0.30f);
 					NotifyWithSound(pred, message);
 				} else if (prey->IsPlayerRef() && IsTeammate(pred)) {
