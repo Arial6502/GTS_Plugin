@@ -50,11 +50,7 @@ namespace {
 
 namespace GTS {
 
-	std::string HighHeelManager::DebugName() {
-		return "::HighHeelManager";
-	}
-
-	void HighHeelManager::HavokUpdate() {
+	void HighHeelManager::OnHavokUpdate() {
 		GTS_PROFILE_SCOPE("HHMgr: HavokUpdate");
 		auto actors = FindSomeActors("HHHavokUpdate", 1);
 		for (auto actor: actors) {
@@ -62,7 +58,7 @@ namespace GTS {
 		}
 	}
 
-	void HighHeelManager::ActorEquip(Actor* actor) {
+	void HighHeelManager::OnGameActorEquip(Actor* actor) {
 		ActorHandle actorHandle = actor->CreateRefHandle();
 		std::string taskname = std::format("ActorEquip_{}", actor->formID);
 
@@ -75,7 +71,7 @@ namespace GTS {
 			this->ApplyHH(get_actor, true);
 		});
 	}
-	void HighHeelManager::ActorLoaded(Actor* actor) {
+	void HighHeelManager::OnActorLoad3D(Actor* actor) {
 		ActorHandle actorHandle = actor->CreateRefHandle();
 		std::string taskname = std::format("ActorLoaded_{}", actor->formID);
 
@@ -89,7 +85,7 @@ namespace GTS {
 		});
 	}
 
-	void HighHeelManager::OnAddPerk(const AddPerkEvent& evt) {
+	void HighHeelManager::OnActorPerkAdded(const AddPerkEvent& evt) {
 		//log::info("Add Perk fired");
 		if (evt.perk == Runtime::GetPerk(Runtime::PERK.GTSPerkHighHeels)) {
 			for (auto actor: find_actors()) {
@@ -162,7 +158,7 @@ namespace GTS {
 								.hhOffset = new_hh,
 								.shoe = actor->GetWornArmor(BGSBipedObjectForm::BipedObjectSlot::kFeet),
 							};
-							EventDispatcher::DoHighheelEquip(hhEvent);
+							EventDispatcher::DispatchHighHeelEquiped(hhEvent);
 							hhData.wasWearingHh = isWearingHH;
 						}
 					}

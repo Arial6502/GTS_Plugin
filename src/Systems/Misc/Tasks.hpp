@@ -84,14 +84,12 @@ namespace GTS {
 	class TaskManager : public EventListener, public CInitSingleton<TaskManager> {
 
 		public:
-		virtual std::string DebugName() override;
-
-		virtual void Update() override;
-		virtual void CameraUpdate() override;
-		virtual void HavokUpdate() override;
-		virtual void PostPhysicsUpdate() override;
-		virtual void Reset() override;
-		virtual void OnGameLoaded() override;
+		virtual void OnMainUpdate() override;
+		virtual void OnCameraUpdate() override;
+		virtual void OnHavokUpdate() override;
+		virtual void OnPostSMPUpdate() override;
+		virtual void OnPluginReset() override;
+		virtual void OnSerdePostLoad() override;
 
 		static void ChangeUpdate(std::string_view name, UpdateKind updateOn);
 		static void Cancel(std::string_view name);

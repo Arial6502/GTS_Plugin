@@ -174,7 +174,7 @@ namespace GTS {
 								float transfer = std::clamp(Total - oldvaluecalc, 0.0f, 1.0f);
 								GtsSkillRatio->value = transfer;
 								GtsSkillLevel->value = skill_level + 1.0f;
-								EventDispatcher::DoGTSLevelUpEvent(Caster);
+								EventDispatcher::DispatchGTSLevelUpEvent(Caster);
 								GtsSkillProgress->value = GtsSkillLevel->value;
 
 								AddPerkPoints(GtsSkillLevel->value);
@@ -199,7 +199,7 @@ namespace GTS {
 								float transfer = std::clamp(Total - oldvaluecalc, 0.0f, 1.0f);
 								data->fGTSSkillRatio = transfer;
 								data->fGTSSkillLevel = skill_level + 1.0f;
-								EventDispatcher::DoGTSLevelUpEvent(Caster);
+								EventDispatcher::DispatchGTSLevelUpEvent(Caster);
 								data->fGTSSkillExp = data->fGTSSkillLevel;
 							}
 						}

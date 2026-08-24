@@ -168,11 +168,7 @@ namespace GTS {
 	// Virtual Overrides
 	//--------------------
 
-	std::string Runtime::DebugName() {
-		return "::Runtime";
-	}
-
-	void Runtime::DataReady() {
+	void Runtime::OnSKSEDataLoaded() {
 
 		if (!CheckModLoaded("GTS.esp")) {
 			ReportAndExit(

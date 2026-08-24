@@ -1,7 +1,14 @@
 #pragma once
 
 namespace GTS {
-	void VersionCheck(const SKSE::LoadInterface* a_skse);
-	void CPrintPluginInfo();
-	void LogPrintPluginInfo();
+
+	class InitUtils : public CInitSingleton<InitUtils>, public EventListener {
+
+		void OnSKSEDataLoaded() override;
+		void OnSKSEPostLoad() override;
+
+		static void VersionCheck();
+		static void CPrintPluginInfo();
+		static void LogPrintPluginInfo();
+	};
 }

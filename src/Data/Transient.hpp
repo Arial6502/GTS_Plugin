@@ -10,10 +10,9 @@ namespace GTS {
 		static TransientActorData* GetActorData(Actor* actor);
 
 		private:
-		virtual std::string DebugName() override;
-		virtual void Reset() override;
-		virtual void ResetActor(Actor* actor) override;
-		virtual void OnGameRevert() override;
+		virtual void OnPluginReset() override;
+		virtual void OnGameActorReset(Actor* actor) override;
+
 
 		static inline std::mutex _Lock;
 		static inline std::unordered_map<FormID, TransientActorData> TempActorDataMap {};

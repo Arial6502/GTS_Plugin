@@ -21,7 +21,7 @@ namespace Hooks {
 					.rank = a_rank,
 				};
 
-				EventDispatcher::DoAddPerk(Event);
+				EventDispatcher::DispatchActorAddPerk(Event);
 			}
 
 		}
@@ -46,7 +46,7 @@ namespace Hooks {
 					.perk = a_perk,
 				};
 
-				EventDispatcher::DoRemovePerk(Event);
+				EventDispatcher::DispatchActorRemovePerk(Event);
 			}
 
 			func<ID>(a_this, a_perk);

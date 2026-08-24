@@ -14,7 +14,7 @@ namespace Hooks {
 
 			{
 				GTS_PROFILE_ENTRYPOINT_UNIQUE("Camera::TESCameraStateUpdate", ID);
-				GTS::EventDispatcher::DoCameraUpdate();
+				GTS::EventDispatcher::DispatchCameraUpdate();
 			}
 
 		}

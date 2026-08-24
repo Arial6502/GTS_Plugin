@@ -5,11 +5,10 @@ namespace GTS {
 	class GTSManager : public EventListener, public CInitSingleton <GTSManager> {
 
 		public:
-		virtual void DragonSoulAbsorption() override;
-		virtual std::string DebugName() override;
-		virtual void Start() override;
-		virtual void Update() override;
-		virtual void OnGameLoaded() override;
+		virtual void OnGameDragonSoulAbsorb() override;
+		virtual void OnSKSEDataLoaded() override;
+		virtual void OnMainUpdate() override;
+		virtual void OnSerdePostLoad() override;
 
 
 		//Used for profiling

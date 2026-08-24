@@ -3,11 +3,7 @@
 
 namespace GTS {
 
-    std::string Config::DebugName() {
-        return "::Config";
-    }
-
-    void Config::DataReady() {
+    void Config::OnSKSEDataLoaded() {
         LoadPersistentToml();
         CopyLegacySettings();
     }
@@ -138,9 +134,9 @@ namespace GTS {
         _fileManager.CopyLegacySettings(LegacyConfigFilePath);
     }
 
-    void Config::OnGameLoaded() {
+    void Config::OnSerdePostLoad() {
         LoadSettings();
-        spdlog::set_level(spdlog::level::from_str(Advanced.sLogLevel));
+        spdlog::set_level(spdlog::level::from_str(Persistent.sLogLevel));
     }
 
     bool Config::LoadPersistentToml() {

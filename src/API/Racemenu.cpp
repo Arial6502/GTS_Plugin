@@ -81,11 +81,7 @@ namespace GTS {
 		return iBodyMorphIntfc != nullptr;
 	}
 
-	std::string Racemenu::DebugName() {
-		return "::RacemenuAPI";
-	}
-
-	void Racemenu::OnPluginPostLoad() {
+	void Racemenu::OnSKSEDataLoaded() {
 		Register();
 	}
 }

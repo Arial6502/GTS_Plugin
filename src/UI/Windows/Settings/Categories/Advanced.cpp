@@ -44,8 +44,8 @@ namespace GTS {
 
             if (ImGui::CollapsingHeader("Logging", ImUtil::HeaderFlagsDefaultOpen)) {
 
-                if (ImGuiEx::ComboEx<spdlog::level::level_enum>("Log Level", Config::Advanced.sLogLevel, T0, false, true)) {
-	                logger::SetLevel(Config::Advanced.sLogLevel.c_str());
+                if (ImGuiEx::ComboEx<spdlog::level::level_enum>("Log Level", Config::Persistent.sLogLevel, T0, false, true)) {
+	                logger::SetLevel(Config::Persistent.sLogLevel.c_str());
 				}
 
 				ImGui::Spacing();

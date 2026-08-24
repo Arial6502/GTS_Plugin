@@ -7,8 +7,7 @@ namespace GTS {
 	class AttributeManager : public EventListener, public CInitSingleton <AttributeManager> {
 
 		public:
-		virtual std::string DebugName() override;
-		virtual void Update() override;
+		virtual void OnMainUpdate() override;
 
 		static void OverrideSMTBonus(float Value);
 		static float GetAttributeBonus(Actor* actor, ActorValue av);

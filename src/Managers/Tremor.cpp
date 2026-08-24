@@ -40,10 +40,6 @@ namespace {
 
 namespace GTS {
 
-	std::string TremorManager::DebugName() {
-		return "::TremorManager";
-	}
-
 	void TremorManager::OnImpact(const Impact& impact) { // This Tremor is used for regular footsteps, not custom GTS attacks
 		if (impact.actor) {
 			GTS_PROFILE_SCOPE("TremorManager: OnImpact");

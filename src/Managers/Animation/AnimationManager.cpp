@@ -64,11 +64,7 @@ namespace GTS {
 		}
 	}
 
-	std::string AnimationManager::DebugName() {
-		return "::AnimationManager";
-	}
-
-	void AnimationManager::DataReady() {
+	void AnimationManager::OnSKSEDataLoaded() {
 		AnimationStomp::RegisterEvents();
 		AnimationStomp::RegisterTriggers();
 
@@ -175,18 +171,18 @@ namespace GTS {
 		FurnitureAnimations::RegisterEvents();
 	}
 
-	void AnimationManager::Update() {
+	void AnimationManager::OnMainUpdate() {
 		auto player = PlayerCharacter::GetSingleton();
 		if (player) {
 			UpdateGravity(player);
 		}
 	}
 
-	void AnimationManager::Reset() {
+	void AnimationManager::OnPluginReset() {
 		this->data.clear();
 	}
 
-	void AnimationManager::ResetActor(Actor* actor) {
+	void AnimationManager::OnGameActorReset(Actor* actor) {
 		std::lock_guard lock(_lock);
 		if (actor) {
 			this->data.erase(actor);
@@ -420,7 +416,7 @@ namespace GTS {
 		}
 	}
 
-	void AnimationManager::ActorAnimEvent(Actor* actor, const std::string_view& tag, const std::string_view& payload) {
+	void AnimationManager::OnActorAnimationChange(Actor* actor, const std::string_view& tag, const std::string_view& payload) {
 		try {
 			if (actor) {
 

@@ -6,7 +6,6 @@ namespace GTS {
 
 	class FootStepManager : public EventListener, public CInitSingleton <FootStepManager> {
 		public:
-		virtual std::string DebugName() override;
 		virtual void OnImpact(const Impact& impact) override;
 		static void PlayHighHeelSounds_Walk(float modifier, NiAVObject* foot, FootEvent foot_kind, float scale, bool UseOtherHeelSet);
 		static void PlayNormalSounds(float modifier, NiAVObject* foot, FootEvent foot_kind, float scale, bool UseOtherHeelSet);

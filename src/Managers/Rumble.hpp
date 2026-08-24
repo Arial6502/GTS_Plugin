@@ -67,13 +67,10 @@ namespace GTS {
 
 	class Rumbling : public EventListener, public CInitSingleton<Rumbling> {
 
-	public:
-
-		virtual std::string DebugName() override;
-
-		virtual void Reset() override;
-		virtual void ResetActor(Actor* actor) override;
-		virtual void Update() override;
+		public:
+		virtual void OnPluginReset() override;
+		virtual void OnGameActorReset(Actor* actor) override;
+		virtual void OnMainUpdate() override;
 
 		ActorRumbleData& GetRumbleData(Actor* giant);
 

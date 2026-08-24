@@ -12,7 +12,6 @@ namespace GTS {
 
 	class DynamicScale : public EventListener, public CInitSingleton<DynamicScale> {
 		public:
-		virtual std::string DebugName() override;
 		static DynamicScaleData& GetData(Actor* actor);
 		std::unordered_map<FormID, DynamicScaleData> data;
 	};

@@ -154,9 +154,8 @@ namespace GTS {
 		static void PlaySoundAtNodeFallOffImpl(RE::BSISoundDescriptor* a_soundDescriptor, const float& a_volume,RE::NiAVObject* a_node, float a_falloff, float a_frequency);
 		static void PlaySoundAtNodeImpl(RE::BSISoundDescriptor* a_soundDescriptor, const float& a_volume, RE::NiAVObject* a_node, float a_frequency);
 
-	private:
-		virtual std::string DebugName() override;
-		virtual void DataReady() override;
+		private:
+		void OnSKSEDataLoaded() override;
 
 		static inline bool SexlabInstalled = false;
 		static inline bool DevourmentInstalled = false;

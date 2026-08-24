@@ -61,9 +61,8 @@ namespace GTS {
 		void Hide(const std::string& source);
 
 		// Inherited via EventListener
-		std::string DebugName() override;
-		void DataReady() override;
-		void MenuChange(const MenuOpenCloseEvent* a_event) override;
+		void OnSKSEDataLoaded() override;
+		void OnGameMenuChange(const MenuOpenCloseEvent* a_event) override;
 
 		// Inherited via IMenu
 		void AdvanceMovie(float a_interval, std::uint32_t a_currentTime) override;

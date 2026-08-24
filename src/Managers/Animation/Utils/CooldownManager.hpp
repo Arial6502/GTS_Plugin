@@ -64,8 +64,7 @@ namespace GTS {
 
     class CooldownManager : public GTS::EventListener, public CInitSingleton<CooldownManager> {
         public:
-        virtual std::string DebugName() override;
-        virtual void Reset() override;
+        virtual void OnPluginReset() override;
 
         double& GetLastTime(Actor* actor, CooldownSource source);
 

@@ -74,11 +74,7 @@ namespace GTS {
         TomlData = toml::basic_value<toml::ordered_type_config>();
     }
 
-    std::string Keybinds::DebugName() {
-        return "::Keybinds";
-    }
-
-    void Keybinds::DataReady() {
+    void Keybinds::OnSKSEDataLoaded() {
         Keybinds::LoadKeybinds();
     }
 }

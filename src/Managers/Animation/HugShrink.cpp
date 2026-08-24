@@ -466,10 +466,6 @@ namespace {
 
 namespace GTS {
 
-	std::string HugShrink::DebugName() {
-		return "::HugShrink";
-	}
-
 	void HugShrink::DetachActorTask(Actor* giant) {
 		std::string name = std::format("Huggies_{}", giant->formID);
 		std::string name_2 = std::format("Huggies_Shrink_{}", giant->formID);
@@ -653,12 +649,12 @@ namespace GTS {
 		HugShrink::HugActor_Actor(giant, tiny, 1.0f);
 	}
 
-	void HugShrink::Reset() {
+	void HugShrink::OnPluginReset() {
 		std::unique_lock lock(_lock);
 		this->data.clear();
 	}
 
-	void HugShrink::ResetActor(Actor* actor) {
+	void HugShrink::OnGameActorReset(Actor* actor) {
 		std::unique_lock lock(_lock);
 		if (actor) {
 			this->data.erase(actor);

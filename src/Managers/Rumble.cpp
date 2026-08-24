@@ -122,14 +122,11 @@ namespace GTS {
 		it->second.state = RumbleState::RampingDown;
 	}
 
-	std::string Rumbling::DebugName() {
-		return "::Rumbling";
-	}
-	void Rumbling::Reset() {
+	void Rumbling::OnPluginReset() {
 		this->data.clear();
 	}
 
-	void Rumbling::ResetActor(Actor* actor) {
+	void Rumbling::OnGameActorReset(Actor* actor) {
 		std::lock_guard lock(_lock);
 		if (actor) {
 			this->data.erase(actor->formID);
@@ -174,7 +171,7 @@ namespace GTS {
 		Rumbling::Once(tag, giant, intensity, halflife, "NPC Root [Root]", 0.0f, ignore_scaling);
 	}
 
-	void Rumbling::Update() {
+	void Rumbling::OnMainUpdate() {
 		for (auto& rumble : this->data | std::views::values) {
 			rumble.Update();
 		}

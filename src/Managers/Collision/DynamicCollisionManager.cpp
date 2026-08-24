@@ -92,7 +92,7 @@ namespace GTS {
 		ControllerMap.erase(a_controller);
 	}
 
-	void DynamicCollisionManager::Update() {
+	void DynamicCollisionManager::OnMainUpdate() {
 
 		if (!State::InGame()) return;
 
@@ -104,7 +104,4 @@ namespace GTS {
 		}
 	}
 
-	std::string DynamicCollisionManager::DebugName() {
-		return "::DynamicCollisionManager";
-	}
 }

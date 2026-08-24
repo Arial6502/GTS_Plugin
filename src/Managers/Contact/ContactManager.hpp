@@ -5,8 +5,7 @@ namespace GTS {
 
 	class ContactManager : public EventListener, public CInitSingleton <ContactManager> {
 		public:
-		virtual std::string DebugName() override;
-		virtual void HavokUpdate() override;
+		virtual void OnHavokUpdate() override;
 		void UpdateCameraContacts();
 
 		private:

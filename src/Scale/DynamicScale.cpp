@@ -177,10 +177,6 @@ namespace GTS {
 
 	DynamicScaleData::DynamicScaleData() : roomHeight(Spring(std::numeric_limits<float>::infinity(), 1.0f)){}
 
-	std::string DynamicScale::DebugName() {
-		return "::DynamicScale";
-	}
-
 	DynamicScaleData& DynamicScale::GetData(Actor* actor) {
 		if (!actor) {
 			throw std::exception("DynamicScale::GetData: Actor must exist");

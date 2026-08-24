@@ -4,13 +4,24 @@
 
 namespace GTS {
 
-	void VersionCheck(const SKSE::LoadInterface* a_skse) {
-		if (a_skse->RuntimeVersion() < SKSE::RUNTIME_SSE_1_5_97 || REL::Module::IsVR()) {
+	void InitUtils::OnSKSEDataLoaded() {
+		CPrintPluginInfo();
+	}
+
+	void InitUtils::OnSKSEPostLoad() {
+		LogPrintPluginInfo();
+	}
+
+	void InitUtils::VersionCheck() {
+
+		const bool CantRun = REL::Module::get().version() < SKSE::RUNTIME_SSE_1_5_97 | REL::Module::get().version() == SKSE::RUNTIME_VR_1_4_15;
+
+		if (CantRun) {
 			ReportAndExit("This mod does not support Skyrim VR or versions of Skyrim older than 1.5.97.");
 		}
 	}
 
-	void CPrintPluginInfo() {
+	void InitUtils::CPrintPluginInfo() {
 		Cprint("[GTSPlugin.dll]: [ Giantess Mod {} was succesfully initialized. Waiting for New Game/Save Load. ]", GTSPlugin::ModVersion.string());
 		Cprint("[GTSPlugin.dll]: Dll Build Date: {} {}", __DATE__, __TIME__);
 		Cprint("[GTSPlugin.dll]: Git Info:");
@@ -20,7 +31,7 @@ namespace GTS {
 		Cprint("\t -- Uncommited Changes: {}", git_AnyUncommittedChanges() ? "Yes" : "No");
 	}
 
-	void LogPrintPluginInfo() {
+	void InitUtils::LogPrintPluginInfo() {
 
 		logger::info("GTSPlugin {}", GTSPlugin::ModVersion.string());
 		logger::info("Dll Build Date: {} {}", __DATE__, __TIME__);

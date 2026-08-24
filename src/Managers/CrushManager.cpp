@@ -101,11 +101,7 @@ namespace {
 
 namespace GTS {
 
-	std::string CrushManager::DebugName() {
-		return "::CrushManager";
-	}
-
-	void CrushManager::Update() {
+	void CrushManager::OnMainUpdate() {
 		GTS_PROFILE_SCOPE("CrushManager: Update");
 		for (auto &[tinyId, data]: this->data) {
 			auto tiny = TESForm::LookupByID<Actor>(tinyId);
@@ -205,11 +201,11 @@ namespace GTS {
 		}
 	}
 
-	void CrushManager::Reset() {
+	void CrushManager::OnPluginReset() {
 		this->data.clear();
 	}
 
-	void CrushManager::ResetActor(Actor* actor) {
+	void CrushManager::OnGameActorReset(Actor* actor) {
 		if (actor) {
 			this->data.erase(actor->formID);
 		}

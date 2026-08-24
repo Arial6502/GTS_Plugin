@@ -128,10 +128,6 @@ namespace PlayFootSound {
 
 namespace GTS {
 
-	std::string FootStepManager::DebugName() {
-		return "::FootStepManager";
-	}
-
 	void FootStepManager::OnImpact(const Impact& impact) {
 		if (impact.actor) {
 

@@ -15,11 +15,10 @@ namespace GTS {
 
 	class PerkHandler : public EventListener, public CInitSingleton <PerkHandler> {
 		public:
-        virtual std::string DebugName() override;
-		virtual void OnAddPerk(const AddPerkEvent& evt) override;
-        virtual void OnRemovePerk(const RemovePerkEvent& evt) override;
+		virtual void OnActorPerkAdded(const AddPerkEvent& evt) override;
+        virtual void OnActorPerkRemoved(const RemovePerkEvent& evt) override;
 		virtual void OnGTSLevelUp(Actor* a_actor) override;
-		virtual void ActorLoaded(RE::Actor* actor) override;
+		virtual void OnActorLoad3D(RE::Actor* actor) override;
 
         static void SetNPCSkillLevelByPerk(Actor* a_actor);
 

@@ -34,11 +34,7 @@ namespace {
 
 namespace GTS {
 
-	std::string OverkillManager::DebugName() {
-		return "::OverkillManager";
-	}
-
-	void OverkillManager::Update() {
+	void OverkillManager::OnMainUpdate() {
 		GTS_PROFILE_SCOPE("OverkillManager: Update");
 		for (auto &[tinyId, data]: this->data) {
 			auto tiny = TESForm::LookupByID<Actor>(tinyId);
@@ -87,11 +83,11 @@ namespace GTS {
 	}
 
 
-	void OverkillManager::Reset() {
+	void OverkillManager::OnPluginReset() {
 		this->data.clear();
 	}
 
-	void OverkillManager::ResetActor(Actor* actor) {
+	void OverkillManager::OnGameActorReset(Actor* actor) {
 		if (actor) {
 			this->data.erase(actor->formID);
 		}

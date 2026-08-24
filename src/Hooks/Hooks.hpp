@@ -1,5 +1,14 @@
 #pragma once
 
 namespace Hooks {
-	void Install();
+
+	class HookManager : public CInitSingleton<HookManager>, public EventListener {
+
+		public:
+		static void InstallNormal();
+		static void InstallLate();
+
+		private:
+		void OnGameMainMenuFullyLoaded() override;
+	};
 }

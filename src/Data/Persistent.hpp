@@ -3,7 +3,6 @@
 #include "Data/Util/BasicRecord.hpp"
 #include "Data/Util/CompressedRecord.hpp"
 #include "Data/Util/MapRecord.hpp"
-
 #include "Data/Storage/PersistentData.hpp"
 
 namespace GTS {
@@ -11,21 +10,8 @@ namespace GTS {
 	class Persistent : public EventListener, public CInitSingleton<Persistent> {
 
 		public:
-		virtual void Reset() override;
-		virtual void ResetActor(Actor* actor) override;
-		virtual std::string DebugName() override;
-
-		//SKSE Callbacks
-		static void OnRevert(SKSE::SerializationInterface*);
-		static void OnGameSaved(SKSE::SerializationInterface* serde);
-		static void OnGameLoaded(SKSE::SerializationInterface* serde);
-
 		static void EraseUnloadedData();
-
-		static PersistentKillCountData* GetKillCountData(Actor& actor);
 		static PersistentKillCountData* GetKillCountData(Actor* actor);
-
-		static PersistentActorData* GetActorData(Actor& actor);
 		static PersistentActorData* GetActorData(Actor* actor);
 
 
@@ -63,9 +49,13 @@ namespace GTS {
 		static inline std::mutex _Lock;
 
 		static void ClearData();
+		void OnPluginReset() override;
+		void OnGameActorReset(Actor* actor) override;
 
-		static void LoadPersistent(SKSE::SerializationInterface* serde);
-		static void SavePersistent(SKSE::SerializationInterface* serde);
+		//SKSE Callbacks
+		void OnSerdeSave(SKSE::SerializationInterface* a_this) override;
+		void OnSerdeLoad(SKSE::SerializationInterface* a_this, std::uint32_t a_recordType, std::uint32_t a_recordVersion, std::uint32_t a_recordSize) override;
+		void OnSKSEFormDelete(RE::FormID a_id) override;
 
 	};
 }

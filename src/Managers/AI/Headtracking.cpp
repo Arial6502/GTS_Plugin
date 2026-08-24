@@ -154,11 +154,7 @@ namespace {
 
 namespace GTS {
 
-	std::string Headtracking::DebugName() {
-		return "::Headtracking";
-	}
-
-	void Headtracking::Update() {
+	void Headtracking::OnMainUpdate() {
 		for (auto actor: find_actors()) {
 			this->data.try_emplace(actor->formID);
 			if (actor->IsPlayerRef() || IsTeammate(actor)) {

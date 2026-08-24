@@ -29,9 +29,6 @@ Reflection based serializer limitations:
 
 struct SettingsAdvanced_t {
 
-    // Logging levels
-    std::string sLogLevel = "err";
-
     // Toggles for advanced features
     bool bShowOverlay = false;
     bool bDamageAV = true;

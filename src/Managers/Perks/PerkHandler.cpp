@@ -181,16 +181,12 @@ namespace {
 
 namespace GTS {
 
-    std::string PerkHandler::DebugName() {
-        return "::PerkHandler";
-    }
-
-    void PerkHandler::OnAddPerk(const AddPerkEvent& evt) {
+    void PerkHandler::OnActorPerkAdded(const AddPerkEvent& evt) {
         ManageSpellPerks(evt);
         ManageOtherPerks(evt);
     }
 
-    void PerkHandler::OnRemovePerk(const RemovePerkEvent& evt) {
+    void PerkHandler::OnActorPerkRemoved(const RemovePerkEvent& evt) {
         Actor* actor = evt.actor;
         if (actor) {
             if (actor->IsPlayerRef() || IsTeammate(actor)) {
@@ -218,7 +214,7 @@ namespace GTS {
         }
     }
 
-    void PerkHandler::ActorLoaded(RE::Actor* actor) {
+    void PerkHandler::OnActorLoad3D(RE::Actor* actor) {
         if (IsHuman(actor)) {
             SetNPCSkillLevelByPerk(actor);
             OnGTSLevelUp(actor);

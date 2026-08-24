@@ -323,19 +323,15 @@ namespace {
 
 namespace GTS {	
 
-	std::string AnimationBoobCrush::DebugName() {
-		return "::AnimationBoobCrush";
-	}
-
 	void AnimationBoobCrush::AttachActor(Actor* giant, Actor* tiny) {
 		AnimationBoobCrush::GetSingleton().data.try_emplace(giant, tiny);
 	}
 
-	void AnimationBoobCrush::Reset() {
+	void AnimationBoobCrush::OnPluginReset() {
 		this->data.clear();
 	}
 
-	void AnimationBoobCrush::ResetActor(Actor* actor) {
+	void AnimationBoobCrush::OnGameActorReset(Actor* actor) {
 		std::lock_guard lock(_lock);
 		if (actor) {
 			this->data.erase(actor);

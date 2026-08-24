@@ -17,7 +17,7 @@ namespace Hooks {
 				if (a_event.tag != NULL && a_event.holder != NULL) {
 					Actor* actor = static_cast<Actor*>(a_this);
 					if (actor) {
-						EventDispatcher::DoActorAnimEvent(actor, a_event.tag, a_event.payload);
+						EventDispatcher::DispatchActorAnimationEvent(actor, a_event.tag, a_event.payload);
 					}
 				}
 

@@ -7,11 +7,7 @@ using namespace GTS;
 
 namespace GTS {
 
-	std::string ContactManager::DebugName() {
-		return "::ContactManager";
-	}
-
-	void ContactManager::HavokUpdate() {
+	void ContactManager::OnHavokUpdate() {
 		auto playerCharacter = PlayerCharacter::GetSingleton();
 		auto cell = playerCharacter->GetParentCell();
 		if (!cell) {

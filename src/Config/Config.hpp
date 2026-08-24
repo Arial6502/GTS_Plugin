@@ -49,9 +49,8 @@ namespace GTS {
         //Not Serialized
         static inline SettingsExperimental_t Experiments = {};
 
-        void DataReady() override;
-        std::string DebugName() override;
-        void OnGameLoaded() override;
+        void OnSKSEDataLoaded() override;
+        void OnSerdePostLoad() override;
 
         static bool LoadPersistentToml();
         static bool SavePersistentToml();

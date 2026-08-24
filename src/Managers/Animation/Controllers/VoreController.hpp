@@ -48,10 +48,9 @@ namespace GTS {
 
 	class VoreController : public EventListener, public CInitSingleton <VoreController> {
 		public:
-		virtual std::string DebugName() override;
-		virtual void Reset() override;
-		virtual void ResetActor(Actor* actor) override;
-		virtual void Update() override;
+		virtual void OnPluginReset() override;
+		virtual void OnGameActorReset(Actor* actor) override;
+		virtual void OnMainUpdate() override;
 
 		// Get's vore target for any actor based on direction they are facing
 		// This will only return actors with appropiate distance/scale

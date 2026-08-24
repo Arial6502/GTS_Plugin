@@ -20,8 +20,7 @@ namespace GTS {
         static std::vector<TESLevItem*> SelectItemsFromPool(ChestType type);
 
 		public:
-        std::string DebugName() override;
-        virtual void OnGameLoaded() override;
+        virtual void OnSerdePostLoad() override;
     };
 
 }

@@ -162,11 +162,7 @@ namespace GTS {
 		}
 	}
 
-	std::string VoreController::DebugName() {
-		return "::VoreController";
-	}
-
-	void VoreController::Update() {
+	void VoreController::OnMainUpdate() {
 		std::unique_lock lock(_lock);
 		for (auto& voreData : this->data | std::views::values) {
 			voreData.Update();
@@ -335,12 +331,12 @@ namespace GTS {
 		}
 	}
 
-	void VoreController::Reset() {
+	void VoreController::OnPluginReset() {
 		std::unique_lock lock(_lock);
 		this->data.clear();
 	}
 
-	void VoreController::ResetActor(Actor* actor) {
+	void VoreController::OnGameActorReset(Actor* actor) {
 		std::unique_lock lock(_lock);
 		if (!actor) {
 			logger::info("VoreController::ResetActor: actor == nullptr");

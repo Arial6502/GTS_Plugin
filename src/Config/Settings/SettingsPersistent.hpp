@@ -30,7 +30,8 @@ Reflection based serializer limitations:
 
 struct SettingsPersistent_t {
 	bool bShowSplashScreen = true;
-  bool bEnableLootDistribution = true;
+	bool bEnableLootDistribution = true;
+	std::string sLogLevel = "err";
 };
 TOML_SERIALIZABLE(SettingsPersistent_t);
 TOML_REGISTER_NAME(SettingsPersistent_t, "Persistent");

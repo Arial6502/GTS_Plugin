@@ -18,8 +18,7 @@ namespace GTS {
 	class InputManager : public EventListener, public CInitSingleton<InputManager> {
 		public:
 		void ProcessAndFilterEvents(InputEvent** a_event);
-		std::string DebugName() override;
-		void DataReady() override;
+		void OnSKSEDataLoaded() override;
 		void Init();
 		static void RegisterInputEvent(std::string_view a_namesv, std::function<void(const ManagedInputEvent&)> a_funcCallback, std::function<bool(void)> a_condCallbakc = nullptr);
 

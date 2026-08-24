@@ -236,7 +236,7 @@ namespace GTS {
 			if (timepassed < 1.0) {
 				return true; // not enough time has passed yet
 			}
-			EventDispatcher::DoResetActor(tiny);
+			EventDispatcher::DispatchGameActorResetEvent(tiny);
 			return false; // stop task, we reset the actor
 		});
 	}

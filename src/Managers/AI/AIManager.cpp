@@ -266,11 +266,7 @@ namespace {
 
 namespace GTS {
 
-	std::string AIManager::DebugName() {
-		return "::AIManager";
-	}
-
-	void AIManager::Update() {
+	void AIManager::OnMainUpdate() {
 
 		if (!State::Live()) {
 			return;

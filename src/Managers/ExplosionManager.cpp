@@ -58,10 +58,6 @@ namespace {
 
 namespace GTS {
 
-	std::string ExplosionManager::DebugName() {
-		return "::ExplosionManager";
-	}
-
 	void ExplosionManager::OnImpact(const Impact& impact) {
 		if (!impact.actor) {
 			return;

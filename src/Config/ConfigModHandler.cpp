@@ -1,10 +1,9 @@
 #include "Config/ConfigModHandler.hpp"
 #include "Config/Config.hpp"
-
 #include "Managers/Morphs/MorphManager.hpp"
-
 #include "UI/Core/ImStyleManager.hpp"
-#include "spdlog/spdlog.h"
+#include "Utils/Plugin/Logger.hpp"
+
 
 namespace GTS {
 
@@ -51,18 +50,11 @@ namespace GTS {
 		MorphManager::HandleCategoryDataChange(MorphManager::Category::kAll);
 	}
 
-	std::string ConfigModHandler::DebugName() {
-		return "::ConfigModHandler";
-	}
-
-	void ConfigModHandler::OnGameSave() {
-		logger::trace("ConfigModHandler OnGameSave");
-	}
-
-	void ConfigModHandler::OnGameLoaded() {
+	void ConfigModHandler::OnSerdePostLoad() {
 
 		ImStyleManager::ApplyStyle();
-		spdlog::set_level(spdlog::level::from_str(Config::Advanced.sLogLevel));
+		SKSE::log::LoadConfig();
+		
 
 		DoCameraStateReset();
 		DoHighHeelStateReset();
@@ -70,11 +62,10 @@ namespace GTS {
 		logger::trace("ConfigModHandler OnGameLoaded");
 	}
 
-	void ConfigModHandler::OnConfigReset() {
+	void ConfigModHandler::OnModConfigReset() {
 		Config::ResetToDefaults();
 		ImStyleManager::ApplyStyle();
-
-		spdlog::set_level(spdlog::level::from_str(Config::Advanced.sLogLevel));
+		SKSE::log::LoadConfig();
 
 		// ----- If You need to do something when settings get reset add it here. Assumes an ingame reset -----
 
@@ -86,28 +77,14 @@ namespace GTS {
 		logger::info("ConfigModHandler OnConfigReset");
 	}
 
-	void ConfigModHandler::OnConfigRefresh() {
-		OnGameLoaded();
+	void ConfigModHandler::OnModConfigRefresh() {
+		OnSerdePostLoad();
 	}
 
-	void ConfigModHandler::Reset() {
-		//Is run during kPresaveLoad, cleans config data to defaults before a game is loaded.
+	void ConfigModHandler::OnPluginReset() {
 		Config::ResetToDefaults();
 		ImStyleManager::ApplyStyle();
-		spdlog::set_level(spdlog::level::from_str(Config::Advanced.sLogLevel));
+		SKSE::log::LoadConfig();
 	}
 
-	void ConfigModHandler::MenuChange(const RE::MenuOpenCloseEvent* menu_event) {
-
-		//No longer needed, Handled by Reset() now.
-		
-		/*//Run Reset if the main menu is loaded
-		if (menu_event->menuName == RE::MainMenu::MENU_NAME && menu_event->opening) {
-
-			Config::ResetToDefaults();
-			ImStyleManager::ApplyStyle();
-			spdlog::set_level(spdlog::level::from_str(Config::Advanced.sLogLevel));
-
-		}*/
-	}
 }

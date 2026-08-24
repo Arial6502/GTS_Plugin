@@ -97,11 +97,7 @@ namespace GTS {
 		return 0.0f;
 	}
 
-	std::string KillFeedWindow::DebugName() {
-		return "::KillFeedWindow";
-	}
-
-	void KillFeedWindow::DeathEvent(Actor* a_killer, Actor* a_victim) {
+	void KillFeedWindow::OnLethalHit(Actor* a_killer, Actor* a_victim) {
 
 		static const WindowSettingsKillFeed_t& settings = GetExtraSettings<WindowSettingsKillFeed_t>();
 
@@ -119,7 +115,7 @@ namespace GTS {
 
 	}
 
-	void KillFeedWindow::GameDeathEvent(Actor* a_killer, Actor* a_victim, bool a_dead) {
+	void KillFeedWindow::OnGameDeath(Actor* a_killer, Actor* a_victim, bool a_dead) {
 
 		static const WindowSettingsKillFeed_t& settings = GetExtraSettings<WindowSettingsKillFeed_t>();
 

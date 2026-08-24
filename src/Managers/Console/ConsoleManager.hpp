@@ -24,11 +24,8 @@ namespace GTS {
         static void RegisterCommand(std::string_view a_cmdName, const std::function<void()>& a_callback, const std::string& a_desc);
         static bool Process(const std::string& a_msg);
 
-
-
         // Inherited via EventListener
-        std::string DebugName() override;
-        void DataReady() override;
+        void OnSKSEDataLoaded() override;
     };
 
 

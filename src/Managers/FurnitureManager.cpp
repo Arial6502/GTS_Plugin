@@ -133,13 +133,7 @@ namespace GTS_Hitboxes {
 
 namespace GTS {
 
-	std::string FurnitureManager::DebugName() {
-		return "::FurnitureManager";
-	}
-
-
-
-    void FurnitureManager::FurnitureEvent(RE::Actor* activator, TESObjectREFR* object, bool enter) {
+    void FurnitureManager::OnGameFurnitureChange(RE::Actor* activator, TESObjectREFR* object, bool enter) {
         if (activator) {
             if (ValidActor(activator)) {
                 RecordAndHandleFurnState(activator, object, enter);
@@ -151,7 +145,7 @@ namespace GTS {
     }
 
 
-    void FurnitureManager::ActorLoaded(RE::Actor* actor) {
+    void FurnitureManager::OnActorLoad3D(RE::Actor* actor) {
 
 		//Check if the actor is in furniture when loaded.
 		//else reset the tracked furn state.
@@ -163,7 +157,7 @@ namespace GTS {
                 if (ObjectRefHandle handle = aiProcess->GetOccupiedFurniture()) {
                    if (!handle) ResetTrackedFurniture(actor);
                    else{
-                       FurnitureEvent(actor, handle.get().get(), true);
+                       OnGameFurnitureChange(actor, handle.get().get(), true);
                    }
                 }
             }
@@ -171,7 +165,7 @@ namespace GTS {
     }
 
     //Fallback check
-    void FurnitureManager::ActorUpdate(RE::Actor* actor) {
+    void FurnitureManager::OnActorUpdate(RE::Actor* actor) {
         GTS_PROFILE_ENTRYPOINT("FurnitureManager::ActorUpdate");
         if (actor) {
             if (ValidActor(actor)) {

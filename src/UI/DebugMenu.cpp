@@ -40,17 +40,13 @@ namespace GTS {
 		logger::info("Init Scaleform");
 	}
 
-	std::string DebugMenu::DebugName() {
-		return "::DebugMenu";
-	}
-
-	void DebugMenu::DataReady() {
+	void DebugMenu::OnSKSEDataLoaded() {
 		logger::info("Registering DebugMenu...");
 
 		auto ui = RE::UI::GetSingleton();
 		if (ui) {
 			ui->Register(MENU_NAME, Creator);
-			DebugMenu::Start();
+			Start();
 
 			logger::info("Successfully registered DebugMenu");
 		}
@@ -71,7 +67,7 @@ namespace GTS {
 
 	}
 
-	void DebugMenu::Update() {
+	void DebugMenu::OnMainUpdate() {
 		DebugDraw::Update();
 	}
 
@@ -97,7 +93,7 @@ namespace GTS {
 		}
 	}
 
-	void DebugMenu::MenuChange(const MenuOpenCloseEvent* a_event) {
+	void DebugMenu::OnGameMenuChange(const MenuOpenCloseEvent* a_event) {
 
 		auto mName = a_event->menuName;
 

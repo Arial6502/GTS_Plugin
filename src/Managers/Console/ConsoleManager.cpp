@@ -60,11 +60,7 @@ namespace GTS {
 		return true;
 	}
 
-	std::string ConsoleManager::DebugName() {
-		return "::ConsoleManager";
-	}
-
-	void ConsoleManager::DataReady() {
+	void ConsoleManager::OnSKSEDataLoaded() {
 		Init();
 	}
 

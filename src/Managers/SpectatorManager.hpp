@@ -6,10 +6,9 @@ namespace GTS {
 
 	class SpectatorManager : public EventListener, public CInitSingleton <SpectatorManager> {
 		public:
-		virtual std::string DebugName() override;
-		virtual void Update() override;
-		virtual void Reset() override;
-		virtual void ResetActor(Actor* actor) override;
+		virtual void OnMainUpdate() override;
+		virtual void OnPluginReset() override;
+		virtual void OnGameActorReset(Actor* actor) override;
 
 		static Actor* GetCameraTarget();
 		static void SetCameraTarget(RE::Actor* a_Actor, bool aTemporary);

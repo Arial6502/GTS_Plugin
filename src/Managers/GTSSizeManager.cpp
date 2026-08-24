@@ -41,10 +41,6 @@ namespace {
 
 namespace GTS {
 
-	std::string SizeManager::DebugName() {
-		return "::SizeManager";
-	}
-
 	void SizeManager::SetEnchantmentBonus(Actor* actor, float amt) {
 		if (!actor) {
 			return;
@@ -245,17 +241,17 @@ namespace GTS {
 		return this->sizeData.at(actor);
 	}
 
-	void SizeManager::Reset() {
+	void SizeManager::OnPluginReset() {
 		this->sizeData.clear();
 	}
 
-	void SizeManager::ResetActor(Actor* actor) {
+	void SizeManager::OnGameActorReset(Actor* actor) {
 		if (actor) {
 			this->sizeData.erase(actor);
 		}
 	}
 
-	void SizeManager::OnGameLoaded() {
-		Reset();
+	void SizeManager::OnSerdePostLoad() {
+		OnPluginReset();
 	}
 }

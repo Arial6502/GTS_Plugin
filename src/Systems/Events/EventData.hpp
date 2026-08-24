@@ -326,6 +326,7 @@ namespace GTS {
         bool left = false;
         AimAssistResult result;
     };
+
     struct AimOutcome {
         AimZone zone = AimZone::None;
         bool left = false;

@@ -31,9 +31,8 @@ namespace GTS {
 		static void SetMorph(Actor* a_actor, Category a_type, float a_scale);
 		static const char* GetMorphKey(Category a_type);
 
-		virtual std::string DebugName() override;
-		virtual void ResetActor(RE::Actor* a_actor) override;
-		virtual void ActorLoaded(RE::Actor* a_actor) override;
-		virtual void ActorUpdate(RE::Actor* a_actor) override;
+		virtual void OnGameActorReset(RE::Actor* a_actor) override;
+		virtual void OnActorLoad3D(RE::Actor* a_actor) override;
+		virtual void OnActorUpdate(RE::Actor* a_actor) override;
 	};
 }

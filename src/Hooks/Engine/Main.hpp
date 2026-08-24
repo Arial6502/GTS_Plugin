@@ -15,5 +15,6 @@ namespace Hooks {
 	class Hook_MainUpdate {
 		public:
 		static void Install();
+		static void InstallLate();
 	};
 }

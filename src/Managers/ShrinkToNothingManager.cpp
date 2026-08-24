@@ -22,11 +22,7 @@ namespace {
 
 namespace GTS {
 
-	std::string ShrinkToNothingManager::DebugName() {
-		return "::ShrinkToNothingManager";
-	}
-
-	void ShrinkToNothingManager::Update() {
+	void ShrinkToNothingManager::OnMainUpdate() {
 		GTS_PROFILE_SCOPE("ShrinkToNothingManager: Update");
 		for (auto &[tinyId, data]: this->data) {
 			auto tiny = TESForm::LookupByID<Actor>(tinyId);
@@ -71,11 +67,11 @@ namespace GTS {
 	
 
 
-	void ShrinkToNothingManager::Reset() {
+	void ShrinkToNothingManager::OnPluginReset() {
 		this->data.clear();
 	}
 
-	void ShrinkToNothingManager::ResetActor(Actor* actor) {
+	void ShrinkToNothingManager::OnGameActorReset(Actor* actor) {
 		if (actor) {
 			this->data.erase(actor->formID);
 		}

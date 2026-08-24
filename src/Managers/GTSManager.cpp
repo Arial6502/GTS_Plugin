@@ -366,16 +366,12 @@ namespace {
 	}
 }
 
-std::string GTSManager::DebugName() {
-	return "::GTSManager";
-}
-
-void GTSManager::Start() {
+void GTSManager::OnSKSEDataLoaded() {
 	FixEmotionsRange();
 }
 
 // Poll for updates
-void GTSManager::Update() {
+void GTSManager::OnMainUpdate() {
 
 	UpdateInterractionDistance(); // Player exclusive
 	ShiftAudioFrequency();
@@ -426,7 +422,7 @@ void GTSManager::Update() {
 	}
 }
 
-void GTSManager::OnGameLoaded() {
+void GTSManager::OnSerdePostLoad() {
 
 	//Fix Animations And Camera
 	for (auto giant : find_actors()) {
@@ -446,7 +442,7 @@ void GTSManager::OnGameLoaded() {
 	}
 }
 
-void GTSManager::DragonSoulAbsorption() {
+void GTSManager::OnGameDragonSoulAbsorb() {
 	DragonAbsorptionBonuses(); 
 }
 

@@ -33,8 +33,7 @@ namespace GTS {
 		static void ApplyMorphs(RE::Actor* a_actor);
 		[[nodiscard]] static bool Loaded();
 
-		std::string DebugName() override;
-		void OnPluginPostLoad() override;
+		void OnSKSEDataLoaded() override;
 
 		private:
 		static inline SKEE::IBodyMorphInterface* iBodyMorphIntfc = nullptr;

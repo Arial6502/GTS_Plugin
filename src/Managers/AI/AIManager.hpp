@@ -5,8 +5,7 @@ namespace GTS {
 
 	class AIManager : public EventListener, public CInitSingleton<AIManager> {
 		public:
-		virtual std::string DebugName() override;
-		virtual void Update() override;
+		virtual void OnMainUpdate() override;
 		bool TryStartAction(Actor* a_Performer) const;
 
 		Timer BeginNewActionTimer = Timer(3.0f);

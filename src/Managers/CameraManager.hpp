@@ -17,11 +17,10 @@ namespace GTS {
 
 	class CameraManager : public EventListener, public CInitSingleton <CameraManager> {
 		public:
-		virtual std::string DebugName() override;
-		virtual void DataReady() override;
-		virtual void CameraUpdate() override;
-		void Reset() override;
-		void Update() override;
+		virtual void OnSKSEDataLoaded() override;
+		virtual void OnCameraUpdate() override;
+		void OnPluginReset() override;
+		void OnMainUpdate() override;
 
 		CameraState* GetCameraState();
 

@@ -73,11 +73,7 @@ namespace GTS {
 		return Smoothcam_HaveCamera;
 	}
 
-	std::string SmoothCam::DebugName() {
-		return "::SmoothCamAPI";
-	}
-
-	void SmoothCam::DataReady() {
+	void SmoothCam::OnSKSEDataLoaded() {
 		Register();
 	}
 }

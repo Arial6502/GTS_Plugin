@@ -97,11 +97,7 @@ namespace {
 
 namespace GTS {
 
-	std::string AttributeManager::DebugName() {
-		return "::AttributeManager";
-	}
-
-	void AttributeManager::Update() {
+	void AttributeManager::OnMainUpdate() {
 
 		static Timer timer = Timer(0.5);
 

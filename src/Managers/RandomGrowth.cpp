@@ -82,11 +82,7 @@ namespace {
 
 namespace GTS {
 
-	std::string RandomGrowth::DebugName() {
-		return "::RandomGrowth";
-	}
-
-	void RandomGrowth::Update() {
+	void RandomGrowth::OnMainUpdate() {
 		static Timer GrowthTimer = Timer(1.0);
 		if (!State::Live()) {
 			return;

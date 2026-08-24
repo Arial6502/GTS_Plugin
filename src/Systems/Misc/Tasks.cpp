@@ -165,17 +165,11 @@ namespace GTS {
 	// TASK MANAGER
 	//---------------
 
-	
-
-	std::string TaskManager::DebugName() {
-		return "::TaskManager";
-	}
-
 	std::string TaskManager::GenerateName(void* ptr) {
 		return std::format("UNNAMED_{}", reinterpret_cast<std::uintptr_t>(ptr));
 	}
 
-	void TaskManager::Update() {
+	void TaskManager::OnMainUpdate() {
 		std::vector<QueuedTask> queued = CollectTasksForUpdate(m_taskings, m_taskingsLock, UpdateKind::Main);
 		
 		std::vector<QueuedTask> toRemove;
@@ -191,7 +185,7 @@ namespace GTS {
 		RemoveCompletedTasks(m_taskings, m_taskingsLock, toRemove);
 	}
 
-	void TaskManager::CameraUpdate() {
+	void TaskManager::OnCameraUpdate() {
 		auto queued = CollectTasksForUpdate(m_taskings, m_taskingsLock, UpdateKind::Camera);
 
 		std::vector<QueuedTask> toRemove;
@@ -207,7 +201,7 @@ namespace GTS {
 		RemoveCompletedTasks(m_taskings, m_taskingsLock, toRemove);
 	}
 
-	void TaskManager::HavokUpdate() {
+	void TaskManager::OnHavokUpdate() {
 		auto queued = CollectTasksForUpdate(m_taskings, m_taskingsLock, UpdateKind::Havok);
 
 		std::vector<QueuedTask> toRemove;
@@ -223,7 +217,7 @@ namespace GTS {
 		RemoveCompletedTasks(m_taskings, m_taskingsLock, toRemove);
 	}
 
-	void TaskManager::PostPhysicsUpdate() {
+	void TaskManager::OnPostSMPUpdate() {
 		auto queued = CollectTasksForUpdate(m_taskings, m_taskingsLock, UpdateKind::PostPhysics);
 
 		std::vector<QueuedTask> toRemove;
@@ -328,10 +322,10 @@ namespace GTS {
 
 		logger::info("Canceled all task manager tasks");
 	}
-	void TaskManager::Reset() {
+	void TaskManager::OnPluginReset() {
 		CancelAllTasks();
 	}
-	void TaskManager::OnGameLoaded() {
+	void TaskManager::OnSerdePostLoad() {
 		CancelAllTasks();
 	}
 }

@@ -23,7 +23,6 @@ namespace GTS {
         void RequestClose() override;
 
         // Inherited via EventListener
-        std::string DebugName() override;
-        void MenuChange(const RE::MenuOpenCloseEvent* a_event) override;
+        void OnGameMenuChange(const RE::MenuOpenCloseEvent* a_event) override;
     };
 }

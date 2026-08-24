@@ -17,8 +17,7 @@ namespace GTS {
 			return SmoothCamAPI != nullptr;
 		}
 
-		std::string DebugName() override;
-		void DataReady() override;
+		void OnSKSEDataLoaded() override;
 
 		private:
 

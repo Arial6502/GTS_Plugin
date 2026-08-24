@@ -47,10 +47,9 @@ namespace GTS {
 	};
 	class ThighSandwichController : public EventListener, public CInitSingleton <ThighSandwichController> {
 		public:
-		virtual std::string DebugName() override;
-		virtual void Update() override;
-		virtual void Reset() override;
-		virtual void ResetActor(Actor* actor) override;
+		virtual void OnMainUpdate() override;
+		virtual void OnPluginReset() override;
+		virtual void OnGameActorReset(Actor* actor) override;
 		std::vector<Actor*> GetSandwichTargetsInFront(Actor* pred, std::size_t numberOfPrey);
 		static void StartSandwiching(Actor* pred, Actor* prey, bool dochecks = true);
 		bool CanSandwich(Actor* pred, Actor* prey) const;

@@ -78,11 +78,7 @@ namespace GTS {
 		springs.erase(spring);
 	}
 
-	std::string SpringHolder::DebugName()  {
-		return "::SpringHolder";
-	}
-
-	void SpringHolder::Update() {
+	void SpringHolder::OnMainUpdate() {
 		float dt = Time::WorldTimeDelta();
 		for (auto spring: springs) {
 			spring->Update(dt);

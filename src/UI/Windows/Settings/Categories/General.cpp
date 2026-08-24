@@ -113,7 +113,7 @@ namespace {
 			}
 			else if (selectedExportIndex >= 0 && selectedExportIndex < exportFiles.size()) {
 				if (GTS::Config::LoadFromExport(exportFiles[selectedExportIndex].string())) {
-					GTS::EventDispatcher::DoConfigRefreshEvent();
+					GTS::EventDispatcher::DispatchModConfigRefresh();
 					statusText = fmt::format("✓ Applied {}", fileNames[selectedExportIndex]);
 				}
 				else {
@@ -146,7 +146,7 @@ namespace {
 		ImGuiEx::SeperatorV();
 
 		if (ImGuiEx::ImageButton("##Reset", ImageList::Generic_Reset, 32, T_Reset)) {
-			GTS::EventDispatcher::DoConfigResetEvent();
+			GTS::EventDispatcher::DispachModConfigReset();
 			statusText = fmt::format("✓ Mod settings have been reset");
 		}
 

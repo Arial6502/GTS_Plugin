@@ -16,7 +16,6 @@ namespace GTS {
         static bool LoadKeybinds();
         static bool SaveKeybinds();
         static void ResetKeybinds();
-        std::string DebugName() override;
-        void DataReady() override;
+        void OnSKSEDataLoaded() override;
     };
 }

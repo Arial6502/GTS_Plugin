@@ -58,12 +58,11 @@ namespace GTS {
 
 	class AnimationManager : public EventListener, public CInitSingleton <AnimationManager> {
 		public:
-		virtual std::string DebugName() override;
-		virtual void DataReady() override;
-		virtual void Update() override;
-		virtual void ActorAnimEvent(Actor* actor,  const std::string_view& tag, const std::string_view& payload) override;
-		virtual void Reset() override;
-		virtual void ResetActor(Actor* actor) override;
+		virtual void OnSKSEDataLoaded() override;
+		virtual void OnMainUpdate() override;
+		virtual void OnActorAnimationChange(Actor* actor,  const std::string_view& tag, const std::string_view& payload) override;
+		virtual void OnPluginReset() override;
+		virtual void OnGameActorReset(Actor* actor) override;
 
 		static float GetHighHeelSpeed(Actor* actor);
 		static float GetBonusAnimationSpeed(Actor* actor);

@@ -75,11 +75,7 @@ namespace {
 
 namespace GTS {
 
-	std::string CameraManager::DebugName() {
-		return "::CameraManager";
-	}
-
-	void CameraManager::DataReady() {
+	void CameraManager::OnSKSEDataLoaded() {
 		InputManager::RegisterInputEvent("HorizontalCameraReset", HorizontalResetEvent, AutoCamEnabledCondition);
 		InputManager::RegisterInputEvent("VerticalCameraReset", VerticalResetEvent, AutoCamEnabledCondition);
 
@@ -92,7 +88,7 @@ namespace GTS {
 		InputManager::RegisterInputEvent("SwitchCameraMode", SwitchCameraMode, AutoCamEnabledCondition);
 	}
 
-	void CameraManager::CameraUpdate() {
+	void CameraManager::OnCameraUpdate() {
 
 		GTS_PROFILE_SCOPE("CameraManager: CameraUpdate");
 		CameraState* CurrentState = this->GetCameraState();
@@ -318,7 +314,7 @@ namespace GTS {
 		this->ManualEditOffsets.x = 0.0f;
 	}
 
-	void CameraManager::Reset() {
+	void CameraManager::OnPluginReset() {
 
 		SpringSmoothScale = Spring(0.3f, 0.5f);
 		SpringSmoothOffset = Spring3(NiPoint3(0.30f, 0.30f, 0.30f), 0.50f);
@@ -395,7 +391,7 @@ namespace GTS {
 		}
 	}
 
-	void CameraManager::Update() {
+	void CameraManager::OnMainUpdate() {
 		EnforceCameraINISettings();
 	}
 }

@@ -10,7 +10,7 @@ namespace GTS {
 		static void CreateInstance(RE::Actor* a_actor);
 
 		private:
-		virtual void Update() override;
+		virtual void OnMainUpdate() override;
 
 		using Lock = std::shared_mutex;
 		using ReadLock = std::shared_lock<Lock>;
@@ -19,8 +19,6 @@ namespace GTS {
 		static inline Lock MapLock;
 		static inline absl::flat_hash_map<bhkCharacterController*, std::shared_ptr<DynamicCollisionController>> ControllerMap = {};
 
-		// Inherited via EventListener
-		std::string DebugName() override;
 	};
 
 }

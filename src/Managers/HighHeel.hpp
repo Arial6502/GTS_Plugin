@@ -13,11 +13,10 @@ namespace GTS {
 
 	class HighHeelManager : public EventListener, public CInitSingleton <HighHeelManager> {
 		public:
-		virtual std::string DebugName() override;
-		virtual void HavokUpdate() override;
-		virtual void ActorEquip(Actor* actor) override;
-		virtual void ActorLoaded(Actor* actor) override;
-		virtual void OnAddPerk(const AddPerkEvent& evt) override;
+		virtual void OnHavokUpdate() override;
+		virtual void OnGameActorEquip(Actor* actor) override;
+		virtual void OnActorLoad3D(Actor* actor) override;
+		virtual void OnActorPerkAdded(const AddPerkEvent& evt) override;
 
 		static bool IsWearingHH(Actor* actor); // Checks if GetBaseHHOffset().Length() > 1e-4
 		static void UpdateHHOffset(Actor* actor);

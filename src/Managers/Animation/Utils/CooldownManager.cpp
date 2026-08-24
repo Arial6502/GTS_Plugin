@@ -199,11 +199,7 @@ namespace GTS {
         return GetRemainingCooldown(giant, source) >= 0.0f;
     }
 
-    std::string CooldownManager::DebugName() {
-        return "::CooldownManager";
-    }
-
-    void CooldownManager::Reset() {
+    void CooldownManager::OnPluginReset() {
         _lastActionTimes.clear();
         _lastAccessedActor = nullptr;
         _lastAccessedTimes = nullptr;

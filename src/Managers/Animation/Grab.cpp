@@ -479,10 +479,6 @@ namespace GTS {
         });
     }
 
-	std::string Grab::DebugName() {
-		return "::Grab";
-	}
-
 	void Grab::DamageActorInHand(Actor* giant, float Damage) {
         Actor* grabbed = Grab::GetHeldActor(giant);
 		auto& sizemanager = SizeManager::GetSingleton();
@@ -586,11 +582,11 @@ namespace GTS {
 		Grab::GrabActor(giant, tiny, 1.0f);
 	}
 
-	void Grab::Reset() {
+	void Grab::OnPluginReset() {
 		this->data.clear();
 	}
 
-	void Grab::ResetActor(Actor* actor) {
+	void Grab::OnGameActorReset(Actor* actor) {
 		std::lock_guard lock(_lock);
 		if (actor) {
 			this->data.erase(actor);

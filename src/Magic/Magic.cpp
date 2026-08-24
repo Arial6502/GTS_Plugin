@@ -177,11 +177,7 @@ namespace GTS {
 		}
 	}
 
-	std::string MagicManager::DebugName() {
-		return "::MagicManager";
-	}
-
-	void MagicManager::Update() {
+	void MagicManager::OnMainUpdate() {
 
 		for (const auto& actor: find_actors()) {
 			ProcessActiveEffects(actor);
@@ -194,11 +190,11 @@ namespace GTS {
 		});
 	}
 
-	void MagicManager::Reset() {
+	void MagicManager::OnPluginReset() {
 		this->active_effects.clear();
 	}
 
-	void MagicManager::DataReady() {
+	void MagicManager::OnSKSEDataLoaded() {
 
 		// -------- Potions
 		RegisterMagic<MaxSizePotion>(Runtime::MGEF.GTSPotionEffectSizeLimitWeak);

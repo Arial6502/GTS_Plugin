@@ -83,7 +83,7 @@ namespace {
 				Runtime::PlaySoundAtNode_FallOff(Runtime::SNDR.GTSSoundTinyCalamity_Impact, giantref, 1.0f, "NPC COM [COM ]", 0.10f * get_visual_scale(giantref));
 				Rumbling::Once("ButtCrushDeath", giantref, 128.0f, 0.25f, "NPC Root [Root]", 0.0f);
 
-				AnimationBoobCrush::GetSingleton().Reset();
+				AnimationBoobCrush::GetSingleton().OnPluginReset();
 
 				return false;
 			}
@@ -94,19 +94,19 @@ namespace {
 				coords.z -= HH;
 			} 
 			if (!AnimationVars::ButtCrush::IsButtCrushing(giantref)) {
-				AnimationBoobCrush::GetSingleton().Reset();
+				AnimationBoobCrush::GetSingleton().OnPluginReset();
 				SetBeingEaten(tinyref, false);
 				EnableCollisions(tinyref);
 				return false;
 			}
 			if (!AttachTo_NoForceRagdoll(giantref, tinyref, coords)) {
-				AnimationBoobCrush::GetSingleton().Reset();
+				AnimationBoobCrush::GetSingleton().OnPluginReset();
 				SetBeingEaten(tinyref, false);
 				EnableCollisions(tinyref);
 				return false;
 			}
 			if (tinyref->IsDead()) {
-				AnimationBoobCrush::GetSingleton().Reset();
+				AnimationBoobCrush::GetSingleton().OnPluginReset();
 				SetBeingEaten(tinyref, false);
 				EnableCollisions(tinyref);
 				return false;
@@ -124,10 +124,6 @@ namespace {
 }
 
 namespace GTS {
-
-	std::string ButtCrushController::DebugName() {
-		return "::ButtCrushController";
-	}
 
 	void ButtCrushController::ButtCrush_OnCooldownMessage(Actor* giant) {
 		double cooldown = GetRemainingCooldown(giant, CooldownSource::Action_ButtCrush);

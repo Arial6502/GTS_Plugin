@@ -13,9 +13,8 @@ namespace GTS {
 
 	class Grab : public EventListener, public CInitSingleton <Grab> {
 		public:
-		virtual std::string DebugName() override;
-		virtual void Reset() override;
-		virtual void ResetActor(Actor* actor) override;
+		virtual void OnPluginReset() override;
+		virtual void OnGameActorReset(Actor* actor) override;
 
 		static void RegisterEvents();
 		static void RegisterTriggers();

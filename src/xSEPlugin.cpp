@@ -2,72 +2,9 @@
 #include "Hooks/Hooks.hpp"
 #include "Papyrus/Papyrus.hpp"
 #include "Systems/Events/EventRegistry.hpp"
-#include "Hooks/Engine/Main.hpp"
-#include "Utils/Plugin/InitUtils.hpp"
 #include "Utils/Plugin/Logger.hpp"
 
 namespace {
-
-	void InitializeMessaging() {
-
-		if (!SKSE::GetMessagingInterface()->RegisterListener([](SKSE::MessagingInterface::Message *message) {
-			switch (message->type) {
-
-				// Called after all kPostLoad message handlers have run.
-				case SKSE::MessagingInterface::kPostPostLoad: {
-					GTS::EventDispatcher::DoPluginPostLoad();
-					break;
-				}
-
-				// All ESM/ESL/ESP plugins have loaded, main menu is now active.
-				case SKSE::MessagingInterface::kDataLoaded: {
-					GTS::EventDispatcher::DoDataReady();
-					GTS::CPrintPluginInfo();
-					Hooks::InstallSMPBridge();
-					break;
-				}
-
-				// Skyrim game events.
-				// Player's selected save game has finished loading.
-				case SKSE::MessagingInterface::kPostLoadGame: {
-					GTS::State::SetInGame(true);
-					GTS::Cprint("[GTSPlugin.dll]: [ Succesfully initialized and loaded ]");
-					break;
-				}
-
-				// Player starts a new game from main menu.
-				case SKSE::MessagingInterface::kNewGame: {
-					GTS::State::SetInGame(true);
-					GTS::EventDispatcher::DoReset();
-					GTS::Cprint("[GTSPlugin.dll]: [ Succesfully initialized and loaded ]");
-					break;
-				}
-
-				// Player selected a game to load, but it hasn't loaded yet.
-				// Data will be the name of the loaded save.
-				case SKSE::MessagingInterface::kPreLoadGame: {
-					GTS::State::SetInGame(false);
-					GTS::EventDispatcher::DoReset();
-					break;
-				}
-
-				default: {};
-			}
-		})) {
-			GTS::ReportAndExit("Init: Unable to register message listener.");
-		}
-	}
-
-	void InitializeSerialization() {
-
-		auto* serde = SKSE::GetSerializationInterface();
-		serde->SetUniqueID(_byteswap_ulong('GTSP'));
-		serde->SetSaveCallback(GTS::Persistent::OnGameSaved);
-		serde->SetRevertCallback(GTS::Persistent::OnRevert);
-		serde->SetLoadCallback(GTS::Persistent::OnGameLoaded);
-
-		logger::info("Cosave serialization initialized.");
-	}
 
 	void InitializePapyrus() {
 
@@ -79,39 +16,34 @@ namespace {
 	}
 }
 
-SKSEPluginLoad(const SKSE::LoadInterface* a_skse){
+SKSEPluginLoad(const SKSE::LoadInterface* a_skse) {
+	//SKSE Init
+	{
+		REL::Module::reset(); //Clib Init bug workaround.
+		Init(a_skse);
+	}
 
-	//Explicitly reset,
-	//fixes bad exe base image address when building as debug
-	REL::Module::reset();
-
-	Init(a_skse);
-	logger::Initialize();
-
-	#ifndef GTS_DISABLE_PLUGIN
-
-	GTS::LogPrintPluginInfo();
-	GTS::VersionCheck(a_skse);
-	InitializeMessaging();
-	InitializePapyrus();
-	Hooks::Install();
-	GTS::RegisterEventListeners();
-
-	#endif
-
-	InitializeSerialization();
+	//DLL Init
+	{
+		logger::Initialize();                                //Logger Init
+		GTS::RegisterEventListeners();                       //Register All EventListeners
+		GTS::EventDispatcher::Init(_byteswap_ulong('GTSP')); //Init EventDispatcher
+		InitializePapyrus();                                 //Register Papyrus script bindings
+		SKSE::GetTrampoline().create(384);                   //Don't forget to increase when you add new callhooks.
+		Hooks::HookManager::InstallNormal();                 //Install Regular Hooks.
+	}
 
 	logger::info("SKSEPluginLoad OK");
 
 	return true;
 }
 
-SKSEPluginInfo(
-	.Version = GTSPlugin::ModVersion,
-	.Name = GTSPlugin::ModName,
-	.Author = {},
-	.SupportEmail = {},
-	.StructCompatibility = SKSE::StructCompatibility::Independent,
+SKSEPluginInfo (
+	.Version              = GTSPlugin::ModVersion,
+	.Name                 = GTSPlugin::ModName,
+	.Author               = {},
+	.SupportEmail         = {},
+	.StructCompatibility  = SKSE::StructCompatibility::Independent,
 	.RuntimeCompatibility = SKSE::VersionIndependence::AddressLibrary,
-	.MinimumSKSEVersion = {},
+	.MinimumSKSEVersion   = {},
 )

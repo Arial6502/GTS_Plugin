@@ -21,10 +21,9 @@ namespace GTS {
 
 	class OverkillManager : public EventListener, public CInitSingleton<OverkillManager> {
 		public:
-		virtual std::string DebugName() override;
-		virtual void Update() override;
-		virtual void Reset() override;
-		virtual void ResetActor(Actor* actor) override;
+		virtual void OnMainUpdate() override;
+		virtual void OnPluginReset() override;
+		virtual void OnGameActorReset(Actor* actor) override;
 		static bool CanOverkill(Actor* giant, Actor* tiny);
 		static bool AlreadyOverkilled(Actor* actor);
 		static void Overkill(Actor* giant, Actor* tiny);

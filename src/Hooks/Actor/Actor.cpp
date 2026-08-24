@@ -9,12 +9,14 @@
 
 
 namespace {
+
 	bool AllowMovementEdits(RE::Actor* a_actor) {
 		if (a_actor) {
 			return !a_actor->IsPlayerRef() || GTS::Config::General.bAlterPlayerMaxSpeed;
 		}
 		return false; 
 	}
+
 	void AdjustData(RE::Actor* a_actor, RE::Movement::TypeData* a_DataToEdit) {
 		if (!a_actor || !a_DataToEdit) {
 			return;
@@ -119,24 +121,6 @@ namespace Hooks {
 		FUNCTYPE_VFUNC_UNIQUE func;
 	};
 
-	struct Update {
-
-		static constexpr std::size_t funcIndex = 0xAD;
-		template<int ID>
-		static void thunk(RE::Actor* a_this, float a_deltaTime) {
-
-			func<ID>(a_this, a_deltaTime);
-
-			{
-				GTS_PROFILE_ENTRYPOINT_UNIQUE("Actor::Update", ID);
-				EventDispatcher::DoActorUpdate(a_this);
-			}
-
-		}
-		template<int ID>
-		FUNCTYPE_VFUNC_UNIQUE func;
-	};
-
 	struct Load3D {
 
 		static constexpr std::size_t funcIndex = 0x6A;
@@ -156,7 +140,7 @@ namespace Hooks {
 					//Moved this event dispatch here, The game events one runs before peristent data load
 					//plus it fires when an actor "unloads" as well.
 					if (State::InGame()) {
-						EventDispatcher::DoActorLoaded(actor);
+						EventDispatcher::DispatchActor3DLoad(actor);
 					}
 				});
 			}
@@ -168,7 +152,29 @@ namespace Hooks {
 		FUNCTYPE_VFUNC_UNIQUE func;
 	};
 
-	
+	struct Set3D {
+
+		static constexpr std::size_t funcIndex = 0x6C;
+
+		template<int ID>
+		static void thunk(Actor* actor, NiAVObject* a_object, bool a_queue3DTasks) {
+
+			// Null object means the 3d is being cleared; a non-null one is a new 3d
+			// being installed, which Load3D already covers.
+			if (!a_object && actor && actor->Is3DLoaded()) {
+				GTS_PROFILE_ENTRYPOINT_UNIQUE("Actor::Set3D", ID);
+				if (State::InGame()) {
+					logger::critical("Requested Unload For: {}", actor->formID);
+					EventDispatcher::DispatchActor3DUnload(actor);
+				}
+			}
+
+			func<ID>(actor, a_object, a_queue3DTasks);
+		}
+
+		template<int ID>
+		FUNCTYPE_VFUNC_UNIQUE func;
+	};
 
 	struct ApplyMovementDelta {
 
@@ -240,7 +246,7 @@ namespace Hooks {
 
 			if (a_hitData) {
 				if (a_hitData->flags.any(RE::HitData::Flag::kFatal) && a_hitData->target.get()) {
-					EventDispatcher::DoDeathEvent(a_hitData);
+					EventDispatcher::DispatchLethalHitEvent(a_hitData);
 				}
 			}
 		}
@@ -254,7 +260,7 @@ namespace Hooks {
 
 			if (a_hitData) {
 				if (a_hitData->flags.any(RE::HitData::Flag::kFatal) && a_hitData->target.get()) {
-					EventDispatcher::DoDeathEvent(a_hitData);
+					EventDispatcher::DispatchLethalHitEvent(a_hitData);
 				}
 			}
 		}
@@ -271,11 +277,11 @@ namespace Hooks {
 		stl::write_vfunc_unique<Move, 1>(VTABLE_Character[0]);
 		stl::write_vfunc_unique<Move, 2>(VTABLE_PlayerCharacter[0]);
 
-		stl::write_vfunc_unique<Update, 1>(VTABLE_Character[0]);
-		stl::write_vfunc_unique<Update, 2>(VTABLE_PlayerCharacter[0]);
-
 		stl::write_vfunc_unique<Load3D, 1>(VTABLE_Character[0]);
 		stl::write_vfunc_unique<Load3D, 2>(VTABLE_PlayerCharacter[0]);
+
+		stl::write_vfunc_unique<Set3D, 1>(VTABLE_Character[0]);
+		stl::write_vfunc_unique<Set3D, 2>(VTABLE_PlayerCharacter[0]);
 
 		logger::info("Installing AIProcess MovementSpeed Clamp Detours...");
 

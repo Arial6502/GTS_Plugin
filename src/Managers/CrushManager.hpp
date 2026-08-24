@@ -20,10 +20,9 @@ namespace GTS {
 
 	class CrushManager : public EventListener, public CInitSingleton <CrushManager> {
 		public:
-		virtual std::string DebugName() override;
-		virtual void Update() override;
-		virtual void Reset() override;
-		virtual void ResetActor(Actor* actor) override;
+		virtual void OnMainUpdate() override;
+		virtual void OnPluginReset() override;
+		virtual void OnGameActorReset(Actor* actor) override;
 
 		static bool CanCrush(Actor* giant, Actor* tiny);
 		static bool AlreadyCrushed(Actor* actor);

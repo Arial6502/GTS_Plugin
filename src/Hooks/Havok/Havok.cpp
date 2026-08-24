@@ -182,7 +182,7 @@ namespace Hooks {
 
 			{
 				GTS_PROFILE_ENTRYPOINT("Havok::ProcessHavokHitJobs");
-				EventDispatcher::DoHavokUpdate();
+				EventDispatcher::DispatchHavokUpdate();
 			}
 
 		}

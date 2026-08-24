@@ -23,15 +23,13 @@ namespace GTS {
 		static void ToggleVisibility(bool mode);
 		static RE::stl::owner<RE::IMenu*> Creator();
 		static bool Ready();
-
+		static void Start();
 
 		private:
 		// Inherited via EventListener
-		std::string DebugName() override;
-		void DataReady() override;
-		void MenuChange(const MenuOpenCloseEvent* a_event) override;
-		void Start() override;
-		void Update() override;
+		void OnSKSEDataLoaded() override;
+		void OnGameMenuChange(const MenuOpenCloseEvent* a_event) override;
+		void OnMainUpdate() override;
 
 		// Inherited via IMenu
 		void AdvanceMovie(float a_interval, std::uint32_t a_currentTime) override;

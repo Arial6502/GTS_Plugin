@@ -169,11 +169,7 @@ namespace GTS {
         return ChosenItems;
     }
 
-    std::string ItemDistributor::DebugName() {
-        return "::ItemDistributor";
-    }
-
-    void ItemDistributor::OnGameLoaded() {
+    void ItemDistributor::OnSerdePostLoad() {
         if (Config::Persistent.bEnableLootDistribution) {
             DistributeChestItems();
         }

@@ -1,0 +1,42 @@
+---
+# Deliberately narrow starter set.
+#
+# A 150k LOC codebase will produce tens of thousands of readability/modernize
+# findings that have nothing to do with correctness, and the signal drowns. This
+# enables only checks that indicate a real defect. Widen one check at a time,
+# clear its findings, then add the next.
+#
+# Run:  clang-tidy -p build/Debug src/Utils/Plugin/InitUtils.cpp --extra-arg-before=/Y-
+# See CONTRIBUTING or the team notes for the full-tree sweep command.
+
+Checks: >
+  -*,
+  bugprone-dangling-handle,
+  bugprone-use-after-move,
+  bugprone-string-constructor,
+  bugprone-unhandled-self-assignment,
+  bugprone-suspicious-memory-comparison,
+  bugprone-signed-char-misuse,
+  bugprone-macro-repeated-side-effects
+
+# Keep findings advisory until the existing backlog is cleared, then promote
+# bugprone-dangling-handle here so regressions break the build.
+WarningsAsErrors: ''
+
+# Diagnose in our own headers only. Without this, every CommonLibSSE, vcpkg and
+# Windows SDK header gets analysed and the output is unusable.
+HeaderFilterRegex: '.*[\\/]src[\\/].*\.(h|hpp|hxx)$'
+
+# Vendored third-party code that lives inside src/ and is not ours to fix.
+ExcludeHeaderFilterRegex: '.*[\\/]src[\\/]UI[\\/]Lib[\\/].*'
+
+SystemHeaders: false
+FormatStyle: none
+
+CheckOptions:
+  # Be explicit rather than relying on the default list. If std::basic_string_view
+  # is missing here the check silently finds nothing, which looks identical to a
+  # clean codebase -- exactly the failure mode to avoid when the whole point of
+  # enabling this was to find string_view-into-temporary bugs.
+  - key: bugprone-dangling-handle.HandleClasses
+    value: 'std::basic_string_view;std::experimental::basic_string_view;std::span;gsl::span;std::string_view'

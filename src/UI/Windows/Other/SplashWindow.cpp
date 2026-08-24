@@ -25,8 +25,10 @@ namespace {
 namespace GTS {
 
 	SplashWindow::~SplashWindow() {
+		// Nothing to unregister: EventDispatcher listeners are registered for the
+		// lifetime of the process. This window is owned by ImWindowManager and only
+		// dies during teardown, by which point dispatch has stopped.
 		logger::warn("Running SplashWindow dtor");
-		EventDispatcher::RemoveListener(this);
 	}
 
 	void SplashWindow::Draw() {
@@ -90,11 +92,7 @@ namespace GTS {
 		//Do nothing
 	}
 
-	std::string SplashWindow::DebugName() {
-		return std::string("::") + m_name;
-	}
-
-	void SplashWindow::MenuChange(const RE::MenuOpenCloseEvent* a_event) {
+	void SplashWindow::OnGameMenuChange(const RE::MenuOpenCloseEvent* a_event) {
 
 		//If main menu is opened
 		if (a_event && a_event->menuName == RE::MainMenu::MENU_NAME) {

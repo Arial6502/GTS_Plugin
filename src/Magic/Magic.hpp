@@ -68,10 +68,9 @@ namespace GTS {
 	class MagicManager : public EventListener, public CInitSingleton<MagicManager> {
 		
 		public:
-		virtual std::string DebugName() override;
-		virtual void Update() override;
-		virtual void Reset() override;
-		virtual void DataReady() override;
+		virtual void OnMainUpdate() override;
+		virtual void OnPluginReset() override;
+		virtual void OnSKSEDataLoaded() override;
 
 		static void ProcessActiveEffects(Actor* a_actor);
 

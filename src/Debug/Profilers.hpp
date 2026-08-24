@@ -19,6 +19,7 @@
 #define GTS_PROFILER_START_ENTRYPOINT(name) GTS::Profilers::StartEntrypoint(name)
 #define GTS_PROFILER_STOP_ENTRYPOINT(name) GTS::Profilers::StopEntrypoint(name)
 #define GTS_PROFILER_DISPLAY_REPORT() GTS::Profilers::DisplayReport()
+#define GTS_PROFILE_LISTENER(a_listener, a_function) GTS_PROFILE_SCOPE(ListenerScopeName<#a_function>(a_listener))
 
 namespace GTS {
 
@@ -97,5 +98,6 @@ namespace GTS {
 #define GTS_PROFILER_START_ENTRYPOINT(name)
 #define GTS_PROFILER_STOP_ENTRYPOINT(name)
 #define GTS_PROFILER_DISPLAY_REPORT()
+#define GTS_PROFILE_LISTENER(a_listener, a_function)
 
 #endif //GTS_PROFILER_ENABLED

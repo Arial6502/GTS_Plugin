@@ -145,7 +145,7 @@ namespace {
 			.nodes = get_landing_nodes(actor, kind),
 		};
 
-		EventDispatcher::DoOnImpact(impact_data); // Calls Explosions and sounds. A Must.
+		EventDispatcher::DispatchImpactEvent(impact_data); // Calls Explosions and sounds. A Must.
 	}
 
 	void ApplyPerkBonuses(Actor* actor, float& launch, float& radius) {

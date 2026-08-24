@@ -33,11 +33,10 @@
 
 namespace Hooks {
 
-	void Install(){
+	void HookManager::InstallNormal(){
 
-		logger::info("Installing Hooks...");
+		logger::info("Installing OnTime Hooks...");
 		auto& SKSETrampoline = SKSE::GetTrampoline();
-		SKSETrampoline.create(384); //Don't forget to increase when you add new callhooks.
 
 		//Actor
 		Hook_Actor::Install();
@@ -88,8 +87,24 @@ namespace Hooks {
 		//Experiments
 		//Hook_Experiments::Install();
 
-		logger::info("Finished applying hooks");
+		logger::info("Finished applying OnTime hooks");
 		logger::info("Default Trampoline Used: {}/{} Bytes", SKSETrampoline.allocated_size(), SKSETrampoline.capacity());
 
+	}
+
+	void HookManager::InstallLate() {
+
+		logger::info("Installing Late Hooks...");
+		auto& SKSETrampoline = SKSE::GetTrampoline();
+
+		//Engine Main
+		Hook_MainUpdate::InstallLate();
+
+		logger::info("Finished applying Late hooks");
+		logger::info("Default Trampoline Used: {}/{} Bytes", SKSETrampoline.allocated_size(), SKSETrampoline.capacity());
+	}
+
+	void HookManager::OnGameMainMenuFullyLoaded() {
+		InstallLate();
 	}
 }

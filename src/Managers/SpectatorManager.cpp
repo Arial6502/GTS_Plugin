@@ -39,11 +39,7 @@ namespace GTS {
 		}
 	}
 
-	std::string SpectatorManager::DebugName() {
-		return "::SpectatorManager";
-	}
-
-	void SpectatorManager::Update() {
+	void SpectatorManager::OnMainUpdate() {
 
 		if (State::Live()) {
 
@@ -155,11 +151,11 @@ namespace GTS {
 		}
 	}
 
-	void SpectatorManager::Reset() {
+	void SpectatorManager::OnPluginReset() {
 		ResetTarget(true);
 	}
 
-	void SpectatorManager::ResetActor(Actor* actor) {
+	void SpectatorManager::OnGameActorReset(Actor* actor) {
 		if (const auto& CameraTarget = GetCameraActor()) {
 			if (actor) {
 				if (CameraTarget->formID == actor->formID) {

@@ -7,13 +7,10 @@ namespace GTS {
 		static void DoCameraStateReset();
 		static void DoHighHeelStateReset();
 		static void HandleRaceMenuDataUpdate();
-		std::string DebugName() override;
-		void OnGameSave() override;
-		void Reset() override;
-		void OnGameLoaded() override;
-		void OnConfigReset() override;
-		void OnConfigRefresh() override;
-		void MenuChange(const RE::MenuOpenCloseEvent* menu_event) override;
+		void OnPluginReset() override;
+		void OnSerdePostLoad() override;
+		void OnModConfigReset() override;
+		void OnModConfigRefresh() override;
 
 	};
 

@@ -4,15 +4,11 @@
 
 namespace GTS {
 
-	// --------------------------------
+	// ---------
 	// Virtuals
-	// --------
+	// ---------
 
-	std::string MorphManager::DebugName() {
-		return "::MorphManager";
-	}
-
-	void MorphManager::ResetActor(Actor* a_actor) {
+	void MorphManager::OnGameActorReset(Actor* a_actor) {
 		if (!Racemenu::Loaded()) return;
 		if (a_actor) {
 			Racemenu::ClearMorphs(a_actor, GetMorphKey(kBreasts));
@@ -20,7 +16,7 @@ namespace GTS {
 		}
 	}
 
-	void MorphManager::ActorLoaded(Actor* a_actor) {
+	void MorphManager::OnActorLoad3D(Actor* a_actor) {
 		if (!Racemenu::Loaded()) return;
 		if (!a_actor) return;
 		if (!a_actor->Is3DLoaded()) return;
@@ -43,7 +39,7 @@ namespace GTS {
 		}
 	}
 
-	void MorphManager::ActorUpdate(RE::Actor* a_actor) {
+	void MorphManager::OnActorUpdate(RE::Actor* a_actor) {
 		GTS_PROFILE_ENTRYPOINT("MorphManager::ActorUpdate");
 		if (!Racemenu::Loaded()) return;
 		if (!State::InGame()) return;

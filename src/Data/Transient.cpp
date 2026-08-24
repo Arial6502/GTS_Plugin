@@ -2,26 +2,18 @@
 
 namespace GTS {
 
-	std::string Transient::DebugName() {
-		return "::Transient";
-	}
-
-	void Transient::Reset() {
+	void Transient::OnPluginReset() {
 		std::unique_lock lock(_Lock);
 		TempActorDataMap.clear();
 		logger::info("Transient was reset");
 	}
 
-	void Transient::ResetActor(Actor* actor) {
+	void Transient::OnGameActorReset(Actor* actor) {
 		std::unique_lock lock(_Lock);
 		if (actor) {
 			auto key = actor->formID;
 			TempActorDataMap.erase(key);
 		}
-	}
-
-	void Transient::OnGameRevert() {
-		Reset();
 	}
 
 	TransientActorData* Transient::GetActorData(Actor* actor) {

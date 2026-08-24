@@ -4,8 +4,7 @@ namespace GTS {
 
 	class HitManager : public EventListener, public CInitSingleton <HitManager> {
 		public:
-		virtual std::string DebugName() override;
-		virtual void HitEvent(const TESHitEvent* a_event) override;
+		virtual void OnGameHit(const TESHitEvent* a_event) override;
 
 		private:
 		bool CanGrow = false;

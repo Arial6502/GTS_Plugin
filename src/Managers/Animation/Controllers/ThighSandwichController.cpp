@@ -108,10 +108,6 @@ namespace GTS {
 		return result;
 	}
 
-	std::string ThighSandwichController::DebugName() {
-		return "::ThighSandwichController";
-	}
-
 	void SandwichingData::MoveActors(bool move) {
 		this->MoveTinies = move;
 	}
@@ -154,53 +150,54 @@ namespace GTS {
 					}
 				}
 			}
+			if (!tinies.empty()) {
+				for (auto& tinyref : this->tinies | std::views::values) {
 
-			for (auto& tinyref : this->tinies | std::views::values) {
+					if (!MoveTinies) {
+						return;
+					}
 
-				if (!MoveTinies) {
-					return;
-				}
+					auto tiny = tinyref.get().get();
+					if (!tiny) {
+						return;
+					}
 
-				auto tiny = tinyref.get().get();
-				if (!tiny) {
-					return;
-				}
+					Actor* tiny_is_actor = skyrim_cast<Actor*>(tiny);
+					if (tiny_is_actor) {
+						AttachToR ? AttachToObjectR(GiantRef, tiny_is_actor) : AttachToObjectA(GiantRef, tiny_is_actor);
+						ShutUp(tiny_is_actor);
+						FaceOpposite(GiantRef, tiny_is_actor);
+					}
 
-				Actor* tiny_is_actor = skyrim_cast<Actor*>(tiny);
-				if (tiny_is_actor) {
-					AttachToR ? AttachToObjectR(GiantRef, tiny_is_actor) : AttachToObjectA(GiantRef, tiny_is_actor);
-					ShutUp(tiny_is_actor);
-					FaceOpposite(GiantRef, tiny_is_actor);
-				}
-				
-				const bool Escaped = IsEscapingInteraction(tiny);
-				float tinyScale = get_visual_scale(tiny);
-				float sizedifference = get_scale_difference(GiantRef, tiny, SizeType::VisualScale, true, false);
-				float threshold = Action_Sandwich;
+					const bool Escaped = IsEscapingInteraction(tiny);
+					float tinyScale = get_visual_scale(tiny);
+					float sizedifference = get_scale_difference(GiantRef, tiny, SizeType::VisualScale, true, false);
+					float threshold = Action_Sandwich;
 
-				if (GiantRef->IsDead() || (Escaped && this->Suffocate) || sizedifference < threshold || !AnimationVars::Action::IsThighSandwiching(GiantRef)) {
-					Attachment_SetTargetNode(GiantRef, AttachToNode::None);
-					RestartTinyPhysics(GiantRef, tiny);
-					Cprint("{} slipped out of {} thighs", tiny->GetDisplayFullName(), GiantRef->GetDisplayFullName());
-					this->tinies.erase(tiny->formID); // Disallow button abuses to keep tiny when on low scale
-				}
-
-				if (this->Suffocate && CanDoDamage(GiantRef, tiny, false) && !AnimationVars::Action::IsThighGrinding(GiantRef)) {
-					sizedifference = giantScale/tinyScale;
-
-					float damage = Damage_ThighSandwich_DOT * BalanceSizeDamage(sizedifference) * TimeScale();
-					damage *= this->SuffocateMult;
-					
-					float hp = GetAV(tiny, ActorValue::kHealth);
-					InflictSizeDamage(GiantRef, tiny, damage);
-					if (hp <= 0.0f || tiny->IsDead()) {
-						ReportDeath(GiantRef, tiny, DamageSource::ThighSuffocated);
+					if (GiantRef->IsDead() || (Escaped && this->Suffocate) || sizedifference < threshold || !AnimationVars::Action::IsThighSandwiching(GiantRef)) {
 						Attachment_SetTargetNode(GiantRef, AttachToNode::None);
 						RestartTinyPhysics(GiantRef, tiny);
-						this->Remove(tiny);
+						Cprint("{} slipped out of {} thighs", tiny->GetDisplayFullName(), GiantRef->GetDisplayFullName());
+						this->tinies.erase(tiny->formID); // Disallow button abuses to keep tiny when on low scale
+					}
 
-						if (AnimationVars::Action::IsInSecondSandwichBranch(GiantRef) && this->tinies.empty()) {
-							AnimationManager::StartAnim("TinyDied", GiantRef);
+					if (this->Suffocate && CanDoDamage(GiantRef, tiny, false) && !AnimationVars::Action::IsThighGrinding(GiantRef)) {
+						sizedifference = giantScale / tinyScale;
+
+						float damage = Damage_ThighSandwich_DOT * BalanceSizeDamage(sizedifference) * TimeScale();
+						damage *= this->SuffocateMult;
+
+						float hp = GetAV(tiny, ActorValue::kHealth);
+						InflictSizeDamage(GiantRef, tiny, damage);
+						if (hp <= 0.0f || tiny->IsDead()) {
+							ReportDeath(GiantRef, tiny, DamageSource::ThighSuffocated);
+							Attachment_SetTargetNode(GiantRef, AttachToNode::None);
+							RestartTinyPhysics(GiantRef, tiny);
+							this->Remove(tiny);
+
+							if (AnimationVars::Action::IsInSecondSandwichBranch(GiantRef) && this->tinies.empty()) {
+								AnimationManager::StartAnim("TinyDied", GiantRef);
+							}
 						}
 					}
 				}
@@ -208,7 +205,7 @@ namespace GTS {
 		}
 	}
 
-	void ThighSandwichController::Update() {
+	void ThighSandwichController::OnMainUpdate() {
 		for (auto& SandwichData : this->data | std::views::values) {
 			SandwichData.Update();
 		}
@@ -370,7 +367,7 @@ namespace GTS {
 		AnimationManager::StartAnim("ThighEnter", pred);
 	}
 
-	void ThighSandwichController::Reset() {
+	void ThighSandwichController::OnPluginReset() {
 		this->data.clear();
 	}
 
@@ -379,7 +376,7 @@ namespace GTS {
 		this->MoveTinies = false;
 	}
 
-	void ThighSandwichController::ResetActor(Actor* actor) {
+	void ThighSandwichController::OnGameActorReset(Actor* actor) {
 		std::unique_lock lock(_lock);
 		if (actor) {
 			this->data.erase(actor->formID);

@@ -109,4 +109,24 @@ namespace GTS {
 		m_onMainThread.store(value);
 	}
 
+	void State::OnSKSEPostLoadGame() {
+		SetInGame(true);
+	}
+
+	void State::OnSKSENewGame() {
+		SetInGame(true);
+	}
+
+	void State::OnSKSEPreLoadGame() {
+		SetInGame(false);
+	}
+
+	void State::OnGameMenuChange(const MenuOpenCloseEvent* menu_event) {
+		if (menu_event->menuName == RE::MainMenu::MENU_NAME) {
+			//Set the state flag opposite to the open/close bool for the main menu.
+			//Fixes cases where the mod doesn't initialize if you directly load into a cell from the main menu.
+			//Passing the inverted state also acts as a "Reset" so that if you go back to the main menu the ingame state is set to false again.
+			SetInGame(!menu_event->opening);
+		}
+	}
 }

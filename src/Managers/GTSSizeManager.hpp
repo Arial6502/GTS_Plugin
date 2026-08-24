@@ -23,11 +23,9 @@ namespace GTS {
 
 	class SizeManager : public EventListener, public CInitSingleton<SizeManager> {
 		public:
-
-		virtual std::string DebugName() override;
-		virtual void Reset() override;
-		virtual void ResetActor(Actor* actor) override;
-		virtual void OnGameLoaded() override;
+		virtual void OnPluginReset() override;
+		virtual void OnGameActorReset(Actor* actor) override;
+		virtual void OnSerdePostLoad() override;
 
 		SizeManagerData& GetData(Actor* actor);
 

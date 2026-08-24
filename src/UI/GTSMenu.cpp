@@ -337,11 +337,7 @@ namespace GTS {
 		return WindowManager->CloseInputConsumers();
 	}
 
-	std::string GTSMenu::DebugName() {
-		return "::GTSHUDMenu";
-	}
-
-	void GTSMenu::DataReady() {
+	void GTSMenu::OnSKSEDataLoaded() {
 
 		logger::info("Registering GTSMenu...");
 
@@ -358,7 +354,7 @@ namespace GTS {
 
 	}
 
-	void GTSMenu::MenuChange(const MenuOpenCloseEvent* a_event) {
+	void GTSMenu::OnGameMenuChange(const MenuOpenCloseEvent* a_event) {
 
 		auto mName = std::string(a_event->menuName);
 
