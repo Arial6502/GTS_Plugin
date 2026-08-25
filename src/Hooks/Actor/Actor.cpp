@@ -164,7 +164,7 @@ namespace Hooks {
 			if (!a_object && actor && actor->Is3DLoaded()) {
 				GTS_PROFILE_ENTRYPOINT_UNIQUE("Actor::Set3D", ID);
 				if (State::InGame()) {
-					logger::critical("Requested Unload For: {}", actor->formID);
+					//logger::trace("Requested Unload For: 0x{:X}", actor->formID);
 					EventDispatcher::DispatchActor3DUnload(actor);
 				}
 			}

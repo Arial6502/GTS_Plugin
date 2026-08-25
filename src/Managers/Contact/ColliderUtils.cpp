@@ -108,7 +108,7 @@ namespace GTS {
     void DebugDrawShape(Actor* a_actor, const hkpShape* shape, const hkTransform& transform, float angleZ, float toSkyrim, int duration) {
         if (!shape) return;
 
-        auto TransformCapsuleVertex = [&](const __m128 v) -> glm::vec3 {
+        auto TransformCapsuleVertex = [&](const __m128 v) -> NiPoint3 {
             const float sinZ = std::sin(-angleZ);
             const float cosZ = std::cos(-angleZ);
 
@@ -125,34 +125,34 @@ namespace GTS {
             );
             result = _mm_mul_ps(result, _mm_set1_ps(toSkyrim));
 
-            return glm::vec3(
+            return NiPoint3(
                 result.m128_f32[0],
                 result.m128_f32[1],
                 result.m128_f32[2]
             );
 		};
 
-        auto TransformConvexVertex = [&](const __m128 v) -> glm::vec3 {
+        auto TransformConvexVertex = [&](const __m128 v) -> NiPoint3 {
             __m128 result = _mm_add_ps(v, transform.translation.quad);
             result = _mm_mul_ps(result, _mm_set1_ps(toSkyrim));
 
-            return glm::vec3(
+            return NiPoint3(
                 result.m128_f32[0],
                 result.m128_f32[1],
                 result.m128_f32[2]
             );
             };
 
+        constexpr DebugStyle style{ .Color = DebugCol::Red, .Thickness = 1.0f };
+
         switch (shape->type) {
         case hkpShapeType::kCapsule: {
             auto* capsule = static_cast<const hkpCapsuleShape*>(shape);
-            glm::vec3 A = TransformCapsuleVertex(capsule->vertexA.quad);
-            glm::vec3 B = TransformCapsuleVertex(capsule->vertexB.quad);
+            NiPoint3 A = TransformCapsuleVertex(capsule->vertexA.quad);
+            NiPoint3 B = TransformCapsuleVertex(capsule->vertexB.quad);
             float r = capsule->radius * toSkyrim;
 
-            DebugDraw::DrawSphere(A, r, duration);
-            DebugDraw::DrawSphere(B, r, duration);
-            DebugDraw::DrawLineForMS(A, B, duration);
+            DebugDraw::Capsule(A, B, r, { .Color = style.Color, .Thickness = style.Thickness, .LifetimeMs = static_cast<std::uint32_t>(std::max(duration, 0)) });
             break;
         }
         case hkpShapeType::kConvexVertices: {
@@ -163,33 +163,20 @@ namespace GTS {
 			}
             if (verts.empty()) break;
 
-            glm::vec3 mn = TransformConvexVertex(verts[0].quad);
-            glm::vec3 mx = mn;
+            NiPoint3 mn = TransformConvexVertex(verts[0].quad);
+            NiPoint3 mx = mn;
+
             for (int i = 1; i < static_cast<int>(verts.size()); ++i) {
-                glm::vec3 tv = TransformConvexVertex(verts[i].quad);
-                mn = glm::min(mn, tv);
-                mx = glm::max(mx, tv);
+                NiPoint3 tv = TransformConvexVertex(verts[i].quad);
+                mn.x = std::min(mn.x, tv.x);
+                mn.y = std::min(mn.y, tv.y);
+                mn.z = std::min(mn.z, tv.z);
+                mx.x = std::max(mx.x, tv.x);
+                mx.y = std::max(mx.y, tv.y);
+                mx.z = std::max(mx.z, tv.z);
             }
 
-            glm::vec3 corners[8] = {
-                { mn.x, mn.y, mn.z }, { mx.x, mn.y, mn.z },
-                { mx.x, mx.y, mn.z }, { mn.x, mx.y, mn.z },
-                { mn.x, mn.y, mx.z }, { mx.x, mn.y, mx.z },
-                { mx.x, mx.y, mx.z }, { mn.x, mx.y, mx.z },
-            };
-
-            DebugDraw::DrawLineForMS(corners[0], corners[1], duration);
-            DebugDraw::DrawLineForMS(corners[1], corners[2], duration);
-            DebugDraw::DrawLineForMS(corners[2], corners[3], duration);
-            DebugDraw::DrawLineForMS(corners[3], corners[0], duration);
-            DebugDraw::DrawLineForMS(corners[4], corners[5], duration);
-            DebugDraw::DrawLineForMS(corners[5], corners[6], duration);
-            DebugDraw::DrawLineForMS(corners[6], corners[7], duration);
-            DebugDraw::DrawLineForMS(corners[7], corners[4], duration);
-            DebugDraw::DrawLineForMS(corners[0], corners[4], duration);
-            DebugDraw::DrawLineForMS(corners[1], corners[5], duration);
-            DebugDraw::DrawLineForMS(corners[2], corners[6], duration);
-            DebugDraw::DrawLineForMS(corners[3], corners[7], duration);
+            DebugDraw::AABB(mn, mx, { .Color = style.Color, .Thickness = style.Thickness, .LifetimeMs = static_cast<std::uint32_t>(std::max(duration, 0)) });
             break;
         }
         case hkpShapeType::kList: {

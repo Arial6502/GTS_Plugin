@@ -51,8 +51,8 @@ namespace {
 		NiAVObject* node = find_node(giant, "NPC Root [Root]");
         if (node) {
             NiPoint3 point = node->world.translate;
-			if (DebugDraw::CanDraw(giant, DebugDraw::DrawTarget::kAnyGTS)) {
-				DebugDraw::DrawSphere(glm::vec3(point.x, point.y, point.z), maxFootDistance, 600, {0.0f, 0.0f, 1.0f, 1.0f});
+			if (DebugDraw::Wants(giant, DrawTarget::kAnyGTS)) {
+				DebugDraw::Sphere(point, maxFootDistance, { .Color = IM_COL32(0, 0, 255, 255), .Thickness = 1.0f, .LifetimeMs = 500 });
 			}
 
 			for (auto otherActor: find_actors()) {

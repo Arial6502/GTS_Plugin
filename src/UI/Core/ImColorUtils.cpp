@@ -251,4 +251,14 @@ namespace ImUtil::Colors {
         return fRGBAToU32({ a_grayScale ,a_grayScale ,a_grayScale, a_alpha });
     }
 
+    ImU32 WithAlpha(ImU32 a_col, float a_mul) noexcept {
+        const float alpha = static_cast<float>((a_col >> IM_COL32_A_SHIFT) & 0xFFu) * (1.0f / 255.0f) * a_mul;
+        const auto quantized = static_cast<ImU32>(std::clamp(alpha, 0.0f, 1.0f) * 255.0f + 0.5f);
+        return (a_col & ~(0xFFu << IM_COL32_A_SHIFT)) | (quantized << IM_COL32_A_SHIFT);
+    }
+
+    uint8_t AlphaOf(ImU32 a_col) noexcept {
+        return static_cast<uint8_t>((a_col >> IM_COL32_A_SHIFT) & 0xFFu);
+    }
+
 }

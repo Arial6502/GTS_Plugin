@@ -68,6 +68,7 @@
 #include <random>
 #include <ranges>
 #include <ratio>
+#include <source_location>
 #include <rttidata.h>
 #include <scoped_allocator>
 #include <semaphore>
@@ -165,7 +166,7 @@ namespace Hooks {
 }
 
 //Project-Wide Defines
-#define GTS_PROFILER_ENABLED //<---- Enable The Performance Profiller. Accessible by opening the debug menu.
+//#define GTS_PROFILER_ENABLED //<---- Enable The Performance Profiller. Accessible by opening the debug menu.
 //#define GTS_DISABLE_PLUGIN   //<---- If defined, Disables the entire plugin but keeps serialization active to preserve cosave data.
 
 

@@ -40,6 +40,12 @@ namespace GTS {
 
         WindowType m_windowType = WindowType::kWidget;
         WindowAnchor m_anchorPos = WindowAnchor::kCenter;
+
+        //Lower values are drawn first. Only affects the order ImWindowManager walks its list;
+        //ImGui z-order is decided by focus, so a window that must stay underneath everything
+        //also needs to draw into the background draw list.
+        int m_drawOrder = 0;
+
         ImGuiWindowFlags m_flags = ImGuiWindowFlags_None;
         FadeSettings m_fadeSettings = {};
 

@@ -173,8 +173,8 @@ namespace GTS {
 
 		SpawnParticle(giant, 6.00f, "GTS/Shouts/ShrinkOutburst.nif", NiMatrix3(), NodePosition, giantScale * explosion * 3.0f, 7, nullptr); // Spawn effect
 
-		if (DebugDraw::CanDraw(giant, DebugDraw::DrawTarget::kPlayerAndFollowers)) {
-			DebugDraw::DrawSphere(glm::vec3(NodePosition.x, NodePosition.y, NodePosition.z), CheckDistance, 600, { 0.0f, 1.0f, 0.0f, 1.0f });
+		if (DebugDraw::Wants(giant, DrawTarget::kPlayerAndFollowers)) {
+			DebugDraw::Sphere(NodePosition, CheckDistance, { .Color = IM_COL32(0, 255, 0, 255), .Thickness = 1.0f, .LifetimeMs = 500 });
 		}
 
 		NiPoint3 giantLocation = giant->GetPosition();

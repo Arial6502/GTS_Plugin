@@ -211,12 +211,12 @@ namespace GTS {
                 }
                 return true;
             } else if (Attachment_GetTargetNode(giantref) == AttachToNode::ObjectB) { // Used in Cleavage state
-                if (DebugDraw::CanDraw()) {
+                if (DebugDraw::Wants()) {
                     auto node = find_node(tinyref, "NPC Root [Root]");
                     if (node) {
                         NiPoint3 point = node->world.translate;
                         
-                        DebugDraw::DrawSphere(glm::vec3(point.x, point.y, point.z), 6.0f, 40, {0.0f, 1.0f, 0.0f, 1.0f});
+                        DebugDraw::Sphere(point, 6.0f, { .Color = IM_COL32(0, 255, 0, 255), .Thickness = 1.0f, .LifetimeMs = 40 });
                     }
                 }
 

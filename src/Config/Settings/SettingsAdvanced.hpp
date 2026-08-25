@@ -23,6 +23,27 @@ Reflection based serializer limitations:
 */
 
 //-------------------------------------------------------------------------------------------------------------------
+//  SUB STRUCTS
+//-------------------------------------------------------------------------------------------------------------------
+
+struct DebugOverlaySettings_t {
+
+    bool bHideWhenPaused = true;
+    bool bShowStats = false;
+    bool bDepthFade = true;
+    float fGlobalAlpha = 1.0f;
+    float fThicknessScale = 1.0f;
+    float fTextScale = 1.0f;
+    float fFadeStartDist = 1500.0f;
+    float fFadeEndDist = 12000.0f;
+    float fMaxDrawDist = 0.0f;
+    int iMaxPrimitives = 32768;
+    int iTrackedTimeoutMs = 1000;
+
+};
+TOML_SERIALIZABLE(DebugOverlaySettings_t);
+
+//-------------------------------------------------------------------------------------------------------------------
 //  BASE STRUCT
 //  (Directly Serialized)
 //-------------------------------------------------------------------------------------------------------------------
@@ -52,6 +73,7 @@ struct SettingsAdvanced_t {
     bool bGTSAnimsFullSpeed = false;
     float fAnimspeedLowestBoundAllowed = 0.01f;
 
+    DebugOverlaySettings_t Overlay = {};
 };
 TOML_SERIALIZABLE(SettingsAdvanced_t);
 TOML_REGISTER_NAME(SettingsAdvanced_t, "Advanced");

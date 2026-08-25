@@ -4,7 +4,6 @@ namespace GTS {
 
 	NiPoint3 HkVectorToNiPoint(const hkVector4& a_vector);
 	NiPoint3 hkVec4ToNiPoint(const hkVector4& a_vector);
-	glm::vec3 NiPointToVec3(const NiPoint3& a_point);
 
 	float GetControllerMaxSlope(bhkCharacterController* a_controller);
 	void SetControllerMaxSlope(bhkCharacterController* a_controller, float a_degrees);

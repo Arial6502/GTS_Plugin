@@ -4,17 +4,6 @@
 
 namespace {
 
-	template <std::size_t N>
-	struct FixedString {
-		char Data[N] {};
-		consteval FixedString(const char (&a_str)[N]) {
-			std::copy_n(a_str, N, Data);
-		}
-		[[nodiscard]] constexpr std::string_view View() const {
-			return {Data, N - 1};
-		}
-	};
-
 	[[nodiscard]] constexpr std::string_view StripQualification(const std::string_view a_raw) {
 
 		if (const std::size_t Qualifier = a_raw.rfind("::"); Qualifier != std::string_view::npos) {
@@ -32,26 +21,6 @@ namespace {
 		return StripQualification(ti.name());
 	}
 
-	template <FixedString Function>
-	[[nodiscard]] std::string_view ListenerScopeName(const GTS::EventListener* a_listener) {
-
-		static tbb::concurrent_unordered_map<const std::type_info*, std::string> Cache;
-		const std::type_info* Type = &typeid(*a_listener);
-
-		if (const auto it = Cache.find(Type); it != Cache.end()) {
-			return it->second;
-		}
-
-		std::string Name;
-		Name.reserve(4 + GetTypeName(*Type).size() + Function.View().size());
-		Name += "::";
-		Name += GetTypeName(*Type);
-		Name += "::";
-		Name += Function.View();
-
-		return Cache.emplace(Type, std::move(Name)).first->second;
-	}
-
 	std::atomic_bool FirstMenuLoadDone {false};
 }
 
@@ -61,36 +30,74 @@ namespace GTS {
 	// Event Dispatcher
 	//-------------------
 
-	void EventDispatcher::AddListener(EventListener* a_listener) {
-		if (!a_listener) return;
+	bool EventDispatcher::Register(EventListener* a_listener, const std::type_info& a_type) {
 
-		{
-			std::lock_guard lock(m_lock);
+		#ifdef GTS_PROFILER_ENABLED
+		static_assert(kMaxListenerSlots >= MaxListeners, "GTS::kMaxListenerSlots must be at least EventDispatcher::MaxListeners.");
+		#endif
 
-			const std::size_t Slot = m_count.load(std::memory_order_relaxed);
+		if (!a_listener) return false;
 
-			if (Slot >= MaxListeners) {
-				logger::critical("Listener limit of {} reached, with: {}. Raise EventDispatcher::MaxListeners.", MaxListeners, GetTypeName(typeid(*a_listener)));
-				ReportAndExit(
-					fmt::format(
-						"Event registry limit of {} reached\n"
-						"Failed on: {}. Raise EventDispatcher::MaxListeners.", 
-						MaxListeners, 
-						GetTypeName(typeid(*a_listener))).c_str()
-				);
-				return;
-			}
+		std::lock_guard lock(m_lock);
 
-			logger::trace("Registering Listener: {}", GetTypeName(typeid(*a_listener)));
+		const std::size_t Slot = m_count.load(std::memory_order_relaxed);
 
-			m_listeners[Slot].store(a_listener, std::memory_order_relaxed);
-
-			// Publishes the slot write above to any thread already dispatching.
-			// Must stay the last statement: it is what makes the entry visible.
-			m_count.store(Slot + 1, std::memory_order_release);
+		if (Slot >= MaxListeners) {
+			logger::critical("Listener limit of {} reached, with: {}. Raise EventDispatcher::MaxListeners.", MaxListeners, GetTypeName(a_type));
+			ReportAndExit(
+				fmt::format(
+					"Event registry limit of {} reached\n"
+					"Failed on: {}. Raise EventDispatcher::MaxListeners.",
+					MaxListeners,
+					GetTypeName(a_type)).c_str()
+			);
+			return false;
 		}
+
+		logger::trace("Registering Listener: {}", GetTypeName(a_type));
+
+		a_listener->SetProfilerIndex(static_cast<std::uint32_t>(Slot));
+		m_count.store(Slot + 1, std::memory_order_relaxed);
+		return true;
 	}
 
+	void EventDispatcher::Subscribe(EventId a_event, EventListener* a_listener) {
+
+		std::lock_guard lock(m_lock);
+
+		SubscriberList& List = m_subscribers[static_cast<std::size_t>(a_event)];
+		const std::size_t Slot = List.Count.load(std::memory_order_relaxed);
+
+		if (Slot >= MaxListeners) {
+			return;
+		}
+
+		List.Entries[Slot].store(a_listener, std::memory_order_relaxed);
+
+		List.Count.store(Slot + 1, std::memory_order_release);
+	}
+
+	void EventDispatcher::LogSubscriptions() {
+
+		static constexpr std::array<const char*, kEventCount> Names {
+			#define GTS_EVENT_NAME(a_name) #a_name,
+			GTS_EVENT_LIST(GTS_EVENT_NAME)
+			#undef GTS_EVENT_NAME
+		};
+
+		const std::size_t Total = m_count.load(std::memory_order_acquire);
+		std::size_t Reached = 0;
+
+		for (std::size_t i = 0; i < kEventCount; ++i) {
+
+			const std::size_t Count = m_subscribers[i].Count.load(std::memory_order_acquire);
+			Reached += Count;
+
+			logger::info("Event {:<28} {:>3} / {} listeners", Names[i], Count, Total);
+		}
+
+		logger::info("Event subscriptions: {}", Reached);
+	}
 	void EventDispatcher::Init(uint32_t a_serdeID) {
 
 		//Register SKSE Eventlistener
@@ -153,7 +160,7 @@ namespace GTS {
 			// Called after all plugins have finished running SKSEPluginLoad.
 			case SKSE::MessagingInterface::kPostLoad:
 			{
-				ForEachListener([](EventListener* a_lst) {
+				ForEachSubscriber<EventId::OnSKSEPostLoad>([](EventListener* a_lst) {
 					GTS_PROFILE_LISTENER(a_lst, OnSKSEPostLoad);
 					a_lst->OnSKSEPostLoad();
 				});
@@ -163,7 +170,7 @@ namespace GTS {
 			// Called after all kPostLoad message handlers have run.
 			case SKSE::MessagingInterface::kPostPostLoad:
 			{
-				ForEachListener([](EventListener* a_lst) {
+				ForEachSubscriber<EventId::OnSKSEPostPostLoad>([](EventListener* a_lst) {
 					GTS_PROFILE_LISTENER(a_lst, OnSKSEPostPostLoad);
 					a_lst->OnSKSEPostPostLoad();
 				});
@@ -173,7 +180,7 @@ namespace GTS {
 			// Called when input data has been found.
 			case SKSE::MessagingInterface::kInputLoaded:
 			{
-				ForEachListener([](EventListener* a_lst) {
+				ForEachSubscriber<EventId::OnSKSEInputLoaded>([](EventListener* a_lst) {
 					GTS_PROFILE_LISTENER(a_lst, OnSKSEInputLoaded);
 					a_lst->OnSKSEInputLoaded();
 				});
@@ -183,7 +190,7 @@ namespace GTS {
 			// All ESM/ESL/ESP plugins have loaded, main menu is now active.
 			case SKSE::MessagingInterface::kDataLoaded:
 			{
-				ForEachListener([](EventListener* a_lst) {
+				ForEachSubscriber<EventId::OnSKSEDataLoaded>([](EventListener* a_lst) {
 					GTS_PROFILE_LISTENER(a_lst, OnSKSEDataLoaded);
 					a_lst->OnSKSEDataLoaded();
 				});
@@ -194,7 +201,7 @@ namespace GTS {
 			// Player's selected save game has finished loading.
 			case SKSE::MessagingInterface::kPostLoadGame:
 			{
-				ForEachListener([](EventListener* a_lst) {
+				ForEachSubscriber<EventId::OnSKSEPostLoadGame>([](EventListener* a_lst) {
 					GTS_PROFILE_LISTENER(a_lst, OnSKSEPostLoadGame);
 					a_lst->OnSKSEPostLoadGame();
 				});
@@ -204,12 +211,12 @@ namespace GTS {
 			// Player starts a new game from main menu.
 			case SKSE::MessagingInterface::kNewGame:
 			{
-				ForEachListener([](EventListener* a_lst) {
+				ForEachSubscriber<EventId::OnSKSENewGame>([](EventListener* a_lst) {
 					GTS_PROFILE_LISTENER(a_lst, OnSKSENewGame);
 					a_lst->OnSKSENewGame();
 				});
 
-				ForEachListener([](EventListener* a_lst) {
+				ForEachSubscriber<EventId::OnPluginReset>([](EventListener* a_lst) {
 					GTS_PROFILE_LISTENER(a_lst, OnPluginReset);
 					a_lst->OnPluginReset();
 				});
@@ -220,7 +227,7 @@ namespace GTS {
 			// Player selected a game to load, but it hasn't loaded yet, data will be the name of the loaded save.
 			case SKSE::MessagingInterface::kPreLoadGame:
 			{
-				ForEachListener([](EventListener* a_lst) {
+				ForEachSubscriber<EventId::OnSKSEPreLoadGame>([](EventListener* a_lst) {
 					GTS_PROFILE_LISTENER(a_lst, OnSKSEPreLoadGame);
 					a_lst->OnSKSEPreLoadGame();
 				});
@@ -231,7 +238,7 @@ namespace GTS {
 			// The player has saved a game.
 			case SKSE::MessagingInterface::kSaveGame:
 			{
-				ForEachListener([](EventListener* a_lst) {
+				ForEachSubscriber<EventId::OnSKSESaveGame>([](EventListener* a_lst) {
 					GTS_PROFILE_LISTENER(a_lst, OnSKSESaveGame);
 					a_lst->OnSKSESaveGame();
 				});
@@ -241,7 +248,7 @@ namespace GTS {
 			// The player deleted a saved game from within the load menu, data will be the save name.
 			case SKSE::MessagingInterface::kDeleteGame:
 			{
-				ForEachListener([](EventListener* a_lst) {
+				ForEachSubscriber<EventId::OnSKSEDeleteGame>([](EventListener* a_lst) {
 					GTS_PROFILE_LISTENER(a_lst, OnSKSEDeleteGame);
 					a_lst->OnSKSEDeleteGame();
 				});
@@ -256,59 +263,12 @@ namespace GTS {
 		}
 	}
 
-	/*
-	void EventDispatcher::SKSEDispatchFormDelete(VMHandle a_callback) {
 
-		//Lower 32 bits are the FormID of the deleted reference.
-		const FormID a_id = static_cast<FormID>(a_callback & 0xFFFFFFFF);
 
-		
-		//Test
-		{
-			static std::atomic<std::uint64_t> Seq {0};
-
-			const TESForm* Probe = a_id ? TESForm::LookupByID(a_id) : nullptr;
-
-			logger::info(
-				"FormDelete #{} handle=0x{:016X} upper=0x{:08X} formID=0x{:08X} resolved={} type={} deleted={}",
-				Seq.fetch_add(1, std::memory_order_relaxed),
-				static_cast<std::uint64_t>(a_callback),
-				static_cast<std::uint32_t>(a_callback >> 32),
-				a_id,
-				Probe != nullptr,
-				Probe ? RE::FormTypeToString(Probe->GetFormType()) : "n/a",
-				Probe ? Probe->IsDeleted() : false
-			);
-		}
-
-		// SKSE hooks this off the VM's handle cleanup, so it does NOT only fire for
-		// deleted forms. Use form lookup/IsDeleted to verify if the form is actually deleted.
-		if (!a_id) {
-			return;
-		}
-
-		if (TESForm* ref = TESForm::LookupByID(a_id)){
-			if (ref->formType == FormType::ActorCharacter) {
-				//Form is valid.
-				if (ref->IsDeleted()) {
-					ForEachListener([a_id](EventListener* a_lst) {
-						GTS_PROFILE_LISTENER(a_lst, OnSerdeFormDelete);
-						a_lst->OnSKSEFormDelete(a_id);
-					});
-				}
-			}
-		}
-		else {
-			ForEachListener([a_id](EventListener* a_lst) {
-				GTS_PROFILE_LISTENER(a_lst, OnSerdeFormDelete);
-				a_lst->OnSKSEFormDelete(a_id);
-			});
-		}
-	}*/
-
+	
 	void EventDispatcher::SerdeDispatchLoad(SKSE::SerializationInterface* a_this) {
 
-		ForEachListener([](EventListener* a_lst) {
+		ForEachSubscriber<EventId::OnSerdePreLoad>([](EventListener* a_lst) {
 			GTS_PROFILE_LISTENER(a_lst, OnSerdePreLoad);
 			a_lst->OnSerdePreLoad();
 		});
@@ -316,13 +276,13 @@ namespace GTS {
 		std::uint32_t type, version, size;
 
 		while (a_this->GetNextRecordInfo(type, version, size)) {
-			ForEachListener([&](EventListener* a_lst) {
+			ForEachSubscriber<EventId::OnSerdeLoad>([&](EventListener* a_lst) {
 				GTS_PROFILE_LISTENER(a_lst, OnSerdeLoad);
 				a_lst->OnSerdeLoad(a_this, type, version, size);
 			});
 		}
 
-		ForEachListener([](EventListener* a_lst) {
+		ForEachSubscriber<EventId::OnSerdePostLoad>([](EventListener* a_lst) {
 			GTS_PROFILE_LISTENER(a_lst, OnSerdePostLoad);
 			a_lst->OnSerdePostLoad();
 		});
@@ -330,17 +290,17 @@ namespace GTS {
 
 	void EventDispatcher::SerdeDispatchSave(SKSE::SerializationInterface* a_this) {
 
-		ForEachListener([](EventListener* a_lst) {
+		ForEachSubscriber<EventId::OnSerdePreSave>([](EventListener* a_lst) {
 			GTS_PROFILE_LISTENER(a_lst, OnSerdePreSave);
 			a_lst->OnSerdePreSave();
 		});
 
-		ForEachListener([a_this](EventListener* a_lst) {
+		ForEachSubscriber<EventId::OnSerdeSave>([a_this](EventListener* a_lst) {
 			GTS_PROFILE_LISTENER(a_lst, OnSerdeSave);
 			a_lst->OnSerdeSave(a_this);
 		});
 
-		ForEachListener([](EventListener* a_lst) {
+		ForEachSubscriber<EventId::OnSerdePostSave>([](EventListener* a_lst) {
 			GTS_PROFILE_LISTENER(a_lst, OnSerdePostSave);
 			a_lst->OnSerdePostSave();
 		});
@@ -348,12 +308,12 @@ namespace GTS {
 
 	void EventDispatcher::SerdeDispatchRevert(SKSE::SerializationInterface* a_this) {
 
-		ForEachListener([a_this](EventListener* a_lst) {
+		ForEachSubscriber<EventId::OnSerdeRevert>([a_this](EventListener* a_lst) {
 			GTS_PROFILE_LISTENER(a_lst, OnSerdeRevert);
 			a_lst->OnSerdeRevert(a_this);
 		});
 
-		ForEachListener([a_this](EventListener* a_lst) {
+		ForEachSubscriber<EventId::OnPluginReset>([a_this](EventListener* a_lst) {
 			GTS_PROFILE_LISTENER(a_lst, OnSerdeRevert);
 			a_lst->OnPluginReset();
 		});
@@ -370,7 +330,7 @@ namespace GTS {
 
 	void EventDispatcher::DispatchMainUpdate() {
 
-		ForEachListener([](EventListener* listener) {
+		ForEachSubscriber<EventId::OnMainUpdate>([](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, OnMainUpdate);
 			listener->OnMainUpdate();
 		});
@@ -378,35 +338,35 @@ namespace GTS {
 
 	void EventDispatcher::DispatchActorUpdate(Actor* actor) {
 
-		ForEachListener([actor](EventListener* listener) {
+		ForEachSubscriber<EventId::OnActorUpdate>([actor](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, OnActorUpdate);
 			listener->OnActorUpdate(actor);
 		});
 	}
 
 	void EventDispatcher::DispatchPapyrusUpdate() {
-		ForEachListener([](EventListener* listener) {
+		ForEachSubscriber<EventId::OnPapyrusUpdate>([](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, OnPapyrusUpdate);
 			listener->OnPapyrusUpdate();
 		});
 	}
 
 	void EventDispatcher::DispatchHavokUpdate() {
-		ForEachListener([](EventListener* listener) {
+		ForEachSubscriber<EventId::OnHavokUpdate>([](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, OnHavokUpdate);
 			listener->OnHavokUpdate();
 		});
 	}
 
 	void EventDispatcher::DispatchPostSMPUpdate() {
-		ForEachListener([](EventListener* listener) {
+		ForEachSubscriber<EventId::OnPostSMPUpdate>([](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, OnPostSMPUpdate);
 			listener->OnPostSMPUpdate();
 		});
 	}
 
 	void EventDispatcher::DispatchCameraUpdate() {
-		ForEachListener([](EventListener* listener) {
+		ForEachSubscriber<EventId::OnCameraUpdate>([](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, OnCameraUpdate);
 			listener->OnCameraUpdate();
 		});
@@ -418,7 +378,7 @@ namespace GTS {
 	//-----------------------------
 
 	void EventDispatcher::DispatchActor3DLoad(Actor* actor) {
-		ForEachListener([actor](EventListener* listener) {
+		ForEachSubscriber<EventId::OnActorLoad3D>([actor](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, ActorLoaded);
 			listener->OnActorLoad3D(actor);
 		});
@@ -428,21 +388,21 @@ namespace GTS {
 	// BEFORE the teardown, so listeners still see a valid actor and valid 3d and can
 	// release anything they cached from it.
 	void EventDispatcher::DispatchActor3DUnload(Actor* actor) {
-		ForEachListener([actor](EventListener* listener) {
+		ForEachSubscriber<EventId::OnActor3DUnload>([actor](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, OnActor3DUnload);
 			listener->OnActor3DUnload(actor);
 		});
 	}
 
 	void EventDispatcher::DispatchActorAddPerk(const AddPerkEvent& evt) {
-		ForEachListener([evt](EventListener* listener) {
+		ForEachSubscriber<EventId::OnActorPerkAdded>([evt](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, OnAddPerk);
 			listener->OnActorPerkAdded(evt);
 		});
 	}
 
 	void EventDispatcher::DispatchActorRemovePerk(const RemovePerkEvent& evt) {
-		ForEachListener([evt](EventListener* listener) {
+		ForEachSubscriber<EventId::OnActorPerkRemoved>([evt](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, OnRemovePerk);
 			listener->OnActorPerkRemoved(evt);
 		});
@@ -451,7 +411,7 @@ namespace GTS {
 	void EventDispatcher::DispatchActorAnimationEvent(Actor* actor, const BSFixedString& a_tag, const BSFixedString& a_payload) {
 		const std::string tag = a_tag.c_str();
 		const std::string payload = a_payload.c_str();
-		ForEachListener([actor, tag, payload](EventListener* listener) {
+		ForEachSubscriber<EventId::OnActorAnimationChange>([actor, tag, payload](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, OnActorAnimationChange);
 			listener->OnActorAnimationChange(actor, tag, payload);
 		});
@@ -465,7 +425,7 @@ namespace GTS {
 		if (Victim) {
 			//Don't fire on already dead actors
 			if (!Victim->IsDead()) {
-				ForEachListener([&](EventListener* listener) {
+				ForEachSubscriber<EventId::OnLethalHit>([&](EventListener* listener) {
 					GTS_PROFILE_LISTENER(listener, OnLethalHit);
 					listener->OnLethalHit(Agressor, Victim);
 				});
@@ -478,7 +438,7 @@ namespace GTS {
 	//-----------------------------
 
 	void EventDispatcher::DispatchImpactEvent(const Impact& impact) {
-		ForEachListener([impact](EventListener* listener) {
+		ForEachSubscriber<EventId::OnImpact>([impact](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, OnImpact);
 			listener->OnImpact(impact);
 		});
@@ -489,21 +449,21 @@ namespace GTS {
 	//-----------------------------------------------
 
 	void EventDispatcher::DispatchGameActorResetEvent(Actor* actor) {
-		ForEachListener([actor](EventListener* listener) {
+		ForEachSubscriber<EventId::OnGameActorReset>([actor](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, OnGameActorReset);
 			listener->OnGameActorReset(actor);
 		});
 	}
 
 	void EventDispatcher::DispatchGameActorEquipEvent(Actor* actor) {
-		ForEachListener([actor](EventListener* listener) {
+		ForEachSubscriber<EventId::OnGameActorEquip>([actor](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, OnGameActorEquip);
 			listener->OnGameActorEquip(actor);
 		});
 	}
 
 	void EventDispatcher::DispatchGameDragonSoulAbsorbEvent() {
-		ForEachListener([](EventListener* listener) {
+		ForEachSubscriber<EventId::OnGameDragonSoulAbsorb>([](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, OnGameDragonSoulAbsorb);
 			listener->OnGameDragonSoulAbsorb();
 		});
@@ -512,21 +472,21 @@ namespace GTS {
 
 
 	void EventDispatcher::DispatchGameHitEvent(const TESHitEvent* evt) {
-		ForEachListener([evt](EventListener* listener) {
+		ForEachSubscriber<EventId::OnGameHit>([evt](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, OnGameHit);
 			listener->OnGameHit(evt);
 		});
 	}
 
 	void EventDispatcher::DispatchGameActorLoadedEvent(Actor* refr) {
-		ForEachListener([refr](EventListener* listener) {
+		ForEachSubscriber<EventId::OnGameActorLoaded>([refr](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, OnGameActorLoaded);
 			listener->OnGameActorLoaded(refr);
 		});
 	}
 
 	void EventDispatcher::DispatchGameContainerChangeEvent(const TESContainerChangedEvent* a_evt) {
-		ForEachListener([a_evt](EventListener* listener) {
+		ForEachSubscriber<EventId::OnGameContainerChanged>([a_evt](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, OnGameContainerChanged);
 			listener->OnGameContainerChanged(a_evt);
 		});
@@ -534,7 +494,7 @@ namespace GTS {
 
 	void EventDispatcher::DispatchGameFormDelete(FormID a_id) {
 		if (a_id) {
-			ForEachListener([a_id](EventListener* listener) {
+			ForEachSubscriber<EventId::OnGameFormDelete>([a_id](EventListener* listener) {
 				GTS_PROFILE_LISTENER(listener, OnGameFormDelete);
 				listener->OnGameFormDelete(a_id);
 			});
@@ -546,7 +506,7 @@ namespace GTS {
 			Actor* const actor = skyrim_cast<Actor*>(a_event->actor.get());
 			TESObjectREFR* const object = a_event->targetFurniture.get();
 			if (actor && object) {
-				ForEachListener([actor, object, a_event](EventListener* listener) {
+				ForEachSubscriber<EventId::OnGameFurnitureChange>([actor, object, a_event](EventListener* listener) {
 					GTS_PROFILE_LISTENER(listener, OnGameFurnitureChange);
 					listener->OnGameFurnitureChange(actor, object, a_event->type == TESFurnitureEvent::FurnitureEventType::kEnter);
 				});
@@ -560,7 +520,7 @@ namespace GTS {
 		Actor* Victim = skyrim_cast<Actor*>(a_event->actorDying.get());
 		const bool Dead = a_event->dead;
 
-		ForEachListener([Killer, Victim, Dead](EventListener* listener) {
+		ForEachSubscriber<EventId::OnGameDeath>([Killer, Victim, Dead](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, OnGameDeath);
 			listener->OnGameDeath(Killer, Victim, Dead);
 		});
@@ -570,13 +530,13 @@ namespace GTS {
 
 		if (a_evt) {
 
-			ForEachListener([a_evt](EventListener* listener) {
+			ForEachSubscriber<EventId::OnGameMenuChange>([a_evt](EventListener* listener) {
 				GTS_PROFILE_LISTENER(listener, OnGameMenuChange);
 				listener->OnGameMenuChange(a_evt);
 			});
 
 			if (a_evt->menuName == RE::MainMenu::MENU_NAME && a_evt->opening && !FirstMenuLoadDone.exchange(true)) {
-				ForEachListener([](EventListener* a_lst) {
+				ForEachSubscriber<EventId::OnGameMainMenuFullyLoaded>([](EventListener* a_lst) {
 					a_lst->OnGameMainMenuFullyLoaded();
 				});
 			}
@@ -592,14 +552,14 @@ namespace GTS {
 	//-----------------------------
 
 	void EventDispatcher::DispatchHighHeelEquiped(const HighheelEquip& evt) {
-		ForEachListener([evt](EventListener* listener) {
+		ForEachSubscriber<EventId::OnHighHeelEquiped>([evt](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, OnHighheelEquip);
 			listener->OnHighHeelEquiped(evt);
 		});
 	}
 
 	void EventDispatcher::DispatchGTSLevelUpEvent(Actor* a_actor) {
-		ForEachListener([a_actor](EventListener* listener) {
+		ForEachSubscriber<EventId::OnGTSLevelUp>([a_actor](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, OnGTSLevelUp);
 			listener->OnGTSLevelUp(a_actor);
 		});
@@ -610,14 +570,14 @@ namespace GTS {
 	//-----------------------------
 
 	void EventDispatcher::DispachModConfigReset() {
-		ForEachListener([](EventListener* listener) {
+		ForEachSubscriber<EventId::OnModConfigReset>([](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, OnModConfigReset);
 			listener->OnModConfigReset();
 		});
 	}
 
 	void EventDispatcher::DispatchModConfigRefresh() {
-		ForEachListener([](EventListener* listener) {
+		ForEachSubscriber<EventId::OnModConfigRefresh>([](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, OnModConfigRefresh);
 			listener->OnModConfigRefresh();
 		});

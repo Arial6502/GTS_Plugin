@@ -192,10 +192,6 @@ namespace {
             RE::NiPoint3 b =    ApplySkinning(ReadPos(ib),ReadSkin(ib));
             RE::NiPoint3 c =    ApplySkinning(ReadPos(ic),ReadSkin(ic));
 
-            glm::vec3 ga(a.x, a.y, a.z);
-
-            glm::vec3 gb(b.x,b.y,b.z);
-            glm::vec3 gc(c.x,c.y,c.z);
             if (Data) {
                 Data->Triangles.emplace_back(
                     FootTriangle{a,b,c,
@@ -204,7 +200,7 @@ namespace {
                     }
                 );
             }
-            DebugDraw::DrawTriangle(ga,gb,gc,glm::mat4(1.0f),1000,{0,1.0f,1.0f,1},3.0f);
+            DebugDraw::Triangle(a, b, c, { .Color = IM_COL32(0, 255, 255, 255), .Thickness = 3.0f, .LifetimeMs = 1000 });
         }
     }
     void DebugShape(RE::Actor* actor, RE::BSTriShape* shape, bool right) {

@@ -346,8 +346,8 @@ namespace GTS {
                 constexpr float BASE_DISTANCE = 52.0f;
                 float CheckDistance = BASE_DISTANCE*giantScale;
 
-                if (DebugDraw::CanDraw(giant, DebugDraw::DrawTarget::kPlayerAndFollowers)) {
-                    DebugDraw::DrawSphere(glm::vec3(NodePosition.x, NodePosition.y, NodePosition.z), CheckDistance, 100, {0.0f, 1.0f, 1.0f, 1.0f});
+                if (DebugDraw::Wants(giant, DrawTarget::kPlayerAndFollowers)) {
+                    DebugDraw::Sphere(NodePosition, CheckDistance, { .Color = IM_COL32(0, 255, 255, 255), .Thickness = 1.0f, .LifetimeMs = 100 });
                 }
 
                 NiPoint3 giantLocation = giant->GetPosition();

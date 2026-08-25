@@ -40,7 +40,6 @@
 #include "Managers/SpectatorManager.hpp"
 #include "Managers/Tremor.hpp"
 #include "Scale/DynamicScale.hpp"
-#include "UI/DebugMenu.hpp"
 #include "UI/GTSMenu.hpp"
 #include "Utils/ItemDistributor.hpp"
 #include "Utils/Plugin/InitUtils.hpp"
@@ -118,9 +117,9 @@ namespace GTS {
 		// Presentation / UI
 		EventDispatcher::AddListener<SpectatorManager>();  // Camera targets
 		EventDispatcher::AddListener<CameraManager>();     // Edits the camera
-		EventDispatcher::AddListener<DebugMenu>();         // Debug overlay
 		EventDispatcher::AddListener<GTSMenu>();           // Mod settings menu
 
 		logger::info("Managers Registered");
+		EventDispatcher::LogSubscriptions();
 	}
 }

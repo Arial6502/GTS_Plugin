@@ -140,14 +140,8 @@ namespace GTS {
 		}
 
 		// Debug visualization
-		if (Config::Advanced.bShowOverlay) {
-			glm::vec3 fromGLM{ a_From.x, a_From.y, a_From.z };
-			glm::vec3 directionGLM{ a_To.x, a_To.y, a_To.z };
-			glm::vec3 toGLM = fromGLM + directionGLM * 500.f;
-			constexpr int lifetimeMS = 5000;
-			glm::vec4 color = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
-			float lineThickness = 2.0f;
-			DebugDraw::DrawLineForMS(fromGLM, toGLM, lifetimeMS, color, lineThickness);
+		if (DebugDraw::Wants()) {
+			DebugDraw::Line(a_From, a_From + a_To * 500.0f, { .Color = DebugCol::Magenta, .Thickness = 2.0f, .LifetimeMs = 5000 });
 		}
 
 		return true;
@@ -576,8 +570,8 @@ namespace GTS {
 		const float giantScale = get_visual_scale(a_source) * GetSizeFromBoundingBox(a_source);
 		const float CheckDistance = a_radius * giantScale;
 
-		if (DebugDraw::CanDraw(a_source, DebugDraw::DrawTarget::kAnyGTS)) {
-			DebugDraw::DrawSphere(glm::vec3(NodePosition.x, NodePosition.y, NodePosition.z), CheckDistance, 600, { 0.0f, 1.0f, 0.0f, 1.0f });
+		if (DebugDraw::Wants(a_source, DrawTarget::kAnyGTS)) {
+			DebugDraw::Sphere(NodePosition, CheckDistance, { .Color = IM_COL32(0, 255, 0, 255), .Thickness = 1.0f, .LifetimeMs = 600 });
 		}
 
 		NiPoint3 giantLocation = a_source->GetPosition();

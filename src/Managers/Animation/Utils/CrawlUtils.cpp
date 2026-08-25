@@ -146,7 +146,7 @@ namespace GTS {
 		const float sphereRadiusHk = maxDistance * toHavok;
 		const float sphereRadiusSq = sphereRadiusHk * sphereRadiusHk;
 
-		const bool Condition = DebugDraw::CanDraw(giant, DebugDraw::DrawTarget::kAnyGTS);
+		const bool Condition = DebugDraw::Wants(giant, DrawTarget::kAnyGTS);
 		CollisionDamage::DebugCollision(world, giant, Points, maxDistance, toHavok, Condition);
 		
 		NiPoint3 giantLocation = giant->GetPosition();

@@ -75,24 +75,7 @@ namespace {
 	}
 
 	void PerformShrinkOnActor(Actor* giant) {
-		/*auto Eye = find_node(giant, "NPCEyeBone");
-		NiPoint3 HitPosition;
-		bool success = false;
-		if (Eye) {
-			glm::vec3 camPos = DebugUtil::GetCameraPos();
-			glm::quat camRot = DebugUtil::GetCameraRot();
-			glm::vec3 forward = DebugUtil::GetForwardVector(camRot);
-			RE::NiPoint3 direction = DebugUtil::Glm2Ni(forward);
-			RE::NiPoint3 origin = Eye->world.translate + DebugUtil::Glm2Ni(forward * 20.0f * get_visual_scale(giant));
 
-			HitPosition = CastRay(
-				giant, 
-				origin, 
-				direction, 
-				240.0f * get_visual_scale(giant), 
-				success
-			);
-		}*/
 		CrosshairPickData* data = CrosshairPickData::GetSingleton();
 		if (data) {
 			float maxDistance = 24.0f;
@@ -102,8 +85,8 @@ namespace {
 
 			if (NodePosition.Length() > 0.0f) {
 
-				if (DebugDraw::CanDraw(giant, DebugDraw::DrawTarget::kPlayerOnly)) {
-					DebugDraw::DrawSphere(glm::vec3(NodePosition.x, NodePosition.y, NodePosition.z), maxDistance);
+				if (DebugDraw::Wants(giant, DrawTarget::kPlayerOnly)) {
+					DebugDraw::Sphere(NodePosition, maxDistance, { .Color = IM_COL32(255, 0, 0, 255), .Thickness = 1.0f, .LifetimeMs = 10 });
 				}
 
 				if (NodePosition.Length() > 0) {

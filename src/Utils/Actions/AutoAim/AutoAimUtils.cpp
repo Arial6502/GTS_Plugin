@@ -11,42 +11,42 @@
 
 namespace {
     using namespace GTS;
-    constexpr glm::vec4 Breast_Color = {0.961f, 0.157f, 0.569f, 0.8f};
-    constexpr glm::vec4 Close_Stomp_Color = {1.0f, 0.0f, 0.0f, 1.0f};
-    constexpr glm::vec4 Far_Stomp_Color = {0.5f, 0.5f, 0.0f, 1.0f};
-    constexpr glm::vec4 Origin_Point = {0.07f, 0.4f, 0.54f, 1.0f};
-    constexpr glm::vec4 Kick_Color = {0.0f, 0.5f, 0.5f, 1.0f};
+    constexpr ImU32 Breast_Color = IM_COL32(245, 40, 145, 204);
+    constexpr ImU32 Close_Stomp_Color = IM_COL32(255, 0, 0, 255);
+    constexpr ImU32 Far_Stomp_Color = IM_COL32(128, 128, 0, 255);
+    constexpr ImU32 Origin_Point = IM_COL32(18, 102, 138, 255);
+    constexpr ImU32 Kick_Color = IM_COL32(0, 128, 128, 255);
 
-    void DrawRectangleShape(Actor* giant, NiPoint3 pointPos, Actor* victim, float width, float length, const glm::vec4& giantess_color) {
+    void DrawRectangleShape(Actor* giant, NiPoint3 pointPos, Actor* victim, float width, float length, ImU32 giantess_color) {
         const bool Rhomb = Config::AutoAim.bUseRhombShape;
         const float rotation = giant->data.angle.z;
         if (Config::AutoAim.bDebugAutoAim) {
-            DebugDraw::DrawRectangle(rotation, glm::vec3(pointPos.x, pointPos.y, pointPos.z), width, length, 1500, giantess_color);
+            DebugDraw::Rect(pointPos, rotation, width, length, { .Color = giantess_color, .Thickness = 1.0f, .LifetimeMs = 1500 });
             if (victim) {
                 auto victimPos = victim->GetPosition();
-                Rhomb ? DebugDraw::DrawRhomb(glm::vec3(victimPos.x, victimPos.y, victimPos.z), 6.0f * get_visual_scale(giant), rotation, 2000, {0.0f, 0.6f, 0.0f, 1.0f})
-                :       DebugDraw::DrawSphere(glm::vec3(victimPos.x, victimPos.y, victimPos.z), 6.0f * get_visual_scale(giant), 2000, {0.0f, 0.6f, 0.0f, 1.0f});
+                Rhomb ? DebugDraw::Rhomb(victimPos, 6.0f * get_visual_scale(giant), rotation, { .Color = IM_COL32(0, 153, 0, 255), .Thickness = 1.0f, .LifetimeMs = 2000 })
+                :       DebugDraw::Sphere(victimPos, 6.0f * get_visual_scale(giant), { .Color = IM_COL32(0, 153, 0, 255), .Thickness = 1.0f, .LifetimeMs = 2000 });
             }
         }
     }
-    void DrawDebugShape(Actor* giant, NiPoint3 pointPos, Actor* victim, float max_distance, const glm::vec4& giantess_color) {
+    void DrawDebugShape(Actor* giant, NiPoint3 pointPos, Actor* victim, float max_distance, ImU32 giantess_color) {
         const bool Rhomb = Config::AutoAim.bUseRhombShape;
         const float rotation = giant->data.angle.z;
         if (Config::AutoAim.bDebugAutoAim) {
-            Rhomb ? DebugDraw::DrawRhomb(glm::vec3(pointPos.x, pointPos.y, pointPos.z), 6.0f * get_visual_scale(giant), rotation, 1500, Origin_Point)// Initial search pos
-            :       DebugDraw::DrawSphere(glm::vec3(pointPos.x, pointPos.y, pointPos.z), 6.0f * get_visual_scale(giant), 1500, Origin_Point);
+            Rhomb ? DebugDraw::Rhomb(pointPos, 6.0f * get_visual_scale(giant), rotation, { .Color = Origin_Point, .Thickness = 1.0f, .LifetimeMs = 1500 })// Initial search pos
+            :       DebugDraw::Sphere(pointPos, 6.0f * get_visual_scale(giant), { .Color = Origin_Point, .Thickness = 1.0f, .LifetimeMs = 1500 });
 
-            Rhomb ? DebugDraw::DrawRhomb(glm::vec3(pointPos.x, pointPos.y, pointPos.z), max_distance, rotation, 1500, giantess_color)                // Collider search radius
-            :       DebugDraw::DrawSphere(glm::vec3(pointPos.x, pointPos.y, pointPos.z), max_distance, 1500, giantess_color);
+            Rhomb ? DebugDraw::Rhomb(pointPos, max_distance, rotation, { .Color = giantess_color, .Thickness = 1.0f, .LifetimeMs = 1500 })                // Collider search radius
+            :       DebugDraw::Sphere(pointPos, max_distance, { .Color = giantess_color, .Thickness = 1.0f, .LifetimeMs = 1500 });
 
             if (victim) {
                 auto victimPos = victim->GetPosition();
-                Rhomb ? DebugDraw::DrawRhomb(glm::vec3(victimPos.x, victimPos.y, victimPos.z), 6.0f * get_visual_scale(giant), rotation, 2000, {0.0f, 0.6f, 0.0f, 1.0f})
-                :       DebugDraw::DrawSphere(glm::vec3(victimPos.x, victimPos.y, victimPos.z), 6.0f * get_visual_scale(giant), 2000, {0.0f, 0.6f, 0.0f, 1.0f});
+                Rhomb ? DebugDraw::Rhomb(victimPos, 6.0f * get_visual_scale(giant), rotation, { .Color = IM_COL32(0, 153, 0, 255), .Thickness = 1.0f, .LifetimeMs = 2000 })
+                :       DebugDraw::Sphere(victimPos, 6.0f * get_visual_scale(giant), { .Color = IM_COL32(0, 153, 0, 255), .Thickness = 1.0f, .LifetimeMs = 2000 });
             }
         }
     }
-    void DebugMissShape(Actor* giant, NiPoint3 footPos_L, NiPoint3 footPos_R, float max_distance, bool& left_foot, const glm::vec4& giantess_color) {
+    void DebugMissShape(Actor* giant, NiPoint3 footPos_L, NiPoint3 footPos_R, float max_distance, bool& left_foot, ImU32 giantess_color) {
         DrawDebugShape(giant, footPos_L, nullptr, max_distance, giantess_color);
         DrawDebugShape(giant, footPos_R, nullptr, max_distance, giantess_color);
     }
@@ -74,7 +74,7 @@ namespace {
         }
     }
 
-    Actor* FindAndDebugTwoPointTarget(Actor* giant, NiPoint3 posL, NiPoint3 posR, float max_distance, bool& left, const glm::vec4& color, NiPoint3& outPos, NiPoint3& outVictimPos) {
+    Actor* FindAndDebugTwoPointTarget(Actor* giant, NiPoint3 posL, NiPoint3 posR, float max_distance, bool& left, ImU32 color, NiPoint3& outPos, NiPoint3& outVictimPos) {
         auto victim = FindClosestTargetBetweenTwoPoints(giant, posL, posR, max_distance, left); // Overrides `left`
         if (!victim) {
             DebugMissShape(giant, posL, posR, max_distance, left, color);
@@ -92,7 +92,7 @@ namespace {
         return victim;
     }
 
-    Actor* FindAndDebugRectTarget(Actor* giant, NiPoint3 origin, float width, float length, const glm::vec4& color, NiPoint3& outOrigin, NiPoint3& outVictimPos) {
+    Actor* FindAndDebugRectTarget(Actor* giant, NiPoint3 origin, float width, float length, ImU32 color, NiPoint3& outOrigin, NiPoint3& outVictimPos) {
         auto victim = FindClosestTargetInRectangle(giant, origin, width, length);
         if (!victim) {
             DrawRectangleShape(giant, origin, nullptr, width, length, color);

@@ -160,10 +160,6 @@ namespace GTS {
 		return { a_vector.quad.m128_f32[0], a_vector.quad.m128_f32[1], a_vector.quad.m128_f32[2] };
 	}
 
-	glm::vec3 NiPointToVec3(const NiPoint3& a_point) {
-		return { a_point.x, a_point.y, a_point.z };
-	}
-
 	// Beth doesn't use the maxslopeCosine from havok,
 	// It instead is handled by the bhkCharacterController as an inverted radian value.
 	// maxSlope = (pi/2) - radians
@@ -394,6 +390,7 @@ namespace GTS {
 					if (TESObjectCELL* Cell = a_actor->GetParentCell()) {
 						if (NiPointer<bhkWorld> World = NiPointer(Cell->GetbhkWorld())) {
 
+							DebugDraw::TrackedScope scope{ DebugDraw::TrackKey("CharController", a_actor->formID) };
 							hkpConvexVerticesShape* CollisionConvexVertexShape = nullptr;
 							std::vector<hkpCapsuleShape*> CollisionCapsules{};
 							CollisionCapsules.reserve(6);
@@ -420,13 +417,15 @@ namespace GTS {
 									Verts[i].quad.m128_f32[2] = Verts[i].quad.m128_f32[2] * *gWorldScaleInverse;
 								}
 
-								const glm::vec4& color = a_isBoneDriven ? glm::vec4{ 0.0f, 1.0f, 1.0f, 1.0f } : glm::vec4{ 1.0f, 0.0f, 1.0f, 1.0f };
-								DebugDraw::DrawConvexVertices(
-									Verts,
-									NiPointToVec3(ContollerNiPosition),
-									glm::mat4(1.0f),
-									10, color, 1.0f
-								);
+								std::vector<NiPoint3> Points{};
+								Points.reserve(Verts.size());
+
+								for (const hkVector4& Vert : Verts) {
+									Points.emplace_back(hkVec4ToNiPoint(Vert) + ContollerNiPosition);
+								}
+
+								const ImU32 color = a_isBoneDriven ? IM_COL32(0, 255, 255, 255) : IM_COL32(255, 0, 255, 255);
+								DebugDraw::ConvexShape(Points, { .Color = color, .Thickness = 1.0f });
 							}
 
 							for (hkpCapsuleShape*& Capsule : CollisionCapsules) {
@@ -443,11 +442,11 @@ namespace GTS {
 								B += ContollerNiPosition;
 
 								// Determine color based on material
-								glm::vec4 color = { 1.0f, 1.0f, 0.0f, 1.0f }; // Yellow for collision capsules
+								ImU32 color = IM_COL32(255, 255, 0, 255); // Yellow for collision capsules
 								if (bhkShape* Shape = Capsule->userData) {
 									if (Shape->materialID == MATERIAL_ID::kCharacterBumper) {
 										if (!Config::Collision.bDrawBumpers) continue;
-										color = { 0.0f, 0.25f, 0.53f, 1.0f }; // Blue for bumper
+										color = IM_COL32(0, 64, 135, 255); // Blue for bumper
 									}
 								}
 
@@ -459,15 +458,7 @@ namespace GTS {
 								int32_t longitudinal_steps = static_cast<int32_t>(std::floorf(std::lerp(8.0f, 3.0f, t)));
 								int32_t latitude_steps = static_cast<int32_t>(std::floorf(std::lerp(4.0f, 2.0f, t)));
 
-								DebugDraw::DrawCapsule(
-									NiPointToVec3(A),
-									NiPointToVec3(B),
-									ColCapsuleRadius,
-									glm::mat4(1.0f),
-									10, color, 1.0f,
-									longitudinal_steps,
-									latitude_steps
-								);
+								DebugDraw::Capsule(A, B, ColCapsuleRadius, { .Color = color, .Thickness = 1.0f }, longitudinal_steps, latitude_steps);
 							}
 						}
 					}

@@ -812,7 +812,7 @@ namespace GTS {
 
 		float maxDistance = radius * giantScale;
 
-		bool condition = DebugDraw::CanDraw(giant, DebugDraw::DrawTarget::kAnyGTS);
+		bool condition = DebugDraw::Wants(giant, DrawTarget::kAnyGTS);
 		CollisionDamage::DebugCollision(world, giant, Points, maxDistance, toHavok, condition);
 
 		NiPoint3 giantLocation = giant->GetPosition();
@@ -867,7 +867,7 @@ namespace GTS {
 			const float sphereRadiusHk = maxFootDistance * toHavok;
 			const float sphereRadiusSq = sphereRadiusHk * sphereRadiusHk;
 			if (!CoordsToCheck.empty()) {
-				const bool condition = DebugDraw::CanDraw(actor, DebugDraw::DrawTarget::kPlayerAndFollowers);
+				const bool condition = DebugDraw::Wants(actor, DrawTarget::kPlayerAndFollowers);
 				CollisionDamage::DebugCollision(world, actor, CoordsToCheck, maxFootDistance, toHavok, condition);
 
 				NiPoint3 giantLocation = actor->GetPosition();
@@ -966,7 +966,7 @@ namespace GTS {
 
 			float maxDistance = radius * giantScale;
 
-			bool condition = DebugDraw::CanDraw(giant,DebugDraw::DrawTarget::kPlayerAndFollowers);
+			bool condition = DebugDraw::Wants(giant,DrawTarget::kPlayerAndFollowers);
 			CollisionDamage::DebugCollision(world, giant, Points, maxDistance, toHavok, condition); 
 
 			NiPoint3 giantLocation = giant->GetPosition();
@@ -1086,7 +1086,7 @@ namespace GTS {
 		float maxFootDistance = radius * giantScale;
 
 		// Debug visualization
-		const bool condition = DebugDraw::CanDraw(actor, DebugDraw::DrawTarget::kAnyGTS);
+		const bool condition = DebugDraw::Wants(actor, DrawTarget::kAnyGTS);
 		CollisionDamage::DebugCollision(world, actor, ThighPoints, maxFootDistance, toHavok, condition);
 
 		NiPoint3 giantLocation = actor->GetPosition();
@@ -1187,7 +1187,7 @@ namespace GTS {
 			Points.push_back(NodePosition);
 		}
 
-		const bool condition = DebugDraw::CanDraw(giant, DebugDraw::DrawTarget::kAnyGTS);
+		const bool condition = DebugDraw::Wants(giant, DrawTarget::kAnyGTS);
 		CollisionDamage::DebugCollision(world, giant, Points, maxDistance, toHavok, condition);
 
 		Utils_UpdateHighHeelBlend(giant, false);

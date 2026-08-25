@@ -77,51 +77,47 @@ namespace GTS {
             bool flipVertical   = false;
         };
 
-        // Add to ImageTransform struct in ImGraphics.hpp
-
         struct ImageTransform {
             bool recolorEnabled          = false;
             ImVec4 targetColor           = { 1.0f, 1.0f, 1.0f, 1.0f }; // RGBA
             AffineTransform affine       = {};
             Direction transformDirection = Direction::None;
             float cutoffPercent          = 1.0f; // 0.0 to 1.0
-
-            // NEW: Gradient fade settings
             bool gradientFadeEnabled    = false;
-            float gradientStartPercent  = 0.5f;  // Where fade begins (0.0 to 1.0)
+            float gradientStartPercent  = 0.5f;   // Where fade begins (0.0 to 1.0)
             float gradientTargetAlpha   = 0.0f;   // Target alpha at max fade (0.0 to 1.0)
 
             bool IsActive() const {
                 return 
-            		recolorEnabled                     ||
-                    affine.rotation      != 0.0f       ||
-                    affine.scale.x       != 1.0f       || 
-                    affine.scale.y       != 1.0f       ||
-                    affine.translation.x != 0.0f       || 
-                    affine.translation.y != 0.0f       ||
-                    affine.flipHorizontal              || 
-                    affine.flipVertical                ||
+            		recolorEnabled                        ||
+                    affine.rotation      != 0.0f          ||
+                    affine.scale.x       != 1.0f          || 
+                    affine.scale.y       != 1.0f          ||
+                    affine.translation.x != 0.0f          || 
+                    affine.translation.y != 0.0f          ||
+                    affine.flipHorizontal                 || 
+                    affine.flipVertical                   ||
                     transformDirection != Direction::None ||
                     gradientFadeEnabled;
             }
 
             bool operator==(const ImageTransform& other) const {
                 return recolorEnabled == other.recolorEnabled &&
-                    targetColor.x         == other.targetColor.x &&
-                    targetColor.y         == other.targetColor.y &&
-                    targetColor.z         == other.targetColor.z &&
-                    targetColor.w         == other.targetColor.w &&
-                    affine.rotation       == other.affine.rotation &&
-                    affine.scale.x        == other.affine.scale.x &&
-                    affine.scale.y        == other.affine.scale.y &&
-                    affine.translation.x  == other.affine.translation.x &&
-                    affine.translation.y  == other.affine.translation.y &&
+                    targetColor.x         == other.targetColor.x         &&
+                    targetColor.y         == other.targetColor.y         &&
+                    targetColor.z         == other.targetColor.z         &&
+                    targetColor.w         == other.targetColor.w         &&
+                    affine.rotation       == other.affine.rotation       &&
+                    affine.scale.x        == other.affine.scale.x        &&
+                    affine.scale.y        == other.affine.scale.y        &&
+                    affine.translation.x  == other.affine.translation.x  &&
+                    affine.translation.y  == other.affine.translation.y  &&
                     affine.flipHorizontal == other.affine.flipHorizontal &&
-                    affine.flipVertical   == other.affine.flipVertical &&
-                    transformDirection             == other.transformDirection &&
-                    cutoffPercent         == other.cutoffPercent &&
-                    gradientFadeEnabled   == other.gradientFadeEnabled &&
-                    gradientStartPercent  == other.gradientStartPercent &&
+                    affine.flipVertical   == other.affine.flipVertical   &&
+                    transformDirection    == other.transformDirection    &&
+                    cutoffPercent         == other.cutoffPercent         &&
+                    gradientFadeEnabled   == other.gradientFadeEnabled   &&
+                    gradientStartPercent  == other.gradientStartPercent  &&
                     gradientTargetAlpha   == other.gradientTargetAlpha;
             }
 

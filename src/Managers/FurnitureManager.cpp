@@ -214,8 +214,8 @@ namespace GTS {
                     activator->SetRotationZ(headingDeg);
                     NiPoint3 pos = markerWorldPos;
 
-                    if (DebugDraw::CanDraw()) {
-                        DebugDraw::DrawSphere({ pos.x, pos.y, pos.z }, 5.0f, 10000);
+                    if (DebugDraw::Wants()) {
+                        DebugDraw::Sphere(pos, 5.0f, { .Color = IM_COL32(255, 0, 0, 255), .Thickness = 1.0f, .LifetimeMs = 10000 });
                     }
 
                 	pos.z = activator->GetPosition().z;

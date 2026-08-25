@@ -1,7 +1,10 @@
-﻿#include "UI/Windows/Other/DebugWindow.hpp"
+﻿#include "UI/Windows/Debug/DebugWindow.hpp"
 #include "UI/Controls/Button.hpp"
 #include "UI/Controls/CheckBox.hpp"
+#include "UI/Controls/Slider.hpp"
 #include "UI/GTSMenu.hpp"
+
+#include "Debug/DebugDraw.hpp"
 
 #include "Config/Config.hpp"
 
@@ -56,6 +59,48 @@ namespace {
 		ImGui::Spacing();
 
 	}
+
+	void DrawOverlaySettings() {
+
+		auto& settings = Config::Advanced.Overlay;
+
+		bool frozen = DebugDraw::IsFrozen();
+
+		if (ImGuiEx::CheckBox("Freeze", &frozen, "Keep rendering what is buffered but stop accepting new geometry.")) {
+			DebugDraw::SetFrozen(frozen);
+		}
+
+		ImGui::SameLine();
+
+		if (ImGuiEx::Button("Clear")) {
+			DebugDraw::Clear();
+		}
+
+		ImGuiEx::CheckBox("Hide When Paused", &settings.bHideWhenPaused);
+		ImGuiEx::CheckBox("Show Stats Readout", &settings.bShowStats);
+
+		ImGuiEx::SliderF("Alpha", &settings.fGlobalAlpha, 0.0f, 1.0f);
+		ImGuiEx::SliderF("Line Thickness", &settings.fThicknessScale, 0.1f, 8.0f);
+		ImGuiEx::SliderF("Text Scale", &settings.fTextScale, 0.25f, 4.0f);
+
+		ImGuiEx::CheckBox("Depth Fade", &settings.bDepthFade, "Fade geometry out with distance instead of a hard cutoff.");
+		ImGuiEx::SliderF("Fade Start", &settings.fFadeStartDist, 0.0f, 20000.0f, nullptr, "%.0f");
+		ImGuiEx::SliderF("Fade End", &settings.fFadeEndDist, 0.0f, 40000.0f, nullptr, "%.0f");
+		ImGuiEx::SliderF("Max Draw Distance", &settings.fMaxDrawDist, 0.0f, 40000.0f, "0 disables the hard cull.", "%.0f");
+
+		ImGui::InputInt("Max Primitives", &settings.iMaxPrimitives);
+		ImGui::InputInt("Tracked Timeout (ms)", &settings.iTrackedTimeoutMs);
+
+		const auto& stats = DebugDraw::GetStats();
+
+		ImGui::SeparatorText("Stats");
+		ImGui::Text("Live: %u (timed %u, tracked %u)", stats.Live, stats.Timed, stats.Tracked);
+		ImGui::Text("Submitted: %u  Dropped: %u", stats.Submitted, stats.Dropped);
+		ImGui::Text("Batches: %u  Segments: %u", stats.Batches, stats.Segments);
+		ImGui::Text("Projections: %u  Vertices: %u", stats.Projections, stats.PointsUsed);
+		ImGui::Text("Culled: behind %u / offscreen %u / distance %u", stats.CulledBehind, stats.CulledOffscreen, stats.CulledDistance);
+		ImGui::Text("Render: %.3f ms", stats.RenderMs);
+	}
 }
 
 namespace GTS {
@@ -76,8 +121,15 @@ namespace GTS {
 			{
 				ImGuiEx::CheckBox("Show Overlay", &Config::Advanced.bShowOverlay);
 
+				if (ImGui::CollapsingHeader("Overlay Settings")) {
+					DrawOverlaySettings();
+				}
+
 				#ifdef GTS_PROFILER_ENABLED
-				ImGuiEx::CheckBox("Show Profiler", &Profilers::DrawProfiler);
+				bool ShowProfiler = Profilers::IsEnabled();
+				if (ImGuiEx::CheckBox("Show Profiler", &ShowProfiler)) {
+					Profilers::SetEnabled(ShowProfiler);
+				}
 				#endif
 
 				if (ImGui::CollapsingHeader("Scale Information (Size Debug)")) {
@@ -339,7 +391,7 @@ namespace GTS {
 		return m_showStackWindow       ||
 			   m_showMetricsWindow     ||
             #ifdef GTS_PROFILER_ENABLED
-			   Profilers::DrawProfiler ||
+			   Profilers::IsEnabled()   ||
             #endif
 			   m_showDemoWindow;
 	}

@@ -145,8 +145,8 @@ namespace GTS {
 				CheckDistance *= 1.5f;
 			}
 
-			if (DebugDraw::CanDraw()) {
-				DebugDraw::DrawSphere(glm::vec3(NodePosition.x, NodePosition.y, NodePosition.z), CheckDistance, 60, { 0.5f, 1.0f, 0.0f, 0.5f });
+			if (DebugDraw::Wants()) {
+				DebugDraw::Sphere(NodePosition, CheckDistance, { .Color = IM_COL32(128, 255, 0, 128), .Thickness = 1.0f, .LifetimeMs = 33 });
 			}
 
 			for (auto otherActor : find_actors()) {

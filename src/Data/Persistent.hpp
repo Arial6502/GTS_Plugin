@@ -55,7 +55,6 @@ namespace GTS {
 		//SKSE Callbacks
 		void OnSerdeSave(SKSE::SerializationInterface* a_this) override;
 		void OnSerdeLoad(SKSE::SerializationInterface* a_this, std::uint32_t a_recordType, std::uint32_t a_recordVersion, std::uint32_t a_recordSize) override;
-		void OnSKSEFormDelete(RE::FormID a_id) override;
 
 	};
 }

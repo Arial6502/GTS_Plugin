@@ -20,7 +20,7 @@ namespace GTS {
 			return std::numeric_limits<float>::infinity();
 		}
 
-		bool debug = DebugDraw::CanDraw();
+		bool debug = DebugDraw::Wants();
 
 		float scale = get_visual_scale(giant);
 		// === Calculation of ray directions ===
@@ -63,14 +63,14 @@ namespace GTS {
 					auto ray_dir = transform.rotate * (mat * NiPoint3(0.0f, 1.0f, 0.0f));
 					if (debug) {
 						NiPoint3 ray_end = vert + ray_dir*TESTRAY_LENGTH;
-						DebugDraw::DrawSphere(glm::vec3(ray_start.x, ray_start.y, ray_start.z), 8.0f, 10, {1.0f, 1.0f, 0.0f, 1.0f});
-						DebugDraw::DrawLineForMS(glm::vec3(ray_start.x, ray_start.y, ray_start.z), glm::vec3(ray_end.x, ray_end.y, ray_end.z), 10, {1.0f, 0.0f, 1.0f, 1.0f});
+						DebugDraw::Sphere(ray_start, 8.0f, { .Color = IM_COL32(255, 255, 0, 255), .Thickness = 1.0f, .LifetimeMs = 10 });
+						DebugDraw::Line(ray_start, ray_end, { .Color = IM_COL32(255, 0, 255, 255), .Thickness = 1.0f, .LifetimeMs = 10 });
 					}
 					bool success = false;
 					NiPoint3 testPos = CastRayStatics(giant, ray_start, ray_dir, TESTRAY_LENGTH, success);
 					if (success) {
 						if (debug) {
-							DebugDraw::DrawSphere(glm::vec3(testPos.x, testPos.y, testPos.z), 5.0f, 30, {1.0f, 0.0f, 0.0f, 1.0f});
+							DebugDraw::Sphere(testPos, 5.0f, { .Color = IM_COL32(255, 0, 0, 255), .Thickness = 1.0f, .LifetimeMs = 33 });
 						}
 						break; // Don't do later levels either
 					}
@@ -90,14 +90,14 @@ namespace GTS {
 			NiPoint3 ray_dir = ray.second;
 			if (debug) {
 				NiPoint3 ray_end = ray_start + ray_dir*RAY_LENGTH;
-				DebugDraw::DrawSphere(glm::vec3(ray_start.x, ray_start.y, ray_start.z), 8.0f, 10, {0.0f, 1.0f, 0.0f, 1.0f});
-				DebugDraw::DrawLineForMS(glm::vec3(ray_start.x, ray_start.y, ray_start.z), glm::vec3(ray_end.x, ray_end.y, ray_end.z), 10, {1.0f, 0.0f, 0.0f, 1.0f});
+				DebugDraw::Sphere(ray_start, 8.0f, { .Color = IM_COL32(0, 255, 0, 255), .Thickness = 1.0f, .LifetimeMs = 10 });
+				DebugDraw::Line(ray_start, ray_end, { .Color = IM_COL32(255, 0, 0, 255), .Thickness = 1.0f, .LifetimeMs = 10 });
 			}
 			bool success = false;
 			NiPoint3 endpos_up = CastRayStatics(giant, ray_start, ray_dir, RAY_LENGTH, success);
 			if (success) {
 				if (debug) {
-					DebugDraw::DrawSphere(glm::vec3(endpos_up.x, endpos_up.y, endpos_up.z), 5.0f, 30, {1.0f, 0.0f, 0.0f, 1.0f});
+					DebugDraw::Sphere(endpos_up, 5.0f, { .Color = IM_COL32(255, 0, 0, 255), .Thickness = 1.0f, .LifetimeMs = 33 });
 				}
 				ceiling_heights.push_back(endpos_up.z);
 			}
@@ -115,14 +115,14 @@ namespace GTS {
 			NiPoint3 ray_dir = ray.second * -1.0f;
 			if (debug) {
 				NiPoint3 ray_end = ray_start + ray_dir*RAY_LENGTH;
-				DebugDraw::DrawSphere(glm::vec3(ray_start.x, ray_start.y, ray_start.z), 8.0f, 10, {0.0f, 1.0f, 1.0f, 1.0f});
-				DebugDraw::DrawLineForMS(glm::vec3(ray_start.x, ray_start.y, ray_start.z), glm::vec3(ray_end.x, ray_end.y, ray_end.z), 10, {1.0f, 0.0f, 1.0f, 1.0f});
+				DebugDraw::Sphere(ray_start, 8.0f, { .Color = IM_COL32(0, 255, 255, 255), .Thickness = 1.0f, .LifetimeMs = 10 });
+				DebugDraw::Line(ray_start, ray_end, { .Color = IM_COL32(255, 0, 255, 255), .Thickness = 1.0f, .LifetimeMs = 10 });
 			}
 			bool success = false;
 			NiPoint3 endpos_up = CastRayStatics(giant, ray_start, ray_dir, RAY_LENGTH, success);
 			if (success) {
 				if (debug) {
-					DebugDraw::DrawSphere(glm::vec3(endpos_up.x, endpos_up.y, endpos_up.z), 5.0f, 30, {1.0f, 0.0f, 1.0f, 1.0f});
+					DebugDraw::Sphere(endpos_up, 5.0f, { .Color = IM_COL32(255, 0, 255, 255), .Thickness = 1.0f, .LifetimeMs = 30 });
 				}
 				floor_heights.push_back(endpos_up.z);
 			}

@@ -29,19 +29,27 @@ namespace GTS {
 	}
 	void CollisionDamage::DebugCollision(RE::bhkWorld* world, Actor* actor, std::vector<NiPoint3> CoordsToCheck, float maxFootDistance, float toHavok, bool condition) {
 		if (condition) {
-			constexpr int duration = 300;
+
+			{
+				DebugDraw::TrackedScope scope{ DebugDraw::TrackKey("CollisionDamage.Feet", actor->formID) };
+
 				for (const auto& footPoint : CoordsToCheck) {
-					DebugDraw::DrawSphere(glm::vec3(footPoint.x, footPoint.y, footPoint.z), maxFootDistance, duration);
+					DebugDraw::Sphere(footPoint, maxFootDistance, { .Color = DebugCol::Red });
 				}
-				for (auto& otherActor : find_actors()) {
-					if (otherActor == actor) continue;
-					if (auto shapeData = GetControllerShapeData(otherActor, toHavok)) {
-						BSReadLockGuard lock(world->worldLock);
-						DebugDrawShape(otherActor, shapeData->shape, shapeData->transform, shapeData->angleZ, 1.0f / toHavok, duration);
-					}
+			}
+
+			for (auto& otherActor : find_actors()) {
+
+				if (otherActor == actor) continue;
+
+				if (auto shapeData = GetControllerShapeData(otherActor, toHavok)) {
+					DebugDraw::TrackedScope scope{ DebugDraw::TrackKey("CollisionDamage.Shape", otherActor->formID) };
+					BSReadLockGuard lock(world->worldLock);
+					DebugDrawShape(otherActor, shapeData->shape, shapeData->transform, shapeData->angleZ, 1.0f / toHavok, 0);
 				}
 			}
 		}
+	}
 	
 	bool CollisionDamage::HasCollided(Actor* actor, Actor* otherActor, RE::bhkWorld* world, std::vector<NiPoint3> CoordsToCheck, NiPoint3 giantLocation, float giantScale, float SCALE_RATIO, float maxFootDistance, float maxCheckDistanceSq, float sphereRadiusSq, float toHavok) {
 		// Broad-phase distance cull
@@ -102,7 +110,7 @@ namespace GTS {
 		if (!world) return;
 
 		if (!IsIdleDamage(Cause)) {
-			const bool Condition = DebugDraw::CanDraw(actor, DebugDraw::DrawTarget::kAnyGTS);
+			const bool Condition = DebugDraw::Wants(actor, DrawTarget::kAnyGTS);
 			DebugCollision(world, actor, CoordsToCheck, maxFootDistance, toHavok, Condition);
 			if (SMT) {
 				DebugCollision(world, actor, CoordsToCheck, maxFootDistance * Calamity, toHavok, Condition);

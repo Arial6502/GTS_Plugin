@@ -1,10 +1,9 @@
 #pragma once
 
 #include "Systems/Events/EventData.hpp"
+#include "Systems/Events/EventListener.hpp"
 
 namespace GTS {
-
-	class EventListener;
 
 	class EventDispatcher : 
 		public CInitSingleton<EventDispatcher>, 
@@ -25,7 +24,27 @@ namespace GTS {
 
 		public:
 
-		static void AddListener(EventListener* a_listener);
+		template <typename T>
+		static void AddListener(T* a_listener) {
+
+			static_assert(std::is_base_of_v<EventListener, T>, "Listeners must derive from EventListener.");
+
+			// Overrides are detected on T, so registering through a base handle would find none
+			// and the listener would receive nothing at all. Always register the concrete type.
+			static_assert(!std::is_same_v<T, EventListener>, "Register the concrete listener type and not EventListener.");
+
+			if (!Register(a_listener, typeid(T))) {
+				return;
+			}
+
+			#define GTS_EVENT_SUBSCRIBE(a_name)                                 \
+				if constexpr (EventOverride::a_name<T>) {                       \
+					Subscribe(EventId::a_name, a_listener);                     \
+				}
+
+			GTS_EVENT_LIST(GTS_EVENT_SUBSCRIBE)
+			#undef GTS_EVENT_SUBSCRIBE
+		}
 
 		template <typename T>
 		static void AddListener() {
@@ -33,6 +52,8 @@ namespace GTS {
 		}
 
 		static void Init(uint32_t a_serdeID);
+
+		static void LogSubscriptions();
 
 		//SKSE Events
 		static void SKSEDispatch(SKSE::MessagingInterface::Message* a_message);
@@ -97,17 +118,26 @@ namespace GTS {
 		//Max allowed registered listeners, increase if needed.
         static constexpr std::size_t MaxListeners = 256;
 
+        struct SubscriberList {
+            std::array<std::atomic<EventListener*>, MaxListeners> Entries {};
+            std::atomic<std::size_t> Count {0};
+        };
+
+        static bool Register(EventListener* a_listener, const std::type_info& a_type);
+        static void Subscribe(EventId a_event, EventListener* a_listener);
+
         static inline std::mutex m_lock;
-        static inline std::array<std::atomic<EventListener*>, MaxListeners> m_listeners {};
+        static inline std::array<SubscriberList, kEventCount> m_subscribers {};
         static inline std::atomic<std::size_t> m_count {0};
 
-        template <typename Func>
-        static void ForEachListener(Func&& func) {
+        template <EventId Id, typename Func>
+        static void ForEachSubscriber(Func&& func) {
 
-            const std::size_t Count = m_count.load(std::memory_order_acquire);
+            const SubscriberList& List = m_subscribers[static_cast<std::size_t>(Id)];
+            const std::size_t Count = List.Count.load(std::memory_order_acquire);
 
             for (std::size_t i = 0; i < Count; ++i) {
-                func(m_listeners[i].load(std::memory_order_relaxed));
+                func(List.Entries[i].load(std::memory_order_relaxed));
             }
         }
 	};

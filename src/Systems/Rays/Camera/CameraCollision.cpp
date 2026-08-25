@@ -99,6 +99,10 @@ namespace GTS::CameraCol {
 		const float actorZPos = cameraActor->GetPositionZ();
 
 		const auto toVec4 = [](const NiPoint3& p) { return glm::vec4(p.x, p.y, p.z, 0.0f); };
+		const auto toNiPoint = [](const glm::vec4& v) { return NiPoint3(v.x, v.y, v.z); };
+
+		//The whole sweep is redrawn every frame, so it replaces itself instead of expiring.
+		const DebugDraw::TrackedScope debugScope{ DebugDraw::TrackKey("CameraCollision") };
 		const auto hkpHitPos = [](const glm::vec4& from, const glm::vec4& to, float fraction) {
 			return NiPoint3 {
 				(to.x - from.x) * fraction + from.x,
@@ -129,7 +133,7 @@ namespace GTS::CameraCol {
 
 				//Rays
 				if (Config::Advanced.bShowOverlay) {
-					DebugDraw::DrawLineForMS({ currentStart.x, currentStart.y, currentStart.z }, { probeEnd.x, probeEnd.y, probeEnd.z }, 16, { 1.0f, 1.0f, 1.0f, 1.0f }, 0.1f); //White
+					DebugDraw::Line(currentStart, toNiPoint(probeEnd), { .Color = IM_COL32(255, 255, 255, 255), .Thickness = 0.1f }); //White
 				}
 
 				const uint64_t cameraCollidesWithBitfield = filter->layerBitfields[static_cast<uint8_t>(COL_LAYER::kCamera)];
@@ -145,8 +149,8 @@ namespace GTS::CameraCol {
 
 						if (cameraCollidesWithBitfield & layerBit) {
 							if (hitPos.z > actorZPos) {
-								if (Config::Advanced.bShowOverlay) {
-									DebugDraw::DrawLineForMS({ currentStart.x, currentStart.y, currentStart.z }, { hitPos.x, hitPos.y, hitPos.z }, 16, { 0.0f, 0.0f, 1.0f, 1.0f }, 0.5f);
+								if (DebugDraw::Wants()) {
+									DebugDraw::Line(currentStart, hitPos, { .Color = IM_COL32(0, 0, 255, 255), .Thickness = 0.5f });
 								}
 								ignoreList.push_back(const_cast<hkpCdBody*>(hit.body));
 							}
@@ -207,8 +211,8 @@ namespace GTS::CameraCol {
 			}
 				
 
-			if (Config::Advanced.bShowOverlay) {
-				DebugDraw::DrawLineForMS({ floorStart4.x, floorStart4.y, floorStart4.z }, { currentStart.x, currentStart.y, currentStart.z }, 16, { 0.0f, 1.0f, 1.0f, 1.0f }, 1.5f); //Blue
+			if (DebugDraw::Wants()) {
+				DebugDraw::Line(toNiPoint(floorStart4), currentStart, { .Color = IM_COL32(0, 255, 255, 255), .Thickness = 1.5f }); //Blue
 			}
 		}
 
@@ -222,8 +226,8 @@ namespace GTS::CameraCol {
 				currentStart.z -= Hull - ceilResult.rayLength;
 			}
 
-			if (Config::Advanced.bShowOverlay) {
-				DebugDraw::DrawLineForMS({ ceilStart4.x, ceilStart4.y, ceilStart4.z }, { currentStart.x, currentStart.y, currentStart.z }, 16, { 0.0f, 1.0f, 1.0f, 1.0f }, 1.5f); //Blue
+			if (DebugDraw::Wants()) {
+				DebugDraw::Line(toNiPoint(ceilStart4), currentStart, { .Color = IM_COL32(0, 255, 255, 255), .Thickness = 1.5f }); //Blue
 			}
 
 		}
@@ -275,8 +279,8 @@ namespace GTS::CameraCol {
 				finalCameraPosition.z += Hull - floorResult.rayLength;
 			}
 
-			if (Config::Advanced.bShowOverlay) {
-				DebugDraw::DrawLineForMS({ floorStart4.x, floorStart4.y, floorStart4.z }, { finalCameraPosition.x, finalCameraPosition.y, finalCameraPosition.z }, 16, { 0.0f, 1.0f, 0.0f, 1.0f }, 1.5f); //Green
+			if (DebugDraw::Wants()) {
+				DebugDraw::Line(toNiPoint(floorStart4), finalCameraPosition, { .Color = IM_COL32(0, 255, 0, 255), .Thickness = 1.5f }); //Green
 			}
 		}
 

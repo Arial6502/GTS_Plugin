@@ -15,6 +15,7 @@ namespace GTS {
 
 	class BaseTask {
 		public:
+		virtual ~BaseTask() = default;
 		virtual bool Update() = 0;
 
 		__forceinline UpdateKind UpdateOn() const {
@@ -25,8 +26,25 @@ namespace GTS {
 			this->updateOnKind = updateOn;
 		}
 
+		#ifdef GTS_PROFILER_ENABLED
+
+		// Where this task was spawned from.
+		void SetOrigin(const std::source_location& a_where) {
+			m_origin = a_where;
+		}
+
+		[[nodiscard]] std::uint32_t ProfilerSlot();
+
+		#endif
+
 		protected:
 		UpdateKind updateOnKind = UpdateKind::Main;
+
+		#ifdef GTS_PROFILER_ENABLED
+		std::source_location m_origin {};
+		std::uint32_t m_profilerSlot = kInvalidSlot;
+		bool m_slotResolved = false;
+		#endif
 	};
 
 	class Oneshot : public BaseTask {
@@ -94,18 +112,23 @@ namespace GTS {
 		static void ChangeUpdate(std::string_view name, UpdateKind updateOn);
 		static void Cancel(std::string_view name);
 
-		static void Run(const std::function<bool(const TaskUpdate&)>& tasking);
-		static void Run(std::string_view name, const std::function<bool(const TaskUpdate&)>& tasking);
+		// The trailing source_location is filled in by the compiler at each call site, so every
+		// task carries where it came from at no cost to the caller.
+		static void Run(const std::function<bool(const TaskUpdate&)>& tasking, std::source_location where = std::source_location::current());
+		static void Run(std::string_view name, const std::function<bool(const TaskUpdate&)>& tasking, std::source_location where = std::source_location::current());
 
-		static void RunFor(float duration, const std::function<bool(const TaskForUpdate&)>& tasking);
-		static void RunFor(std::string_view name, float duration, const std::function<bool(const TaskForUpdate&)>& tasking);
+		static void RunFor(float duration, const std::function<bool(const TaskForUpdate&)>& tasking, std::source_location where = std::source_location::current());
+		static void RunFor(std::string_view name, float duration, const std::function<bool(const TaskForUpdate&)>& tasking, std::source_location where = std::source_location::current());
 
-		static void RunOnce(const std::function<void(const OneshotUpdate&)>& tasking);
-		static void RunOnce(std::string_view name, const std::function<void(const OneshotUpdate&)>& tasking);
+		static void RunOnce(const std::function<void(const OneshotUpdate&)>& tasking, std::source_location where = std::source_location::current());
+		static void RunOnce(std::string_view name, const std::function<void(const OneshotUpdate&)>& tasking, std::source_location where = std::source_location::current());
 
 		static void CancelAllTasks();
 
+		[[nodiscard]] static std::size_t LiveTaskCount();
+
 		private:
+		static void RunQueued(UpdateKind kind);
 		static std::string GenerateName(void* ptr);
 		static inline absl::flat_hash_map<std::string, std::shared_ptr<BaseTask>> m_taskings;
 		static inline std::mutex m_taskingsLock;

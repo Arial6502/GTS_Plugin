@@ -10,9 +10,6 @@ namespace GTS {
         bool m_isInMainMenu = false;
 
         public:
-
-        ~SplashWindow() override;
-
         // Inherited via ImConfigurableWindow
         void Draw() override;
         bool WantsToDraw() override;

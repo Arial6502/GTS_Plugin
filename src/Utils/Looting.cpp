@@ -228,8 +228,8 @@ namespace GTS {
 		}
 
 		NiPoint3 TotalPos = GetContainerSpawnLocation(giant, actor); // obtain goal of container position by doing ray-cast
-		if (DebugDraw::CanDraw()) {
-			DebugDraw::DrawSphere(glm::vec3(TotalPos.x, TotalPos.y, TotalPos.z), 8.0f, 6000, {1.0f, 1.0f, 0.0f, 1.0f});
+		if (DebugDraw::Wants()) {
+			DebugDraw::Sphere(TotalPos, 8.0f, { .Color = IM_COL32(255, 255, 0, 255), .Thickness = 1.0f, .LifetimeMs = 5000 });
 		}
 		auto dropbox = Runtime::PlaceContainerAtPos(actor, TotalPos, *container); // Place chosen container
 

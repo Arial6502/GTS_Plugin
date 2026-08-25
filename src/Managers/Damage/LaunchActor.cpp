@@ -251,8 +251,8 @@ namespace GTS {
 
 			float maxDistance = BASE_CHECK_DISTANCE * radius * giantScale;
 			
-			if (DebugDraw::CanDraw(giant, DebugDraw::DrawTarget::kAnyGTS)) {
-				DebugDraw::DrawSphere(glm::vec3(point.x, point.y, point.z), maxDistance, 600, {0.0f, 0.0f, 1.0f, 1.0f});
+			if (DebugDraw::Wants(giant, DrawTarget::kAnyGTS)) {
+				DebugDraw::Sphere(point, maxDistance, { .Color = IM_COL32(0, 0, 255, 255), .Thickness = 1.0f, .LifetimeMs = 500 });
 			}
 			
 			std::vector<NiPoint3> LaunchObjectPoints = {point};
@@ -314,10 +314,10 @@ namespace GTS {
 		float HH = HighHeelManager::GetHHOffset(giant).Length();
 
 		if (!CoordsToCheck.empty()) {
-			if (DebugDraw::CanDraw(giant, DebugDraw::DrawTarget::kAnyGTS)) {
+			if (DebugDraw::Wants(giant, DrawTarget::kAnyGTS)) {
 				for (NiPoint3 footPoints : CoordsToCheck) {
 					footPoints.z -= HH;
-					DebugDraw::DrawSphere(glm::vec3(footPoints.x, footPoints.y, footPoints.z), maxFootDistance, 600, {0.0f, 0.0f, 1.0f, 1.0f});
+					DebugDraw::Sphere(footPoints, maxFootDistance, { .Color = IM_COL32(0, 0, 255, 255), .Thickness = 1.0f, .LifetimeMs = 500 });
 				}
 			}
 

@@ -22,5 +22,9 @@ namespace ImUtil::Colors {
     std::array<float, 3> ShiftHue(const std::array<float, 3>& hsv, float hueShift);
 
     ImU32 fRGBAToU32(std::array<float, 4> a_rgba);
+
+    //Scales only the alpha channel of a packed color, leaving the rgb untouched.
+    ImU32 WithAlpha(ImU32 a_col, float a_mul) noexcept;
+    uint8_t AlphaOf(ImU32 a_col) noexcept;
     ImU32 AdjustGrayScaleLightness(float a_grayScale, float a_alpha);
 }

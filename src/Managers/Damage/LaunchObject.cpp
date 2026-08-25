@@ -108,12 +108,12 @@ namespace GTS {
 
 		std::vector<ObjectRefHandle> Refs = GetNearbyObjects(giant);
 
-		if (DebugDraw::CanDraw(giant, DebugDraw::DrawTarget::kAnyGTS)) {
+		if (DebugDraw::Wants(giant, DrawTarget::kAnyGTS)) {
 			for (auto point: footPoints) {
 				if (IsFoot) {
 					point.z -= HH;
 				}
-				DebugDraw::DrawSphere(glm::vec3(point.x, point.y, point.z), maxFootDistance, 600, {0.0f, 1.0f, 0.0f, 1.0f});
+				DebugDraw::Sphere(point, maxFootDistance, { .Color = IM_COL32(0, 255, 0, 255), .Thickness = 1.0f, .LifetimeMs = 500 });
 			}
 		}
 
@@ -191,8 +191,8 @@ namespace GTS {
 			point.z -= HH * 0.75f;
 		}
 
-		if (DebugDraw::CanDraw(giant, DebugDraw::DrawTarget::kAnyGTS)) {
-			DebugDraw::DrawSphere(glm::vec3(point.x, point.y, point.z), maxDistance, 20, {0.5f, 0.0f, 0.5f, 1.0f});
+		if (DebugDraw::Wants(giant, DrawTarget::kAnyGTS)) {
+			DebugDraw::Sphere(point, maxDistance, { .Color = IM_COL32(128, 0, 128, 255), .Thickness = 1.0f, .LifetimeMs = 33 });
 		}
 
 		int nodeCollisions = 0;

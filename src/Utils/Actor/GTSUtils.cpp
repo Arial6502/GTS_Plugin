@@ -757,8 +757,8 @@ namespace GTS {
 		const float maxDistance = radius;
 		float totaldistance = maxDistance * giantScale;
 		// Make a list of points to check
-		if (DebugDraw::CanDraw(giant, DebugDraw::DrawTarget::kPlayerOnly)) {
-			DebugDraw::DrawSphere(glm::vec3(NodePosition.x, NodePosition.y, NodePosition.z), totaldistance, 600, {0.0f, 1.0f, 0.0f, 1.0f});
+		if (DebugDraw::Wants(giant, DrawTarget::kPlayerOnly)) {
+			DebugDraw::Sphere(NodePosition, totaldistance, { .Color = IM_COL32(0, 255, 0, 255), .Thickness = 1.0f, .LifetimeMs = 500 });
 		}
 
 		NiPoint3 giantLocation = giant->GetPosition();

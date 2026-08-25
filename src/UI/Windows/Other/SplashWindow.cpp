@@ -24,13 +24,6 @@ namespace {
 
 namespace GTS {
 
-	SplashWindow::~SplashWindow() {
-		// Nothing to unregister: EventDispatcher listeners are registered for the
-		// lifetime of the process. This window is owned by ImWindowManager and only
-		// dies during teardown, by which point dispatch has stopped.
-		logger::warn("Running SplashWindow dtor");
-	}
-
 	void SplashWindow::Draw() {
 
 		ImGui::SetWindowPos(GetAnchorPos(m_anchorPos, {20.0f, 15.0f}, false));

@@ -48,14 +48,14 @@ namespace GTS {
 		virtual void OnPluginReset() {} // Called on game load started (not yet finished) and when new game is selected
 
 		//SKSESerialization
-		virtual void OnSerdePreSave() {} //Fired before data is saved
-		virtual void OnSerdeSave(SKSE::SerializationInterface* a_this) {} //cosave data save callback
-		virtual void OnSerdePostSave() {} //Fires right after data is saved
-		virtual void OnSerdePreLoad() {}  //fires right before save data is loaded
+		virtual void OnSerdePreSave() {}                                    //Fired before data is saved
+		virtual void OnSerdeSave(SKSE::SerializationInterface* a_this) {}   //cosave data save callback
+		virtual void OnSerdePostSave() {}                                   //Fires right after data is saved
+		virtual void OnSerdePreLoad() {}                                    //fires right before save data is loaded
 		virtual void OnSerdeLoad(SKSE::SerializationInterface* a_this, std::uint32_t a_recordType, std::uint32_t a_recordVersion, std::uint32_t a_recordSize) {} //Save data load callback
-		virtual void OnSerdePostLoad() {} //Fires right after save data is loaded
+		virtual void OnSerdePostLoad() {}                                   //Fires right after save data is loaded
 		virtual void OnSerdeRevert(SKSE::SerializationInterface* a_this) {} //OnRevert callback fires when you return to the main menu or load a different save when one is already loaded.
-		virtual void OnSKSEFormDelete(RE::FormID a_id) {} //Fired when the game instructs the VM to perform its temporary reference cleanup
+		virtual void OnSKSEFormDelete(RE::FormID a_id) {}                   //Fired when the game instructs the VM to perform its temporary reference cleanup
 
 		//SKSE Events
 		virtual void OnSKSEPostLoad() {}
@@ -67,5 +67,92 @@ namespace GTS {
 		virtual void OnSKSEPreLoadGame() {}
 		virtual void OnSKSESaveGame() {}
 		virtual void OnSKSEDeleteGame() {}
+
+		// Dense registration index, assigned by EventDispatcher::AddListener. The profiler
+		// uses it to reach a dispatch site's slot with an array index instead of a lookup.
+		[[nodiscard]] std::uint32_t GetProfilerIndex() const noexcept { return m_profilerIndex; }
+		void SetProfilerIndex(std::uint32_t a_index) noexcept { m_profilerIndex = a_index; }
+
+		private:
+		std::uint32_t m_profilerIndex = 0xFFFFFFFFu;
 	};
+}
+
+// Every event, listed once. The dispatcher builds its per event subscriber lists, its EventId
+// enum and its override traits from this, so adding a virtual above means a new line here as well.
+#define GTS_EVENT_LIST(X)       \
+    X(OnMainUpdate)             \
+    X(OnPapyrusUpdate)          \
+    X(OnHavokUpdate)            \
+    X(OnPostSMPUpdate)          \
+    X(OnCameraUpdate)           \
+    X(OnImpact)                 \
+    X(OnActorLoad3D)            \
+    X(OnActor3DUnload)          \
+    X(OnActorPerkAdded)         \
+    X(OnActorPerkRemoved)       \
+    X(OnActorUpdate)            \
+    X(OnLethalHit)              \
+    X(OnActorAnimationChange)   \
+    X(OnGameActorReset)         \
+    X(OnGameActorEquip)         \
+    X(OnGameDragonSoulAbsorb)   \
+    X(OnGameMenuChange)         \
+    X(OnGameFurnitureChange)    \
+    X(OnGameDeath)              \
+    X(OnGameContainerChanged)   \
+    X(OnGameActorLoaded)        \
+    X(OnGameHit)                \
+    X(OnGameMainMenuFullyLoaded)\
+    X(OnGameFormDelete)         \
+    X(OnModConfigReset)         \
+    X(OnModConfigRefresh)       \
+    X(OnGTSLevelUp)             \
+    X(OnHighHeelEquiped)        \
+    X(OnPluginReset)            \
+    X(OnSerdePreSave)           \
+    X(OnSerdeSave)              \
+    X(OnSerdePostSave)          \
+    X(OnSerdePreLoad)           \
+    X(OnSerdeLoad)              \
+    X(OnSerdePostLoad)          \
+    X(OnSerdeRevert)            \
+    X(OnSKSEFormDelete)         \
+    X(OnSKSEPostLoad)           \
+    X(OnSKSEPostPostLoad)       \
+    X(OnSKSEInputLoaded)        \
+    X(OnSKSEDataLoaded)         \
+    X(OnSKSEPostLoadGame)       \
+    X(OnSKSENewGame)            \
+    X(OnSKSEPreLoadGame)        \
+    X(OnSKSESaveGame)           \
+    X(OnSKSEDeleteGame)         
+
+namespace GTS {
+
+    enum class EventId : std::uint8_t {
+        #define GTS_EVENT_ENUM(a_name) a_name,
+        GTS_EVENT_LIST(GTS_EVENT_ENUM)
+        #undef GTS_EVENT_ENUM
+        kTotal
+    };
+
+    inline constexpr std::size_t kEventCount = static_cast<std::size_t>(EventId::kTotal);
+
+    namespace EventOverride {
+
+        #define GTS_EVENT_TRAIT(a_name)                                                      \
+            template <typename T, bool Visible = requires { &T::a_name; }>                   \
+            struct Probe_##a_name : std::true_type {};                                       \
+                                                                                             \
+            template <typename T>                                                            \
+            struct Probe_##a_name<T, true> : std::bool_constant<                             \
+                !std::is_same_v<decltype(&T::a_name), decltype(&EventListener::a_name)>> {}; \
+                                                                                             \
+            template <typename T>                                                            \
+            inline constexpr bool a_name = Probe_##a_name<T>::value;
+
+        GTS_EVENT_LIST(GTS_EVENT_TRAIT)
+        #undef GTS_EVENT_TRAIT
+    }
 }

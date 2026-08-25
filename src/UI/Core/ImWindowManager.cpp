@@ -4,9 +4,10 @@
 #include "UI/Core/ImStyleManager.hpp"
 #include "UI/Core/ImUtil.hpp"
 
-#include "UI/Windows/Other/DebugWindow.hpp"
+#include "UI/Windows/Debug/DebugWindow.hpp"
 #include "UI/Windows/Other/KillFeedWindow.hpp"
 #include "UI/Windows/Other/SplashWindow.hpp"
+#include "UI/Windows/Overlay/DebugOverlayWindow.hpp"
 #include "UI/Windows/Settings/SettingsWindow.hpp"
 #include "UI/Windows/Widgets/SizeBarWindow.hpp"
 #include "UI/Windows/Widgets/StatusBarWindow.hpp"
@@ -86,13 +87,20 @@ namespace GTS {
 
         Windows.emplace_back(std::move(a_window));
 
+        ImWindow* const added = Windows.back().get();
+
         // assign out pointer if requested
         if (a_accessor) {
-            *a_accessor = Windows.back().get();
+            *a_accessor = added;
         }
 
-        logger::info("ImWindowManager::AddWindow {}", Windows.back()->GetWindowName());
-       
+        // Sorting moves the unique_ptrs, not the windows, so accessors handed out earlier stay valid.
+        std::ranges::stable_sort(Windows, [](const auto& a_lhs, const auto& a_rhs) {
+            return a_lhs->m_drawOrder < a_rhs->m_drawOrder;
+        });
+
+        logger::info("ImWindowManager::AddWindow {}", added->GetWindowName());
+
     }
 
     void ImWindowManager::Update() {
@@ -171,6 +179,9 @@ namespace GTS {
 
         logger::info("ImFontManager Init");
         ImFontManager::Init();
+
+        //First so it is also the first window ImGui creates.
+        AddWindow(std::make_unique<DebugOverlayWindow>(), &wDebugOverlay);
 
         AddWindow(std::make_unique<SplashWindow>(),    &wSplash);
         AddWindow(std::make_unique<SettingsWindow>(),  &wSettings);

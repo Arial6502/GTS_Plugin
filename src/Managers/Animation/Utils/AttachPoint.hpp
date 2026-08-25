@@ -81,8 +81,8 @@ namespace GTS {
 			charcont->SetLinearVelocityImpl({ 0.0f, 0.0f, 0.0f, 0.0f }); // Needed so Actors won't fall down.
 		}
 
-		if (DebugDraw::CanDraw()) {
-			DebugDraw::DrawSphere(glm::vec3(point.x, point.y, point.z), 6.0f, 40, {1.0f, 0.0f, 0.0f, 1.0f});
+		if (DebugDraw::Wants()) {
+			DebugDraw::Sphere(point, 6.0f, { .Color = IM_COL32(255, 0, 0, 255), .Thickness = 1.0f, .LifetimeMs = 10 });
 		}
 
 		return true;
@@ -281,10 +281,10 @@ namespace GTS {
 
 		// scaleFactor = std::clamp(scaleFactor, 0.0f, 1.0f);
 		auto targetPoint = targetA*(scaleFactor) + targetB*(1.0f - scaleFactor);
-		if (DebugDraw::CanDraw()) {
-			DebugDraw::DrawSphere(glm::vec3(targetA.x, targetA.y, targetA.z), 2.0f, 40, {1.0f, 0.0f, 0.0f, 1.0f});
-			DebugDraw::DrawSphere(glm::vec3(targetB.x, targetB.y, targetB.z), 2.0f, 40, {0.0f, 1.0f, 0.0f, 1.0f});
-			DebugDraw::DrawSphere(glm::vec3(targetPoint.x, targetPoint.y, targetPoint.z), 2.0f, 40, {0.0f, 0.0f, 1.0f, 1.0f});
+		if (DebugDraw::Wants()) {
+			DebugDraw::Sphere(targetA, 2.0f, { .Color = IM_COL32(255, 0, 0, 255), .Thickness = 1.0f, .LifetimeMs = 10 });
+			DebugDraw::Sphere(targetB, 2.0f, { .Color = IM_COL32(0, 255, 0, 255), .Thickness = 1.0f, .LifetimeMs = 10 });
+			DebugDraw::Sphere(targetPoint, 2.0f, { .Color = IM_COL32(0, 0, 255, 255), .Thickness = 1.0f, .LifetimeMs = 10 });
 		}
 
 		/*if (Attachment_GetTargetNode(giant) == AttachToNode::ObjectA) {
@@ -331,8 +331,8 @@ namespace GTS {
 				Notify("Install 3BB/XPMS32");
 				return false;
 			}
-			if (DebugDraw::CanDraw()) {
-				DebugDraw::DrawSphere(glm::vec3(bone->world.translate.x, bone->world.translate.y, bone->world.translate.z), 2.0f, 10, {1.0f, 1.0f, 1.0f, 1.0f});
+			if (DebugDraw::Wants()) {
+				DebugDraw::Sphere(bone->world.translate, 2.0f, { .Color = DebugCol::White, .Thickness = 1.0f, .LifetimeMs = 10 });
 			}
 			clevagePos += (bone->world * NiPoint3()) * (1.0f / bone_names.size());
 		}
@@ -345,8 +345,8 @@ namespace GTS {
 				Notify("Install 3BB/XPMS32");
 				return false;
 			}
-			if (DebugDraw::CanDraw()) {
-				DebugDraw::DrawSphere(glm::vec3(bone->world.translate.x, bone->world.translate.y, bone->world.translate.z), 2.0f, 10, {1.0f, 1.0f, 1.0f, 1.0f});
+			if (DebugDraw::Wants()) {
+				DebugDraw::Sphere(bone->world.translate, 2.0f, { .Color = DebugCol::White, .Thickness = 1.0f, .LifetimeMs = 10 });
 			}
 			centerBonePos += bone->world.translate  * (1.0f / center_bone_names.size());
 		}
@@ -359,8 +359,8 @@ namespace GTS {
 				Notify("Install 3BB/XPMS32");
 				return false;
 			}
-			if (DebugDraw::CanDraw()) {
-				DebugDraw::DrawSphere(glm::vec3(bone->world.translate.x, bone->world.translate.y, bone->world.translate.z), 2.0f, 10, {1.0f, 1.0f, 1.0f, 1.0f});
+			if (DebugDraw::Wants()) {
+				DebugDraw::Sphere(bone->world.translate, 2.0f, { .Color = DebugCol::White, .Thickness = 1.0f, .LifetimeMs = 10 });
 			}
 			upBonePos += bone->world.translate  * (1.0f / up_bone_names.size());
 		}
@@ -411,8 +411,8 @@ namespace GTS {
 
 		clevagePos += globalOffset;
 
-		if (DebugDraw::CanDraw()) {
-			DebugDraw::DrawSphere(glm::vec3(clevagePos.x, clevagePos.y, clevagePos.z), 2.0f, 10, {1.0f, 0.0f, 0.0f, 1.0f});
+		if (DebugDraw::Wants()) {
+			DebugDraw::Sphere(clevagePos, 2.0f, { .Color = IM_COL32(255, 0, 0, 255), .Thickness = 1.0f, .LifetimeMs = 10 });
 		}
 
 		if (AnimationVars::Action::IsCleavageZOverrideEnabled(giant)) {

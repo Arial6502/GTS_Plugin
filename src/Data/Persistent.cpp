@@ -210,22 +210,6 @@ namespace GTS {
 		logger::info("Persistent OnSerdeLoad OK");
 	}
 
-	void Persistent::OnSKSEFormDelete(RE::FormID a_id) {
-
-		// The dispatcher already filters out live forms, but losing the player's data
-		// is silent and unrecoverable, so never erase it here. EraseUnloadedData()
-		// whitelists 0x14 for the same reason.
-		if (a_id == 0x14) {
-			return;
-		}
-
-		std::unique_lock lock(_Lock);
-
-		// Iterate through ActorDataMap and remove entries whose key is not in allowedFormIDs.
-		std::erase_if(ActorMap.value, [&](const auto& entry) {
-			return entry.first == a_id;
-		});
-	}
 
 	void Persistent::EraseUnloadedData() {
 		std::unique_lock lock(_Lock);

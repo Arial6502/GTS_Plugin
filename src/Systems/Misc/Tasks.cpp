@@ -1,4 +1,11 @@
 #include "Systems/Misc/Tasks.hpp"
+#include "Debug/Profilers.hpp"
+
+#ifdef GTS_PROFILER_ENABLED
+#define GTS_TASK_ORIGIN(a_task, a_where) (a_task)->SetOrigin(a_where)
+#else
+#define GTS_TASK_ORIGIN(a_task, a_where) ((void)(a_where))
+#endif
 
 namespace {
 
@@ -165,18 +172,52 @@ namespace GTS {
 	// TASK MANAGER
 	//---------------
 
+	#ifdef GTS_PROFILER_ENABLED
+
+	std::uint32_t BaseTask::ProfilerSlot() {
+
+		if (m_slotResolved) {
+			return m_profilerSlot;
+		}
+
+		// Deferred until collection is running.
+		if (!ProfilerDetail::g_Collecting.load(std::memory_order_relaxed)) {
+			return kInvalidSlot;
+		}
+
+		std::string_view file = m_origin.file_name() ? m_origin.file_name() : "?";
+
+		if (const std::size_t cut = file.find_last_of("/\\"); cut != std::string_view::npos) {
+			file = file.substr(cut + 1);
+		}
+
+		m_profilerSlot = ProfilerRegistry::Register(std::format("Task {}:{}", file, m_origin.line()), SiteKind::Task, -1);
+		m_slotResolved = true;
+		return m_profilerSlot;
+	}
+
+	#endif
+
 	std::string TaskManager::GenerateName(void* ptr) {
 		return std::format("UNNAMED_{}", reinterpret_cast<std::uintptr_t>(ptr));
 	}
 
-	void TaskManager::OnMainUpdate() {
-		std::vector<QueuedTask> queued = CollectTasksForUpdate(m_taskings, m_taskingsLock, UpdateKind::Main);
-		
+	void TaskManager::RunQueued(UpdateKind kind) {
+
+		std::vector<QueuedTask> queued = CollectTasksForUpdate(m_taskings, m_taskingsLock, kind);
+
 		std::vector<QueuedTask> toRemove;
 		toRemove.reserve(queued.size());
 
 		for (const auto& entry : queued) {
+
 			if (!entry.task) continue;
+
+			#ifdef GTS_PROFILER_ENABLED
+			// One row per creation site. Calls/frame on that row is the number of live instances spawned from it.
+			const ScopeTimer taskScope{ entry.task->ProfilerSlot() };
+			#endif
+
 			if (!entry.task->Update()) {
 				toRemove.push_back(entry);
 			}
@@ -185,52 +226,14 @@ namespace GTS {
 		RemoveCompletedTasks(m_taskings, m_taskingsLock, toRemove);
 	}
 
-	void TaskManager::OnCameraUpdate() {
-		auto queued = CollectTasksForUpdate(m_taskings, m_taskingsLock, UpdateKind::Camera);
+	void TaskManager::OnMainUpdate()    { RunQueued(UpdateKind::Main); }
+	void TaskManager::OnCameraUpdate()  { RunQueued(UpdateKind::Camera); }
+	void TaskManager::OnHavokUpdate()   { RunQueued(UpdateKind::Havok); }
+	void TaskManager::OnPostSMPUpdate() { RunQueued(UpdateKind::PostPhysics); }
 
-		std::vector<QueuedTask> toRemove;
-		toRemove.reserve(queued.size());
-
-		for (const auto& entry : queued) {
-			if (!entry.task) continue;
-			if (!entry.task->Update()) {
-				toRemove.push_back(entry);
-			}
-		}
-
-		RemoveCompletedTasks(m_taskings, m_taskingsLock, toRemove);
-	}
-
-	void TaskManager::OnHavokUpdate() {
-		auto queued = CollectTasksForUpdate(m_taskings, m_taskingsLock, UpdateKind::Havok);
-
-		std::vector<QueuedTask> toRemove;
-		toRemove.reserve(queued.size());
-
-		for (const auto& entry : queued) {
-			if (!entry.task) continue;
-			if (!entry.task->Update()) {
-				toRemove.push_back(entry);
-			}
-		}
-
-		RemoveCompletedTasks(m_taskings, m_taskingsLock, toRemove);
-	}
-
-	void TaskManager::OnPostSMPUpdate() {
-		auto queued = CollectTasksForUpdate(m_taskings, m_taskingsLock, UpdateKind::PostPhysics);
-
-		std::vector<QueuedTask> toRemove;
-		toRemove.reserve(queued.size());
-
-		for (const auto& entry : queued) {
-			if (!entry.task) continue;
-			if (!entry.task->Update()) {
-				toRemove.push_back(entry);
-			}
-		}
-
-		RemoveCompletedTasks(m_taskings, m_taskingsLock, toRemove);
+	std::size_t TaskManager::LiveTaskCount() {
+		std::scoped_lock lock(m_taskingsLock);
+		return m_taskings.size();
 	}
 
 	void TaskManager::ChangeUpdate(std::string_view name, UpdateKind updateOn) {
@@ -247,8 +250,9 @@ namespace GTS {
 		m_taskings.erase(std::string(name));
 	}
 
-	void TaskManager::Run(const std::function<bool(const TaskUpdate&)>& tasking) {
+	void TaskManager::Run(const std::function<bool(const TaskUpdate&)>& tasking, std::source_location where) {
 		auto task = std::make_shared<Task>(tasking);
+		GTS_TASK_ORIGIN(task, where);
 		std::string name = GenerateName(task.get());
 
 		std::scoped_lock lock(m_taskingsLock);
@@ -258,12 +262,13 @@ namespace GTS {
 		}
 	}
 
-	void TaskManager::Run(std::string_view name, const std::function<bool(const TaskUpdate&)>& tasking) {
+	void TaskManager::Run(std::string_view name, const std::function<bool(const TaskUpdate&)>& tasking, std::source_location where) {
 		if (!tasking) {
 			logger::info("TaskManager::Run empty callback: {}", name);
 			return;
 		}
 		auto task = std::make_shared<Task>(tasking);
+		GTS_TASK_ORIGIN(task, where);
 
 		std::scoped_lock lock(m_taskingsLock);
 		auto [it, inserted] = m_taskings.try_emplace(std::string(name), std::move(task));
@@ -272,8 +277,9 @@ namespace GTS {
 		}
 	}
 
-	void TaskManager::RunFor(float duration, const std::function<bool(const TaskForUpdate&)>& tasking) {
+	void TaskManager::RunFor(float duration, const std::function<bool(const TaskForUpdate&)>& tasking, std::source_location where) {
 		auto task = std::make_shared<TaskFor>(duration, tasking);
+		GTS_TASK_ORIGIN(task, where);
 		std::string name = GenerateName(task.get());
 
 		std::scoped_lock lock(m_taskingsLock);
@@ -283,8 +289,9 @@ namespace GTS {
 		}
 	}
 
-	void TaskManager::RunFor(std::string_view name, float duration, const std::function<bool(const TaskForUpdate&)>& tasking) {
+	void TaskManager::RunFor(std::string_view name, float duration, const std::function<bool(const TaskForUpdate&)>& tasking, std::source_location where) {
 		auto task = std::make_shared<TaskFor>(duration, tasking);
+		GTS_TASK_ORIGIN(task, where);
 
 		std::scoped_lock lock(m_taskingsLock);
 		auto [it, inserted] = m_taskings.try_emplace(std::string(name), std::move(task));
@@ -293,8 +300,9 @@ namespace GTS {
 		}
 	}
 
-	void TaskManager::RunOnce(const std::function<void(const OneshotUpdate&)>& tasking) {
+	void TaskManager::RunOnce(const std::function<void(const OneshotUpdate&)>& tasking, std::source_location where) {
 		auto task = std::make_shared<Oneshot>(tasking);
+		GTS_TASK_ORIGIN(task, where);
 		std::string name = GenerateName(task.get());
 
 		std::scoped_lock lock(m_taskingsLock);
@@ -304,8 +312,9 @@ namespace GTS {
 		}
 	}
 
-	void TaskManager::RunOnce(std::string_view name, const std::function<void(const OneshotUpdate&)>& tasking) {
+	void TaskManager::RunOnce(std::string_view name, const std::function<void(const OneshotUpdate&)>& tasking, std::source_location where) {
 		auto task = std::make_shared<Oneshot>(tasking);
+		GTS_TASK_ORIGIN(task, where);
 
 		std::scoped_lock lock(m_taskingsLock);
 		auto [it, inserted] = m_taskings.try_emplace(std::string(name), std::move(task));

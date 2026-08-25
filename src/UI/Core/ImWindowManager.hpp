@@ -19,6 +19,7 @@ namespace GTS {
         ImWindow* wSplash = nullptr;
         ImWindow* wSettings = nullptr;
         ImWindow* wDebug = nullptr;
+        ImWindow* wDebugOverlay = nullptr;
 
         ImWindow* wKillFeed = nullptr;
         ImWindow* wActionMenu = nullptr;
