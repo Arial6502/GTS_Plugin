@@ -61,27 +61,55 @@ namespace Serialization {
 
     template <const uint32_t uid, const uint32_t ver = 1>
     struct CompressedStringRecord {
-        std::string value;
+        using value_type = std::string;
+
+        std::string value{};
         static constexpr auto ID = std::byteswap(uid);
+        static inline detail::IDRegistrar _idRegistrar{ ID, "CompressedStringRecord" };
 
         CompressedStringRecord() = default;
-        CompressedStringRecord(const std::string& val) : value(val) {}
+        explicit CompressedStringRecord(const std::string& val) : value(val) {}
 
         void Load(SKSE::SerializationInterface* serializationInterface, std::uint32_t type, std::uint32_t version, uint32_t size) {
             if (type == ID) {
-                logger::trace("{}: Compressed string is being read", Uint32ToStr(ID));
+                logger::trace("{}: Compressed string is being read", detail::Uint32ToStr(ID));
                 if (version == ver) {
+
+                    // Payload is [uint32 uncompressed][uint32 compressed][compressed bytes].
+                    if (size < 2 * sizeof(uint32_t)) {
+                        logger::error("{}: Record too small to hold its header ({} bytes)", detail::Uint32ToStr(ID), size);
+                        return;
+                    }
+
                     // Read the uncompressed string length
                     uint32_t uncompressedLength = 0;
                     if (!serializationInterface->ReadRecordData(&uncompressedLength, sizeof(uint32_t))) {
-                        logger::error("{}: Failed to read uncompressed length", Uint32ToStr(ID));
+                        logger::error("{}: Failed to read uncompressed length", detail::Uint32ToStr(ID));
                         return;
                     }
 
                     // Read the compressed string length
                     uint32_t compressedLength = 0;
                     if (!serializationInterface->ReadRecordData(&compressedLength, sizeof(uint32_t))) {
-                        logger::error("{}: Failed to read compressed length", Uint32ToStr(ID));
+                        logger::error("{}: Failed to read compressed length", detail::Uint32ToStr(ID));
+                        return;
+                    }
+
+                    // Cross check the declared payload against the record the game actually
+                    // handed us, so a truncated or mismatched record fails here rather than
+                    // by allocating whatever the corrupt header happened to say.
+                    const uint32_t expected = size - 2 * static_cast<uint32_t>(sizeof(uint32_t));
+
+                    if (compressedLength != expected) {
+                        logger::error("{}: Compressed length {} does not match record payload {}",
+                            detail::Uint32ToStr(ID), compressedLength, expected);
+                        return;
+                    }
+
+                    // LZ4 cannot expand by more than 255x, so anything past that is corrupt.
+                    if (uncompressedLength > compressedLength * 255u) {
+                        logger::error("{}: Uncompressed length {} is impossible for {} compressed bytes",
+                            detail::Uint32ToStr(ID), uncompressedLength, compressedLength);
                         return;
                     }
 
@@ -89,7 +117,7 @@ namespace Serialization {
                     std::vector<unsigned char> compressedData(compressedLength);
                     if (compressedLength > 0 &&
                         !serializationInterface->ReadRecordData(compressedData.data(), compressedLength)) {
-                        logger::error("{}: Failed to read compressed data", Uint32ToStr(ID));
+                        logger::error("{}: Failed to read compressed data", detail::Uint32ToStr(ID));
                         return;
                     }
 
@@ -97,23 +125,23 @@ namespace Serialization {
                     std::vector<unsigned char> uncompressedData;
                     if (!Compression::Decompress(compressedData.data(), compressedLength,
                         uncompressedData, uncompressedLength)) {
-                        logger::error("{}: Failed to decompress data", Uint32ToStr(ID));
+                        logger::error("{}: Failed to decompress data", detail::Uint32ToStr(ID));
                         return;
                     }
 
                     // Convert to string
                     value.assign(reinterpret_cast<char*>(uncompressedData.data()), uncompressedLength);
                     logger::trace("{}: Compressed string read OK! Original size: {} Bytes, Compressed size: {} Bytes",
-                        Uint32ToStr(ID), uncompressedLength, compressedLength);
+                        detail::Uint32ToStr(ID), uncompressedLength, compressedLength);
                 }
             }
         }
 
         void Save(SKSE::SerializationInterface* serializationInterface) const {
-            logger::trace("{}: Compressed string is being saved! Original length: {}", Uint32ToStr(ID), value.length());
+            logger::trace("{}: Compressed string is being saved! Original length: {}", detail::Uint32ToStr(ID), value.length());
 
             if (value.empty()) {
-                logger::trace("{}: No data to save.", Uint32ToStr(ID));
+                logger::trace("{}: No data to save.", detail::Uint32ToStr(ID));
                 return;
             }
 
@@ -125,37 +153,37 @@ namespace Serialization {
                 // Compress the string data
                 std::vector<unsigned char> compressedData;
                 if (!Compression::Compress(value.data(), uncompressedLength, compressedData)) {
-                    logger::error("{}: Failed to compress string data", Uint32ToStr(ID));
+                    logger::error("{}: Failed to compress string data", detail::Uint32ToStr(ID));
                     return;
                 }
 
                 const uint32_t compressedLength = static_cast<uint32_t>(compressedData.size());
                 const float compressionRatio = uncompressedLength > 0 ? (compressedLength * 100.0f / uncompressedLength) : 100.0f;
 
-                logger::trace("{}: Compression ratio: {:.2f}%", Uint32ToStr(ID), compressionRatio);
+                logger::trace("{}: Compression ratio: {:.2f}%", detail::Uint32ToStr(ID), compressionRatio);
 
                 // Write the uncompressed size
                 if (!serializationInterface->WriteRecordData(&uncompressedLength, sizeof(uint32_t))) {
-                    logger::error("{}: Failed to write uncompressed length", Uint32ToStr(ID));
+                    logger::error("{}: Failed to write uncompressed length", detail::Uint32ToStr(ID));
                     return;
                 }
 
                 // Write the compressed size
                 if (!serializationInterface->WriteRecordData(&compressedLength, sizeof(uint32_t))) {
-                    logger::error("{}: Failed to write compressed length", Uint32ToStr(ID));
+                    logger::error("{}: Failed to write compressed length", detail::Uint32ToStr(ID));
                     return;
                 }
 
                 // Write the compressed data
                 if (serializationInterface->WriteRecordData(compressedData.data(), compressedLength)) {
-                    logger::trace("{}: Compressed string save OK!", Uint32ToStr(ID));
+                    logger::trace("{}: Compressed string save OK!", detail::Uint32ToStr(ID));
                     return;
                 }
 
-                logger::error("{}: Failed to write compressed data", Uint32ToStr(ID));
+                logger::error("{}: Failed to write compressed data", detail::Uint32ToStr(ID));
                 return;
             }
-            logger::error("{}: Failed to open record for compressed string", Uint32ToStr(ID));
+            logger::error("{}: Failed to open record for compressed string", detail::Uint32ToStr(ID));
         }
     };
 }

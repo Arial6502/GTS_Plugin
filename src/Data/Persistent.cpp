@@ -117,20 +117,20 @@ namespace GTS {
 		ActorMap.value.clear();
 		KillCountMap.value.clear();
 
-		TrackedCameraState       = 0;
-		EnableCrawlPlayer        = false;
-		EnableCrawlFollower      = false;
-		HugStealCount            = 0.0f;
-		StolenSize               = 0.0f;
-		CrushCount               = 0.0f;
-		STNCount                 = 0.0f;
-		HandCrushed              = 0.0f;
-		VoreCount                = 0.0f;
-		GiantCount               = 0.0f;
-		MSGSeenTinyCamity        = false;
-		MSGSeenGrowthSpurt       = false;
-		MSGSeenAspectOfGTS       = false;
-		UnlockMaxSizeSliders     = false;
+		TrackedCameraState.value       = 0;
+		EnableCrawlPlayer.value        = false;
+		EnableCrawlFollower.value      = false;
+		HugStealCount.value            = 0.0f;
+		StolenSize.value               = 0.0f;
+		CrushCount.value               = 0.0f;
+		STNCount.value                 = 0.0f;
+		HandCrushed.value              = 0.0f;
+		VoreCount.value                = 0.0f;
+		GiantCount.value               = 0.0f;
+		MSGSeenTinyCamity.value        = false;
+		MSGSeenGrowthSpurt.value       = false;
+		MSGSeenAspectOfGTS.value       = false;
+		UnlockMaxSizeSliders.value     = false;
 	}
 
 	void Persistent::OnSerdeSave(SKSE::SerializationInterface* a_this) {
@@ -227,12 +227,12 @@ namespace GTS {
 		}
 
 		// Iterate through ActorDataMap and remove entries whose key is not in allowedFormIDs.
-		std::erase_if(ActorMap.value,[&](const auto& entry) {
+		absl::erase_if(ActorMap.value,[&](const auto& entry) {
 			return !allowedFormIDs.contains(entry.first);
 		});
 
 		// Iterate through KillCountMap and remove entries whose key is not in allowedFormIDs.
-		std::erase_if(KillCountMap.value,[&](const auto& entry) {
+		absl::erase_if(KillCountMap.value,[&](const auto& entry) {
 			return !allowedFormIDs.contains(entry.first);
 		});
 

@@ -3,14 +3,25 @@
 
 namespace Serialization {
 
+    // TLVSerializer's own requirements are static_asserts in its function bodies, which are not
+    // in the immediate context and so cannot fail a requires-expression - a concept written that
+    // way is satisfied by anything and the error still surfaces deep inside instantiation.
+    // Restating the conditions here is what makes the check mean something.
+    template<typename T>
+    concept TLVSerializable =
+        (std::is_standard_layout_v<T> || std::is_aggregate_v<T>) &&
+        reflectable_object<T> &&
+        detail::members_supported<T>() &&
+        check_member_hash_collisions<T>();
+
     template<typename Key, typename Value>
     class MapSerializer {
 
 		public:
         static_assert(std::is_integral_v<Key>, "Key must be integral");
-        static_assert(std::is_standard_layout_v<Value>, "Value must be POD/reflectable");
+        static_assert(TLVSerializable<Value>, "Value must be serializable via TLVSerializer, add a specialization if needed");
 
-        static std::vector<uint8_t> Serialize(const std::unordered_map<Key, Value>& map, uint32_t version) {
+        static std::vector<uint8_t> Serialize(const absl::flat_hash_map<Key, Value>& map, uint32_t version) {
             std::vector<uint8_t> out;
             append_le(out, version);
             append_le(out, static_cast<uint32_t>(map.size()));
@@ -25,7 +36,7 @@ namespace Serialization {
             return out;
         }
 
-        static void Deserialize(std::unordered_map<Key, Value>& map, std::span<const uint8_t> data, uint32_t& out_version) {
+        static void Deserialize(absl::flat_hash_map<Key, Value>& map, absl::Span<const uint8_t> data, uint32_t& out_version) {
             size_t i = 0;
             if (data.size() < 8) throw std::runtime_error("corrupt header");
 
@@ -41,7 +52,7 @@ namespace Serialization {
                 if (i + len > data.size()) throw std::runtime_error("corrupt map entry payload");
 
                 Value val{};
-                TLVSerializer::Deserialize(val, std::span(data.data() + i, len));
+                TLVSerializer::Deserialize(val, absl::Span(data.data() + i, len));
                 i += len;
 
                 map[key] = std::move(val);

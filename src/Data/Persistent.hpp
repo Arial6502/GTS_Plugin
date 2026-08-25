@@ -16,34 +16,34 @@ namespace GTS {
 
 
 		//----- Actor Data
-		static inline Serialization::MapRecord<PersistentActorData, 'ACT_'> ActorMap = {};
-		static inline Serialization::MapRecord<PersistentKillCountData, 'ACTK'> KillCountMap = {};
+		static inline Serialization::MapRecord<PersistentActorData, 'ACT_'> ActorMap {};
+		static inline Serialization::MapRecord<PersistentKillCountData, 'ACTK'> KillCountMap {};
 
 		//----- Camera
-		static inline Serialization::BasicRecord<int, 'TCST'> TrackedCameraState = 0;
+		static inline Serialization::BasicRecord<int, 'TCST'> TrackedCameraState {0};
 
 		//----- Crawl/Sneak State
-		static inline Serialization::BasicRecord<bool, 'ECPL'> EnableCrawlPlayer = false;
-		static inline Serialization::BasicRecord<bool, 'ECFL'> EnableCrawlFollower = false;
+		static inline Serialization::BasicRecord<bool, 'ECPL'> EnableCrawlPlayer   {false};
+		static inline Serialization::BasicRecord<bool, 'ECFL'> EnableCrawlFollower {false};
 
 		// ---- Quest Progression
-		static inline Serialization::BasicRecord<float, 'QHSR'> HugStealCount = 0.0f;
-		static inline Serialization::BasicRecord<float, 'QSSR'> StolenSize = 0.0f;
-		static inline Serialization::BasicRecord<float, 'QCCR'> CrushCount = 0.0f;
-		static inline Serialization::BasicRecord<float, 'QSTR'> STNCount = 0.0f;
-		static inline Serialization::BasicRecord<float, 'QHCR'> HandCrushed = 0.0f;
-		static inline Serialization::BasicRecord<float, 'QVRR'> VoreCount = 0.0f;
-		static inline Serialization::BasicRecord<float, 'QGCR'> GiantCount = 0.0f;
+		static inline Serialization::BasicRecord<float, 'QHSR'> HugStealCount {0.0f};
+		static inline Serialization::BasicRecord<float, 'QSSR'> StolenSize    {0.0f};
+		static inline Serialization::BasicRecord<float, 'QCCR'> CrushCount    {0.0f};
+		static inline Serialization::BasicRecord<float, 'QSTR'> STNCount      {0.0f};
+		static inline Serialization::BasicRecord<float, 'QHCR'> HandCrushed   {0.0f};
+		static inline Serialization::BasicRecord<float, 'QVRR'> VoreCount     {0.0f};
+		static inline Serialization::BasicRecord<float, 'QGCR'> GiantCount    {0.0f};
 
 		// ---- Guide Messages Seen
-		static inline Serialization::BasicRecord<bool, 'MSTC'> MSGSeenTinyCamity = false;
-		static inline Serialization::BasicRecord<bool, 'MSGS'> MSGSeenGrowthSpurt = false;
-		static inline Serialization::BasicRecord<bool, 'MSAG'> MSGSeenAspectOfGTS = false;
+		static inline Serialization::BasicRecord<bool, 'MSTC'> MSGSeenTinyCamity  {false};
+		static inline Serialization::BasicRecord<bool, 'MSGS'> MSGSeenGrowthSpurt {false};
+		static inline Serialization::BasicRecord<bool, 'MSAG'> MSGSeenAspectOfGTS {false};
 
 		// ---- Unlimited Size slider unlocker
-		static inline Serialization::BasicRecord<bool, 'USSD'> UnlockMaxSizeSliders = false;
+		static inline Serialization::BasicRecord<bool, 'USSD'> UnlockMaxSizeSliders {false};
 
-		static inline Serialization::CompressedStringRecord<'CONF'> ModSettings{""};
+		static inline Serialization::CompressedStringRecord<'CONF'> ModSettings {""};
 
 		private:
 		static inline std::mutex _Lock;
