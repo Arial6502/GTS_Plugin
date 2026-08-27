@@ -86,36 +86,60 @@ namespace GTS {
 		void SetObject(const RE::BSTSmartPointer<RE::BSScript::Object>&) override {}
 	};
 
+	// The callback gets std::nullopt when the VM produced no value of ReturnT. That happens
+	// whenever the call itself failed, unknown function, argument mismatch, a script that
+	// errored out, because the VM still runs the callback, handing it a None variable. The
+	// Get* accessors below hard-fail on a type they were not given, so every one of them has to
+	// be guarded.
 	template <class ReturnT, class... Args>
-	void CallVMFunctionOnReturn(TESForm* a_form, std::string_view formKind, std::string_view function, std::function<void(ReturnT)> a_callback, Args... a_args) {
+	void CallVMFunctionOnReturn(TESForm* a_form, std::string_view formKind, std::string_view function, std::function<void(std::optional<ReturnT>)> a_callback, Args... a_args) {
 		const auto skyrimVM = RE::SkyrimVM::GetSingleton();
 		auto vm = skyrimVM ? skyrimVM->impl : nullptr;
 		if (vm) {
 			auto args = RE::MakeFunctionArguments(std::forward<Args>(a_args)...);
 			auto objectPtr = GetVMObjectPtr(a_form, std::string(formKind).c_str(), false);
 			if (!objectPtr) {
-				logger::error("Could not bind form");
+				logger::error("Could not bind form to {}", formKind);
+				a_callback(std::nullopt);
 				return;
 			}
 
 			auto functor = RE::BSTSmartPointer<RE::BSScript::IStackCallbackFunctor>{
-				new VMCallbackFunctor([a_callback](const RE::BSScript::Variable& a_result) {
+				new VMCallbackFunctor([a_callback, name = std::string(function)](const RE::BSScript::Variable& a_result) {
 					// Unpack from the Variable union based on ReturnT
 					if constexpr (std::is_same_v<ReturnT, bool>) {
-						a_callback(a_result.GetBool());
+						if (a_result.IsBool()) {
+							a_callback(a_result.GetBool());
+							return;
+						}
 					}
 					else if constexpr (std::is_same_v<ReturnT, int>) {
-						a_callback(a_result.GetSInt());
+						if (a_result.IsInt()) {
+							a_callback(a_result.GetSInt());
+							return;
+						}
 					}
 					else if constexpr (std::is_same_v<ReturnT, float>) {
-						a_callback(a_result.GetFloat());
+						if (a_result.IsFloat()) {
+							a_callback(a_result.GetFloat());
+							return;
+						}
 					}
 					else if constexpr (std::is_same_v<ReturnT, RE::BSFixedString>) {
-						a_callback(a_result.GetString());
+						if (a_result.IsString()) {
+							a_callback(a_result.GetString());
+							return;
+						}
 					}
 					else if constexpr (std::is_base_of_v<RE::TESForm, std::remove_pointer_t<ReturnT>>) {
-						a_callback(a_result.Unpack<ReturnT>());
+						if (a_result.IsObject()) {
+							a_callback(a_result.Unpack<ReturnT>());
+							return;
+						}
 					}
+
+					logger::warn("VM call to {} returned no usable value", name);
+					a_callback(std::nullopt);
 				})
 			};
 

@@ -57,7 +57,7 @@ namespace GTS {
 			return;
 		}
 
-		if (!a_Actor->Is3DLoaded() || a_Target->Is3DLoaded()) {
+		if (!a_Actor->Is3DLoaded() || !a_Target->Is3DLoaded()) {
 			return;
 		}
 

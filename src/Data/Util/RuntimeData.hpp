@@ -12,6 +12,7 @@
 #define SRVM "ccQDRSSE001-SurvivalMode.esl"
 #define DWNG "Dawnguard.esm"
 #define DRAG "Dragonborn.esm"
+#define DVMT "Devourment.esp"
 
 //Add Struct includes here so the macros exist only for them.
 #include "Data/Runtime/LSoundDescriptors.hpp"
@@ -32,6 +33,7 @@
 #undef SXLB
 #undef SKRM 
 #undef SRVM 
-#undef DWNG 
+#undef DWNG
 #undef DRAG
+#undef DVMT
 #undef Entry

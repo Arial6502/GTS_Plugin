@@ -9,5 +9,7 @@ namespace RuntimeData {
 
 		Entry(SexlabFramework,	   SXLB, 0x000D62);
 
+		Entry(DevourmentManager,   DVMT, 0x00096A);
+
 	};
 }

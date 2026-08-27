@@ -1,4 +1,6 @@
 #include "Managers/Animation/CleavageEvents.hpp"
+
+#include "API/Devourment.hpp"
 #include "Managers/Size_Killmoves/SizeKillMove_BreastSuffocate.hpp"
 #include "Managers/Size_Killmoves/SizeKillMove_BreastAbsorb.hpp"
 
@@ -311,18 +313,22 @@ namespace {
         auto tiny = Grab::GetHeldActor(&data.giant);
 		auto& VoreData = VoreController::GetSingleton().GetVoreData(&data.giant);
 		if (tiny) {
-            if (!IsDevourmentEnabled()) {
-                Runtime::PlaySoundAtNode(Runtime::SNDR.GTSSoundSwallow, &data.giant, 1.0f, "NPC Head [Head]"); // Play sound
-            }
+            bool NeedsGTSSwallow = false;
+
 			for (auto& tinyit: VoreData.GetVories()) {
-				if (!IsDevourmentEnabled()) {
-					VoreData.Swallow();
-					if (AnimationVars::Crawl::IsCrawling(&data.giant)) {
-						tinyit->SetAlpha(0.0f); // Hide Actor
-					}
-				} else {
-					CallDevourment(&data.giant, tinyit);
+				// Oral
+				if (Devourment::Enabled() && Devourment::Swallow(&data.giant, tinyit, DevourmentLocus::kStomach)) {
+					continue;
 				}
+				NeedsGTSSwallow = true;
+				if (AnimationVars::Crawl::IsCrawling(&data.giant)) {
+					tinyit->SetAlpha(0.0f); // Hide Actor
+				}
+			}
+
+			if (NeedsGTSSwallow) {
+				Runtime::PlaySoundAtNode(Runtime::SNDR.GTSSoundSwallow, &data.giant, 1.0f, "NPC Head [Head]"); // Play sound
+				VoreData.Swallow();
 			}
 		}
 
@@ -410,55 +416,76 @@ namespace {
             SpawnHearts(giant, tiny, 35.0f, 1.15f, false);
             tiny->Attacked(giant);
 
-            AdvanceQuestProgression(giant, tiny, QuestStage::HugSteal, 1.0f, false);
-
             Rumbling::Once("AbsorbTiny_R", giant, 0.8f, 0.05f, "L Breast02", 0.0f);
             Rumbling::Once("AbsorbTiny_L", giant, 0.8f, 0.05f, "R Breast02", 0.0f);
 
-            ReportDeath(giant, tiny, DamageSource::BreastAbsorb);
             DamageAV(giant, ActorValue::kHealth, -30); // Heal GTS
-            Absorb_GrowInSize(giant, tiny, growth);
-            
+            RecoverAttributes(giant, ActorValue::kHealth, 0.05f);
 
-            AdjustSizeReserve(giant, 0.0285f);
-            AdjustMassLimit(0.0095f, giant);
-
-            DecreaseShoutCooldown(giant);
-		    const auto& MuteAbsorptionScreams = Config::Audio.bMuteBreastAbsorptionDeathScreams;
-
-            KillActor(giant, tiny, MuteAbsorptionScreams);
-
-            if (!tiny->IsPlayerRef()) {
-                Disintegrate(tiny);
-                SendDeathEvent(giant, tiny);
-            }
-            else {
-                DamageAV(tiny, ActorValue::kHealth, 999999);
-                tiny->KillImpl(giant, 1, true, true);
-            }
-
-            std::string taskname = std::format("MergeWithTiny_{}_{}", giant->formID, tiny->formID);
             ActorHandle giantHandle = giant->CreateRefHandle();
             ActorHandle tinyHandle = tiny->CreateRefHandle();
-            TaskManager::RunOnce(taskname, [=](auto& update) {
-                if (!tinyHandle) {
+
+            auto AbsorbTiny = [giantHandle, tinyHandle, growth] {
+
+                if (!giantHandle || !tinyHandle) {
                     return;
                 }
-                if (!giantHandle) {
-                    return;
+
+                Actor* giant = giantHandle.get().get();
+                Actor* tiny = tinyHandle.get().get();
+
+                AdvanceQuestProgression(giant, tiny, QuestStage::HugSteal, 1.0f, false);
+
+                ReportDeath(giant, tiny, DamageSource::BreastAbsorb);
+                Absorb_GrowInSize(giant, tiny, growth);
+
+                AdjustSizeReserve(giant, 0.0285f);
+                AdjustMassLimit(0.0095f, giant);
+
+                DecreaseShoutCooldown(giant);
+                const auto& MuteAbsorptionScreams = Config::Audio.bMuteBreastAbsorptionDeathScreams;
+
+                KillActor(giant, tiny, MuteAbsorptionScreams);
+
+                if (!tiny->IsPlayerRef()) {
+                    Disintegrate(tiny);
+                    SendDeathEvent(giant, tiny);
+                }
+                else {
+                    DamageAV(tiny, ActorValue::kHealth, 999999);
+                    tiny->KillImpl(giant, 1, true, true);
                 }
 
-                auto giantref = giantHandle.get().get();
-                auto tinyref = tinyHandle.get().get();
+                std::string taskname = std::format("MergeWithTiny_{}_{}", giant->formID, tiny->formID);
+                TaskManager::RunOnce(taskname, [=](auto& update) {
+                    if (!tinyHandle) {
+                        return;
+                    }
+                    if (!giantHandle) {
+                        return;
+                    }
 
-                PerkHandler::UpdatePerkValues(giantref, PerkUpdate::Perk_LifeForceAbsorption);
+                    auto giantref = giantHandle.get().get();
+                    auto tinyref = tinyHandle.get().get();
 
-                TransferInventory(tinyref, giantref, get_visual_scale(tinyref) * GetSizeFromBoundingBox(tinyref), false, true, DamageSource::Vored, true);
-                // Actor Reset is done inside TransferInventory:StartActorResetTask!
-            });
+                    PerkHandler::UpdatePerkValues(giantref, PerkUpdate::Perk_LifeForceAbsorption);
 
-            RecoverAttributes(giant, ActorValue::kHealth, 0.05f);
-            ModSizeExperience(giant, 0.235f);
+                    TransferInventory(tinyref, giantref, get_visual_scale(tinyref) * GetSizeFromBoundingBox(tinyref), false, true, DamageSource::Vored, true);
+                    // Actor Reset is done inside TransferInventory:StartActorResetTask!
+                });
+
+                ModSizeExperience(giant, 0.235f);
+            };
+
+            //Breast
+            if (Devourment::Enabled() && Devourment::Swallow(giant, tiny, DevourmentLocus::kBreastLeft)) {
+                SetBetweenBreasts(tiny, false);
+                SetBeingHeld(tiny, false);
+                Devourment::Resolve(tiny, AbsorbTiny);
+                return;
+            }
+
+            AbsorbTiny();
         }
     }
 

@@ -525,6 +525,12 @@ Practical rules:
 -   `.psc` sources are shipped, not built. Nothing in CMake compiles Papyrus, so editing a script
     means recompiling the `.pex` outside this repo. Prefer solving something in C++ over adding
     script logic.
+-   **A VM dispatch from C++ matches argument types exactly and never upcasts.** Arguments pack
+    from the static C++ type, so an `Actor*` always arrives as Papyrus `Actor`. Cast to what the
+    `.psc` declares: `RE::TESForm*` for a `Form` parameter, `RE::TESObjectREFR*` for an
+    `ObjectReference` one. A mismatch fails silently on this side - the VM runs the stack callback
+    with a None `Variable`, so a return-value helper that unpacks it unguarded crashes instead of
+    reporting. `Papyrus.0.log` names the real error; enable it before debugging a native VM call.
 -   The DLL calls back into Papyrus only through the proxy quest,
     `CallVMFunctionOn(quest, "GTSProxy", "Proxy_*")`. Add to `GTSProxy.psc` when script is genuinely
     the only way to reach something, such as another mod's `ModEvent`.

@@ -48,18 +48,19 @@ namespace GTS {
 	}
 
 
-	bool IsInvisible_Devourment(Actor* giant) {
+	bool IsInvisible_Devourment(Actor* a_actor) {
 
         if(!IsDevourmentEnabled()){
             return false; //Always Fail, DV not installed
         }
-        if(!giant){
+        if(!a_actor){
             return true; //Assume Invisible
         }
-        if (!giant->Is3DLoaded()) {
+        if (!a_actor->Is3DLoaded()) {
             return true; //No 3D, so Invisible
         }
-        return !IsVisible(giant); //Return inverse of visible, so if is Invisible.
+
+        return !IsVisible(a_actor); //Return inverse of visible, so if is Invisible.
     }
 
 	bool HasHeadTrackingTarget(Actor* giant) {

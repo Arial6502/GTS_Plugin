@@ -1,5 +1,6 @@
 #include "Managers/Animation/Grab_Vore.hpp"
 
+#include "API/Devourment.hpp"
 #include "Managers/Animation/Controllers/VoreController.hpp"
 #include "Managers/Animation/Utils/AnimationUtils.hpp"
 #include "Managers/Animation/AnimationManager.hpp"
@@ -37,15 +38,20 @@ namespace {
 		auto otherActor = Grab::GetHeldActor(&data.giant);
 		auto& VoreData = VoreController::GetSingleton().GetVoreData(&data.giant);
 		if (otherActor) {
+			bool NeedsGTSSwallow = false;
+
 			for (auto& tiny: VoreData.GetVories()) {
-				if (!IsDevourmentEnabled()) {
-					VoreData.Swallow();
-					if (AnimationVars::Crawl::IsCrawling(&data.giant)) {
-						otherActor->SetAlpha(0.0f); // Hide Actor
-					}
-				} else {
-					CallDevourment(&data.giant, otherActor);
+				if (Devourment::Enabled() && Devourment::Swallow(&data.giant, tiny, DevourmentLocus::kStomach)) {
+					continue;
 				}
+				NeedsGTSSwallow = true;
+				if (AnimationVars::Crawl::IsCrawling(&data.giant)) {
+					tiny->SetAlpha(0.0f); // Hide Actor
+				}
+			}
+
+			if (NeedsGTSSwallow) {
+				VoreData.Swallow();
 			}
 		}
 	}

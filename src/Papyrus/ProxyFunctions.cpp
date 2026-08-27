@@ -2,20 +2,6 @@
 
 namespace GTS {
 	
-	void CallDevourment(Actor* a_Pred, Actor* a_Prey) {
-		auto ProxyQuest = Runtime::GetQuest(Runtime::QUST.GTSQuestProxy);
-		const auto& AllowEndo = Config::Gameplay.ActionSettings.bDVDoEndoOnTeam;
-		bool DoEndo = false;
-
-		if (AllowEndo && ((IsTeammate(a_Pred) || a_Pred->IsPlayerRef()) && (IsTeammate(a_Prey) || a_Prey->IsPlayerRef()))) {
-			DoEndo = true;
-		}
-
-		if (ProxyQuest) {
-			CallVMFunctionOn(ProxyQuest, "GTSProxy", "Proxy_DevourmentForceSwallow", a_Pred, a_Prey, DoEndo);
-		}
-	}
-
 	void CallVampire() {
 		auto progressionQuest = Runtime::GetQuest(Runtime::QUST.GTSQuestProxy);
 		if (progressionQuest) {

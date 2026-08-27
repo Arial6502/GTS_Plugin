@@ -1,5 +1,6 @@
 #include "Utils/Actions/VoreUtils.hpp"
 
+#include "API/Devourment.hpp"
 #include "Config/Config.hpp"
 
 #include "Utils/SurvivalMode.hpp"
@@ -61,7 +62,7 @@ namespace GTS {
 	}
 
 	bool IsDevourmentEnabled() {
-		return Config::General.bDevourmentCompat && Runtime::IsDevourmentInstalled();
+		return Devourment::Enabled();
 	}
 
 	VoreInformation GetVoreInfo(Actor* giant, Actor* tiny, float growth_mult) {
@@ -130,7 +131,7 @@ namespace GTS {
 		}
 	}
 
-	void Task_Vore_FinishVoreBuff(const VoreInformation& VoreInfo, Actor* tiny, int amount_of_tinies, bool Devourment) {
+	void Task_Vore_FinishVoreBuff(const VoreInformation& VoreInfo, Actor* tiny, int amount_of_tinies, bool a_Devourment) {
 
 		float sizePower = VoreInfo.Vore_Power;
         float Box_Scale = VoreInfo.Box_Scale; // Base scale of Bounding Box
@@ -141,11 +142,11 @@ namespace GTS {
 		Actor* giant = VoreInfo.giantess;
 
 		float multiplier = 1.0f;
-		if (Devourment) {
+		if (a_Devourment) {
 			multiplier = 0.5f; // Because Devourment does it 2 times. Affects Attribute and Weight Gain
 		}
 
-        float size_gain = sizePower * 0.5f * GetGrowthFormula(get_visual_scale(giant), tinySize, Devourment);
+        float size_gain = sizePower * 0.5f * GetGrowthFormula(get_visual_scale(giant), tinySize, a_Devourment);
 
 		//Multiply vore gain
 		size_gain *= Config::Gameplay.ActionSettings.fVoreGainMult;
@@ -174,7 +175,7 @@ namespace GTS {
             }
 
 			//Remove tiny from belly scale
-			if (!IsDevourmentEnabled()) {
+			if (!a_Devourment) {
 				MorphManager::AlterMorph(VoreInfo.giantess, MorphManager::Category::kBelly, MorphManager::Action::kModify, -Config::Gameplay.ActionSettings.fBellyAbsorbIncrementBy, MorphManager::UpdateKind::kGradual, 1.0f);
 				if (auto data = Transient::GetActorData(VoreInfo.giantess)) {
 					data->VoreCurrentlyAbsorbingCount -= 1;
@@ -188,7 +189,7 @@ namespace GTS {
 
 	void Task_Vore_StartVoreBuff(Actor* giant, Actor* tiny, int amount_of_tinies) {
 
-		if (!IsDevourmentEnabled()) { // ONLY when using default GTS vore logic, not Devourment one
+		if (!Devourment::Owns(tiny)) { // ONLY when using default GTS vore logic, not Devourment one
 			std::string name = std::format("Vore_Buff_{}_{}", giant->formID, tiny->formID);
 			VoreInformation VoreInfo = GetVoreInfo(giant, tiny, 1.0f);
 			ActorHandle gianthandle = giant->CreateRefHandle();
@@ -289,20 +290,19 @@ namespace GTS {
 		if (giant) {
 			auto& data = VoreController::GetSingleton().GetVoreData(giant);
 			auto vories = data.GetVories();
-			if (!IsDevourmentEnabled()) { // Play sound first, and swallow tinies
-				Runtime::PlaySoundAtNode(Runtime::SNDR.GTSSoundSwallow, giant, 1.0f, "NPC Head [Head]"); // Play sound
-				data.Swallow();
-			}
-			for (auto& tiny: vories) { // Do stuff based on Devourment on/off
+
+			bool AllTakenByDevourment = Devourment::Enabled();
+
+			for (auto& tiny: vories) {
 				if (tiny) {
 					if (tiny->IsPlayerRef()) {
 						PlayerCamera::GetSingleton()->cameraTarget = giant->CreateRefHandle();
 					}
-					if (IsDevourmentEnabled()) {
-						CallDevourment(giant, tiny);
+					if (Devourment::Enabled() && Devourment::Swallow(giant, tiny, DevourmentLocus::kStomach)) {
 						SetBeingHeld(tiny, false);
 						data.AllowToBeVored(true);
 					} else {
+						AllTakenByDevourment = false;
 						tiny->SetAlpha(0.0f);
 						if (insta_kill) {
 							AllowToBeCrushed(tiny, true);
@@ -311,9 +311,15 @@ namespace GTS {
 					}
 				}
 			}
-			if (insta_kill && !IsDevourmentEnabled()) { // Sneak Vore should instantly kill all tinies, since it's fast anim
+
+			if (!AllTakenByDevourment) { // Play sound and run the GTS buff for whatever Devourment did not take
+				Runtime::PlaySoundAtNode(Runtime::SNDR.GTSSoundSwallow, giant, 1.0f, "NPC Head [Head]"); // Play sound
+				data.Swallow();
+			}
+
+			if (insta_kill) { // Sneak Vore should instantly kill all tinies, since it's fast anim
 				data.AllowToBeVored(true);
-				data.KillAll();
+				data.KillAll(); // Releases whatever Devourment took, kills the rest
 				data.ReleaseAll();
 			}
 		}
