@@ -1,4 +1,6 @@
 #include "Managers/Animation/Controllers/VoreController.hpp"
+
+#include "API/Devourment.hpp"
 #include "Managers/Animation/Utils/AnimationUtils.hpp"
 #include "Managers/Animation/Utils/AttachPoint.hpp"
 #include "Managers/Animation/AnimationManager.hpp"
@@ -17,6 +19,54 @@ namespace {
 	constexpr float MINIMUM_VORE_DISTANCE = 95.0f;
 	constexpr float VORE_ANGLE = 75;
 	constexpr float PI = std::numbers::pi_v<float>;
+
+	// The GTS side of consuming one prey. Takes both actors directly so it can also run from a
+	// deferred task, after VoreData has already dropped them.
+	void Vore_KillTiny(Actor* giant, Actor* tiny) {
+
+		if (!giant || !tiny) {
+			return;
+		}
+
+		SetBeingHeld(tiny, false);
+		AddSMTDuration(giant, 6.0f);
+
+		const auto& MuteVore = Config::Audio.bMuteVoreDeathScreams;
+
+		if (!tiny->IsPlayerRef()) {
+			KillActor(giant, tiny, MuteVore);
+			PerkHandler::UpdatePerkValues(giant, PerkUpdate::Perk_LifeForceAbsorption);
+		}
+		else {
+			InflictSizeDamage(giant, tiny, 900000);
+			KillActor(giant, tiny, MuteVore);
+			TriggerScreenBlood(50);
+			tiny->SetAlpha(0.0f); // Player can't be disintegrated: simply nothing happens. So we Just make player Invisible instead.
+		}
+
+		Vore_AdvanceQuest(giant, tiny, IsDragon(tiny), IsGiant(tiny)); // Progress quest
+		DecreaseShoutCooldown(giant);
+
+		std::string taskname = std::format("VoreAbsorb_{}", tiny->formID);
+		auto giantref = giant->CreateRefHandle();
+		auto tinyref = tiny->CreateRefHandle();
+
+		TaskManager::RunOnce(taskname, [=](auto& update) {
+			if (!tinyref) {
+				return;
+			}
+			if (!giantref) {
+				return;
+			}
+			auto g = giantref.get().get();
+			auto smoll = tinyref.get().get();
+
+			if (!smoll->IsPlayerRef()) {
+				Disintegrate(smoll);
+			}
+			TransferInventory(smoll, g, 1.0f, false, true, DamageSource::Vored, true);
+		});
+	}
 }
 
 namespace GTS {
@@ -33,7 +83,11 @@ namespace GTS {
 		for (auto& tinyref : this->tinies | std::views::values) {
 			auto tiny = tinyref.get().get();
 			auto giant = this->giant.get().get();
-			
+
+			if (Devourment::Owns(tiny)) {
+				continue;
+			}
+
 			if (giant->IsPlayerRef()) {
 				if (IsLiving(tiny) && IsHuman(tiny)) {
 					CallVampire();
@@ -52,57 +106,35 @@ namespace GTS {
 	}
 	void VoreData::KillAll() {
 		std::unique_lock lock(_lock);
-		if (!IsDevourmentEnabled()) {
-			for (auto& tinyref : this->tinies | std::views::values) {
-				auto tiny = tinyref.get().get();
-				auto giantref = this->giant;
-				SetBeingHeld(tiny, false);
-				AddSMTDuration(giantref.get().get(), 6.0f);
+		for (auto& tinyref : this->tinies | std::views::values) {
+			auto giantref = this->giant;
+			auto tiny = tinyref.get().get();
+			auto giant = giantref.get().get();
 
-				const auto& MuteVore = Config::Audio.bMuteVoreDeathScreams;
-
-				if (!tiny->IsPlayerRef()) {
-					KillActor(giantref.get().get(), tiny, MuteVore);
-					PerkHandler::UpdatePerkValues(giantref.get().get(), PerkUpdate::Perk_LifeForceAbsorption);
-				}
-				else if (tiny->IsPlayerRef()) {
-					InflictSizeDamage(giantref.get().get(), tiny, 900000);
-					KillActor(giantref.get().get(), tiny, MuteVore);
-					TriggerScreenBlood(50);
-					tiny->SetAlpha(0.0f); // Player can't be disintegrated: simply nothing happens. So we Just make player Invisible instead.
-				}
-
-				Vore_AdvanceQuest(giantref.get().get(), tiny, IsDragon(tiny), IsGiant(tiny)); // Progress quest
-				DecreaseShoutCooldown(giantref.get().get());
-
-				std::string taskname = std::format("VoreAbsorb_{}", tiny->formID);
-
-				TaskManager::RunOnce(taskname, [=](auto& update) {
-					if (!tinyref) {
-						return;
-					}
-					if (!giantref) {
-						return;
-					}
-					auto giant = giantref.get().get();
-					auto smoll = tinyref.get().get();
-
-					if (!smoll->IsPlayerRef()) {
-						Disintegrate(smoll);
-					}
-					TransferInventory(smoll, giant, 1.0f, false, true, DamageSource::Vored, true);
-				});
+			if (!tiny || !giant) {
+				continue;
 			}
-		} else { // If Devourment enabled
-			auto giant = this->giant.get().get();
-			for (auto& tinyref : this->tinies | std::views::values) { // just clear the data
-				auto tiny = tinyref.get().get();
+
+			if (Devourment::Enabled()) { // Hand the actor over and let Devourment digest it
 				Anims_FixAnimationDesync(giant, tiny, true); // Reset anim speed override
 				PushActorAway(giant, tiny, 1.0f);
 				SetBetweenBreasts(tiny, false);
 				SetBeingEaten(tiny, false);
 				SetBeingHeld(tiny, false);
+
+				Devourment::Resolve(tiny, [giantref, tinyref] {
+					if (giantref && tinyref) {
+						// The GTS digestion buff was skipped while Devourment was expected to
+						// take this one, so it has to start here.
+						Task_Vore_StartVoreBuff(giantref.get().get(), tinyref.get().get(), 1);
+						Vore_KillTiny(giantref.get().get(), tinyref.get().get());
+					}
+				});
+
+				continue;
 			}
+
+			Vore_KillTiny(giant, tiny);
 		}
 		this->tinies.clear();
 	}

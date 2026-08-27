@@ -18,18 +18,6 @@ Function Proxy_SatisfyVampire()
 	
 endfunction
 
-Function Proxy_DevourmentForceSwallow(Actor akPred, actor akPrey, bool abEndo)
-
-	int Handle = ModEvent.create("Devourment_ForceSwallow")
-	ModEvent.pushForm(Handle, akPred as Form)
-	ModEvent.pushForm(Handle, akPrey as Form)
-	ModEvent.pushBool(Handle, abEndo)
-	ModEvent.Send(Handle)
-		
-	int NoEscape = ModEvent.create("Devourment_DisableEscape")    
-	ModEvent.pushForm(NoEscape, akPrey as Form)    
-
-endfunction
 
 
 Function Proxy_AddCalamityShout()

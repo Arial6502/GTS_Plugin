@@ -1,5 +1,8 @@
 #include "Managers/AI/Vore/DevourmentAI.hpp"
 
+#include "API/Devourment.hpp"
+#include "Managers/AI/Vore/VoreAI.hpp"
+
 
 namespace {
 
@@ -21,13 +24,6 @@ namespace GTS {
 		if (IsBeingHeld(a_Pred, a_Prey)) {
 			return false;
 		}
-
-		//const auto Transient = Transient::GetActorData(a_Prey);
-		//if (Transient) {
-		//	if (Transient->CanBeVored == false) {
-		//		return false;
-		//	}
-		//}
 
 		const float PredScale = get_visual_scale(a_Pred);
 		const float PreyDistance = (a_Pred->GetPosition() - a_Prey->GetPosition()).Length();
@@ -115,8 +111,19 @@ namespace GTS {
 	}
 
 	void DevourmentAI_Start(Actor* a_Predator, const std::vector<Actor*>& a_PotentialPrey) {
+
+		if (a_PotentialPrey.empty()) {
+			return;
+		}
+
+		Actor* Prey = a_PotentialPrey.front();
+
+		if (!Devourment::Enabled() || !Devourment::Swallow(a_Predator, Prey, DevourmentLocus::kStomach)) {
+			VoreAI_StartVore(a_Predator, a_PotentialPrey); // Devourment is unreachable, use the GTS vore action instead
+			return;
+		}
+
 		DamageAV(a_Predator, ActorValue::kStamina, 30.0f);
-		CallDevourment(a_Predator, a_PotentialPrey.front());
 	}
 }
 

@@ -14,7 +14,7 @@ namespace GTS {
 
     VoreInformation GetVoreInfo(Actor* giant, Actor* tiny, float growth_mult);
 
-    void Task_Vore_FinishVoreBuff(const VoreInformation& VoreInfo, Actor* tiny, int amount_of_tinies, bool Devourment);
+    void Task_Vore_FinishVoreBuff(const VoreInformation& VoreInfo, Actor* tiny, int amount_of_tinies, bool a_Devourment);
     void Task_Vore_StartVoreBuff(Actor* giant, Actor* tiny, int amount_of_tinies);
 
     void DevourmentBonuses(Actor* Pred, Actor* Prey, bool Digested, float mult);	

@@ -1,3 +1,4 @@
+#include "API/Devourment.hpp"
 #include "Managers/Animation/AnimationManager.hpp"
 #include "Managers/Animation/Controllers/VoreController.hpp"
 #include "Managers/Damage/Utils/SizeDamageUtils.hpp"
@@ -156,16 +157,15 @@ namespace Grab_Fixes {
 		auto& VoreData = VoreController::GetSingleton().GetVoreData(giant);
 		auto otherActor = Grab::GetHeldActor(giant);
 		if (otherActor) {
-			VoreData.Swallow();
 			for (auto& tiny: VoreData.GetVories()) {
-				if (!IsDevourmentEnabled()) {
-					if (AnimationVars::Crawl::IsCrawling(giant)) {
-						otherActor->SetAlpha(0.0f); // Hide Actor
-					}
-				} else {
-					CallDevourment(giant, otherActor);
+				if (Devourment::Enabled() && Devourment::Swallow(giant, tiny, DevourmentLocus::kStomach)) {
+					continue;
+				}
+				if (AnimationVars::Crawl::IsCrawling(giant)) {
+					tiny->SetAlpha(0.0f); // Hide Actor
 				}
 			}
+			VoreData.Swallow(); // Skips whatever Devourment just took
 		}
 	}
 

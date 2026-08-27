@@ -1,5 +1,6 @@
 #include "Managers/Animation/ThighSandwichPart2.hpp"
 
+#include "API/Devourment.hpp"
 #include "Managers/Animation/AnimationManager.hpp"
 #include "Managers/Animation/Controllers/ThighSandwichController.hpp"
 #include "Managers/Animation/Utils/AnimationUtils.hpp"
@@ -62,49 +63,73 @@ namespace AnimLogic {
 		}
 	}
 
-	void AbsorbTinies(Actor* giant) {
-		auto& sandwichdata = ThighSandwichController::GetSingleton().GetSandwichingData(giant);
+	void AbsorbTiny(Actor* giant, Actor* tiny) {
+
+		if (!giant || !tiny) {
+			return;
+		}
+
 		const auto& MuteVore = Config::Audio.bMuteVoreDeathScreams;
 
-		for (auto tiny: sandwichdata.GetActors()) {
-			ModSizeExperience(giant, 0.08f + (get_natural_scale(tiny)*0.025f));
-			Vore_AdvanceQuest(giant, tiny, IsDragon(tiny), IsGiant(tiny)); // Progress quest
-			ReportDeath(giant, tiny, DamageSource::Vored, true);
-			SetBeingHeld(tiny, false);
+		ModSizeExperience(giant, 0.08f + (get_natural_scale(tiny)*0.025f));
+		Vore_AdvanceQuest(giant, tiny, IsDragon(tiny), IsGiant(tiny)); // Progress quest
+		ReportDeath(giant, tiny, DamageSource::Vored, true);
 
+		if (!tiny->IsPlayerRef()) {
+			KillActor(giant, tiny, MuteVore);
+			PerkHandler::UpdatePerkValues(giant, PerkUpdate::Perk_LifeForceAbsorption);
+		} else {
+			InflictSizeDamage(giant, tiny, 900000);
+			KillActor(giant, tiny, MuteVore);
+			TriggerScreenBlood(50);
+			tiny->SetAlpha(0.0f); // Player can't be disintegrated: simply nothing happens. So we Just make player Invisible instead.
+		}
+
+		DecreaseShoutCooldown(giant);
+
+		std::string taskname = std::format("VoreAbsorb_{}", tiny->formID);
+		auto tinyref = tiny->CreateRefHandle();
+		auto giantref = giant->CreateRefHandle();
+
+		TaskManager::RunOnce(taskname, [=](auto& update) {
+			if (!tinyref) {
+				return;
+			}
+			if (!giantref) {
+				return;
+			}
+			auto g = giantref.get().get();
+			auto t = tinyref.get().get();
+
+			if (!t->IsPlayerRef()) {
+				Disintegrate(t);
+			}
+			TransferInventory(t, g, 1.0f, false, true, DamageSource::Vored, true);
+		});
+	}
+
+	void AbsorbTinies(Actor* giant) {
+		auto& sandwichdata = ThighSandwichController::GetSingleton().GetSandwichingData(giant);
+
+		for (auto tiny: sandwichdata.GetActors()) {
+			SetBeingHeld(tiny, false);
 			sandwichdata.Remove(tiny);
 
-			if (!tiny->IsPlayerRef()) {
-				KillActor(giant, tiny, MuteVore);
-				PerkHandler::UpdatePerkValues(giant, PerkUpdate::Perk_LifeForceAbsorption);
-			} else {
-				InflictSizeDamage(giant, tiny, 900000);
-				KillActor(giant, tiny, MuteVore);
-				TriggerScreenBlood(50);
-				tiny->SetAlpha(0.0f); // Player can't be disintegrated: simply nothing happens. So we Just make player Invisible instead.
+			//UB
+			if (Devourment::Enabled() && Devourment::Swallow(giant, tiny, DevourmentLocus::kUnbirth)) {
+				auto giantref = giant->CreateRefHandle();
+				auto tinyref = tiny->CreateRefHandle();
+
+				Devourment::Resolve(tiny, [giantref, tinyref] {
+					if (giantref && tinyref) {
+						AbsorbTiny(giantref.get().get(), tinyref.get().get());
+					}
+				});
+
+				continue;
 			}
-			
-			DecreaseShoutCooldown(giant);
 
-			std::string taskname = std::format("VoreAbsorb_{}", tiny->formID);
-			auto tinyref = tiny->CreateRefHandle();
-			auto giantref = giant->CreateRefHandle();
-
-			TaskManager::RunOnce(taskname, [=](auto& update) {
-				if (!tinyref) {
-					return;
-				}
-				if (!giantref) {
-					return;
-				}
-				auto g = giantref.get().get();
-				auto t = tinyref.get().get();
-
-				if (!t->IsPlayerRef()) {
-					Disintegrate(t);
-				}
-				TransferInventory(t, g, 1.0f, false, true, DamageSource::Vored, true);
-			});
+			AbsorbTiny(giant, tiny);
 		}
 	}
 }

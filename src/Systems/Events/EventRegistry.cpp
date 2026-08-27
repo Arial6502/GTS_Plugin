@@ -1,5 +1,6 @@
 #include "Systems/Events/EventRegistry.hpp"
 
+#include "API/Devourment.hpp"
 #include "API/Racemenu.hpp"
 #include "API/SmoothCam.hpp"
 #include "Config/ConfigModHandler.hpp"
@@ -55,6 +56,7 @@ namespace GTS {
 		// API Bridges
 		EventDispatcher::AddListener<Racemenu>();          // RaceMenu morph interface
 		EventDispatcher::AddListener<SmoothCam>();         // SmoothCam camera control handoff
+		EventDispatcher::AddListener<Devourment>();        // Devourment vore handoff
 
 		// Core Components
 		EventDispatcher::AddListener<Hooks::HookManager>(); // Handles Hook Installation
