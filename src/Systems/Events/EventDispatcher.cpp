@@ -93,7 +93,7 @@ namespace GTS {
 			const std::size_t Count = m_subscribers[i].Count.load(std::memory_order_acquire);
 			Reached += Count;
 
-			logger::info("Event {:<28} {:>3} / {} listeners", Names[i], Count, Total);
+			logger::debug("Event {:<28} {:>3} / {} listeners", Names[i], Count, Total);
 		}
 
 		logger::info("Event subscriptions: {}", Reached);
@@ -102,13 +102,13 @@ namespace GTS {
 
 		//Register SKSE Eventlistener
 		if (const SKSE::MessagingInterface* mi = SKSE::GetMessagingInterface()) {
-			logger::trace("Registering SKSE Messaging Interface Listener");
+			logger::info("Registering SKSE Messaging Interface Listener");
 			mi->RegisterListener(SKSEDispatch);
 		}
 
 		//Setup SKSE Serialization callbacks
 		if (const SKSE::SerializationInterface* serde = SKSE::GetSerializationInterface()) {
-			logger::trace("Registering SKSE Serialization Interface Callbacks with ID: {}", a_serdeID);
+			logger::info("Registering SKSE Serialization Interface Callbacks with ID: {}", a_serdeID);
 
 			serde->SetUniqueID(a_serdeID);
 
@@ -122,7 +122,7 @@ namespace GTS {
 		//Setup scripted game event callbacks
 		if (ScriptEventSourceHolder* evtSrcHolder = ScriptEventSourceHolder::GetSingleton()) {
 
-			logger::trace("Registering GameEvents");
+			logger::info("Registering GameEvents");
 
 			evtSrcHolder->AddEventSink<TESResetEvent>(&GetSingleton());
 			evtSrcHolder->AddEventSink<TESContainerChangedEvent>(&GetSingleton());
@@ -257,7 +257,7 @@ namespace GTS {
 
 			default:
 			{
-				logger::trace("Received unhandled SKSE message: {}", a_message->type);
+				logger::warn("Received unhandled SKSE message: {}", a_message->type);
 				break;
 			}
 		}

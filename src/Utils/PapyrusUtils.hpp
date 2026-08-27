@@ -40,6 +40,25 @@ namespace GTS {
 		}
 	}
 
+	// Same as CallVMFunctionOn, except the script object is created if the form does not have one
+	// bound yet. Plain actors normally do not until something scripted touches them, so the
+	// non-creating version simply fails on them.
+	template <class ... Args>
+	void CallVMFunctionOnBound(TESForm* a_form, std::string_view formKind, std::string_view function, Args... a_args) {
+		const auto skyrimVM = RE::SkyrimVM::GetSingleton();
+		auto vm = skyrimVM ? skyrimVM->impl : nullptr;
+		if (vm) {
+			RE::BSTSmartPointer<RE::BSScript::IStackCallbackFunctor> callback;
+			auto args = RE::MakeFunctionArguments(std::forward<Args>(a_args)...);
+			auto objectPtr = GetVMObjectPtr(a_form, std::string(formKind).c_str(), true);
+			if (!objectPtr) {
+				logger::error("Could not bind form to {}", formKind);
+				return;
+			}
+			vm->DispatchMethodCall(objectPtr, std::string(function).c_str(), args, callback);
+		}
+	}
+
 	template <class ... Args>
 	void CallVMFunction(std::string_view functionClass, std::string_view function, Args... a_args) {
 		const auto skyrimVM = RE::SkyrimVM::GetSingleton();

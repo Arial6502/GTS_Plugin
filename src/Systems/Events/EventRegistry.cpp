@@ -15,6 +15,7 @@
 #include "Managers/Animation/Grab.hpp"
 #include "Managers/Animation/HugShrink.hpp"
 #include "Managers/Animation/Utils/CooldownManager.hpp"
+#include "Managers/AttackManager.hpp"
 #include "Managers/AttributeManager.hpp"
 #include "Managers/Audio/Footstep.hpp"
 #include "Managers/CameraManager.hpp"
@@ -55,7 +56,6 @@ namespace GTS {
 		EventDispatcher::AddListener<Racemenu>();          // RaceMenu morph interface
 		EventDispatcher::AddListener<SmoothCam>();         // SmoothCam camera control handoff
 
-		
 		// Core Components
 		EventDispatcher::AddListener<Hooks::HookManager>(); // Handles Hook Installation
 		EventDispatcher::AddListener<State>();              // Handles state management for the whole plugin
@@ -67,7 +67,6 @@ namespace GTS {
 		EventDispatcher::AddListener<Persistent>();         // Save-backed data storage
 		EventDispatcher::AddListener<Transient>();          // Per-actor runtime data that is never saved
 
-		
 		// Utility Components
 		EventDispatcher::AddListener<TaskManager>();       // Runs queued work on main/havok/camera/SMP
 		EventDispatcher::AddListener<SpringHolder>();      // Advances springs others read this frame
@@ -98,7 +97,7 @@ namespace GTS {
 		EventDispatcher::AddListener<AnimationBoobCrush>();      // Breast crush
 		EventDispatcher::AddListener<HugShrink>();               // Hug shrinking
 		EventDispatcher::AddListener<AIManager>();               // Picks GTS actions once everything above is current
-
+		EventDispatcher::AddListener<AttackManager>();           // Keeps oversized actors from drawing a weapon
 
 		// Game-Facing Apply Layer
 		EventDispatcher::AddListener<DynamicScale>();      // Dynamic caps on max scale
@@ -113,7 +112,6 @@ namespace GTS {
 		EventDispatcher::AddListener<ContactManager>();          // Collision detection
 		EventDispatcher::AddListener<DynamicCollisionManager>(); // Scales character controller collision
 
-		
 		// Presentation / UI
 		EventDispatcher::AddListener<SpectatorManager>();  // Camera targets
 		EventDispatcher::AddListener<CameraManager>();     // Edits the camera

@@ -5,7 +5,6 @@
 
 #include "Hug/HugAI.hpp"
 
-#include "Managers/AttackManager.hpp"
 #include "Managers/AI/Vore/VoreAI.hpp"
 #include "Managers/AI/Vore/DevourmentAI.hpp"
 #include "Managers/AI/Thigh/ThighCrushAI.hpp"
@@ -35,35 +34,6 @@ namespace {
 		kWrathfulCalamity,
 		kTotal
 	};
-
-	//Set Reset attack blocking based on if we have a list of prey
-	void HandleAttackBlocking(Actor* a_Performer, const std::vector<Actor*>& a_ValidPreyList) {
-
-		if (a_ValidPreyList.empty() && !AnimationVars::General::IsGTSBusy(a_Performer) && !AnimationVars::General::IsTransitioning(a_Performer)) {
-			AttackManager::PreventAttacks(a_Performer, nullptr);
-			return;
-		}
-
-		if (a_ValidPreyList.empty()) return;
-
-		auto PredPos = a_Performer->GetPosition();
-		auto PreyList = a_ValidPreyList;
-
-		// Presort by distance
-		std::ranges::sort(PreyList, [PredPos](const Actor* a_PreyA, const Actor* a_PreyB) -> bool {
-			float DistToA = (a_PreyA->GetPosition() - PredPos).Length();
-			float DistToB = (a_PreyB->GetPosition() - PredPos).Length();
-			return DistToA < DistToB;
-		});
-
-
-		//Disable attack based on the closest valid prey actor
-		AttackManager::PreventAttacks(a_Performer, PreyList.front());
-	}
-
-	void ResetAttackBlocking(Actor* a_Performer) {
-		AttackManager::PreventAttacks(a_Performer, nullptr);
-	}
 
 	// Check if an actor is a valid GTS Action initiator/performer.
 	inline bool ValidPerformer(Actor* a_Actor, const bool a_CombatOnly) {
@@ -197,10 +167,6 @@ namespace {
 			if (ValidPerformer(Target, CombatOnly)) {
 				ValidPerformers.push_back(Target);
 			}
-			//If not a valid Performer reset their attack state.
-			else {
-				ResetAttackBlocking(Target);
-			}
 		}
 
 		return ValidPerformers;
@@ -276,11 +242,7 @@ namespace GTS {
 
 		if (BeginNewActionTimer.ShouldRun()) {
 
-			//Reset attack blocking
 			if (!AISettings.bEnableActionAI) {
-				for (const auto& Actor : find_actors()) {
-					ResetAttackBlocking(Actor);
-				}
 				return;
 			}
 
@@ -418,35 +380,6 @@ namespace GTS {
 				StartableActions.emplace(ActionType::kGrab, static_cast<int>(AISettings.Grab.fProbability));
 			}
 		}
-
-		//-------- Merge All Vectors Into one
-		absl::flat_hash_set<Actor*> UniqueActors;
-		std::vector<Actor*> Temp;
-		
-		Temp.reserve(CanVore.size() + CanStompKickSwipe.size() +
-			CanThighSandwich.size() + CanThighCrush.size() +
-			CanButtCrush.size() + CanHug.size() + CanGrab.size() + CanCalamity.size());
-
-		auto CombineActorList = [&UniqueActors, &Temp](const std::vector<Actor*>& idxActor) {
-			for (Actor* TempActor : idxActor) {
-				// Insertion succeeds only if not present
-				if (UniqueActors.insert(TempActor).second) { 
-					Temp.push_back(TempActor);
-				}
-			}
-		};
-
-		CombineActorList(CanVore);
-		CombineActorList(CanStompKickSwipe);
-		CombineActorList(CanThighSandwich);
-		CombineActorList(CanThighCrush);
-		CombineActorList(CanButtCrush);
-		CombineActorList(CanHug);
-		CombineActorList(CanGrab);
-
-		//Combined vector
-		const std::vector<Actor*> CombinedList = Temp;
-		HandleAttackBlocking(a_Performer, CombinedList);
 
 		switch (CalculateProbability(StartableActions)) {
 			case ActionType::kWrathfulCalamity: {

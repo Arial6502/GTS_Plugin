@@ -7,10 +7,12 @@
 using namespace GTS;
 
 namespace {
+
 	bool IsHealingEffect(RE::ActorValue a_akValue) {
 		bool health = a_akValue == ActorValue::kHealth;
 		return health;
 	}
+
 	float ReduceHealingEfficiency(Actor* a_actor, ActorValue a_akValue, float original) {
 		if (original > 0.0f) { // >0 means gaining positive health/regeneration, also protection against negative regen (being damaged)
 			const bool isEnabled_NPC 	= 	!a_actor->IsPlayerRef()	&& Config::Balance.bReducedHealthRegeneration_NPC;
@@ -22,12 +24,13 @@ namespace {
 			if (isAllowed && !isDowned) {
 				const float size = std::max(get_visual_scale(a_actor), 1.0f);
 				float reduction = original * (1.0f / size);
-				logger::info("Reducing healing effect: {}, value pre: {}, value post: {}, size: {}", a_actor->GetDisplayFullName(), original, reduction, size);
+				//logger::info("Reducing healing effect: {}, value pre: {}, value post: {}, size: {}", a_actor->GetDisplayFullName(), original, reduction, size);
 				return reduction;
 			}
-		} else if (original < 0.0f) {
+		} 
+		/*else if (original < 0.0f) {
 			logger::info("Original is < 0: {}", original);
-		}
+		}*/
 		
 		return original;
 	}

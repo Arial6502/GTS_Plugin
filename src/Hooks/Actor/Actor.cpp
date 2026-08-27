@@ -3,6 +3,7 @@
 #include "Config/Config.hpp"
 
 #include "Hooks/Util/HookUtil.hpp"
+#include "Managers/AttackManager.hpp"
 #include "Managers/AttributeManager.hpp"
 #include "Managers/FurnitureManager.hpp"
 #include "Managers/Damage/SizeHitEffects.hpp"
@@ -93,6 +94,28 @@ namespace Hooks {
 		}
 		template<int ID>
 		FUNCTYPE_VFUNC_UNIQUE func;
+	};
+
+	struct DrawWeaponMagicHands {
+
+		static constexpr std::size_t funcIndex = 0x0A6;
+
+		static void thunk(RE::Actor* a_this, bool a_draw) {
+
+			{
+				GTS_PROFILE_ENTRYPOINT("ActorCharacter::DrawWeaponMagicHands");
+
+				if (a_this) {
+					if (a_draw && AttackManager::ShouldSuppressAttacks(a_this)) {
+						return;
+					}
+				}
+			}
+
+			func(a_this, a_draw);
+		}
+
+		FUNCTYPE_VFUNC func;
 	};
 
 	struct Move {
@@ -273,6 +296,9 @@ namespace Hooks {
 
 		stl::write_vfunc_unique<HandleHealthDamage, 1>(VTABLE_Character[0]);
 		stl::write_vfunc_unique<HandleHealthDamage, 2>(VTABLE_PlayerCharacter[0]);
+
+		//Only relevat for NPCs
+		stl::write_vfunc<DrawWeaponMagicHands>(VTABLE_Character[0]);
 
 		stl::write_vfunc_unique<Move, 1>(VTABLE_Character[0]);
 		stl::write_vfunc_unique<Move, 2>(VTABLE_PlayerCharacter[0]);

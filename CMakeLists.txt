@@ -54,6 +54,23 @@ include(xSEPlugin)
 # # Find dependencies - VCPKG Ports
 # #######################################################################################################################
 
+# vcpkg installs the overlay ports during configure, and the build graph has no idea those files
+# exist. Without this, pulling a commit that bumps a port REF changes nothing until someone
+# re-configures by hand - the build just keeps linking the previously installed version.
+# Listing them makes any port edit re-run configure, which re-runs vcpkg, which sees a different
+# ABI hash for the port and rebuilds it.
+file(GLOB_RECURSE GTS_OVERLAY_PORT_FILES
+	LIST_DIRECTORIES false
+	CONFIGURE_DEPENDS
+	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/ports/*"
+)
+
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+	${GTS_OVERLAY_PORT_FILES}
+	"${CMAKE_CURRENT_SOURCE_DIR}/vcpkg.json"
+	"${CMAKE_CURRENT_SOURCE_DIR}/vcpkg-configuration.json"
+)
+
 find_path(CLIB_UTIL_INCLUDE_DIRS "ClibUtil/Utils.hpp")
 
 # #######################################################################################################################

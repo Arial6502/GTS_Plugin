@@ -401,7 +401,8 @@ namespace GTS {
 		RecordStartingPosition();
     }
 
-     void ResetKillMoveCameraTracking() {// At the moment camera snaps back at the end of size actions instead of returning to original pos smoothly
+     void ResetKillMoveCameraTracking() {
+    	// At the moment camera snaps back at the end of size actions instead of returning to original pos smoothly
         // It happens because bone tracking adds offset to the camera, but im unsure how to fix it at the moment. 
         // This function doesn't help no matter where i put it.
         const auto PC = PlayerCharacter::GetSingleton();

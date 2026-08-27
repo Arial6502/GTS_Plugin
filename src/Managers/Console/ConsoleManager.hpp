@@ -1,38 +1,49 @@
-#pragma once 
+#pragma once
+
+#include "Managers/Console/ConsoleCommand.hpp"
 
 namespace GTS {
 
-    class ConsoleManager : public EventListener, public CInitSingleton<ConsoleManager> {
+	class ConsoleManager : public EventListener, public CInitSingleton<ConsoleManager> {
 
-        private:
-        struct Command {
-            std::function<void()> callback = nullptr;
-            std::string desc;
-            explicit Command(const std::function<void()>& callback, std::string desc) : callback(callback), desc(std::move(desc)) {}
-        };
+		public:
 
-        //default base command preffix
-        inline static const std::string Default_Preffix = "gts";
-        static inline std::unordered_map<std::string, Command> RegisteredCommands = {};
+		static void Init();
 
-        static void CMD_Help();
-        static void CMD_Version();
-        static void CMD_Unlimited();
+		//Full form. Anything with arguments wants this one.
+		static void RegisterCommand(ConsoleCommand a_Command);
 
-        public:
-        static void Init();
-        static void RegisterCommand(std::string_view a_cmdName, const std::function<void()>& a_callback, const std::string& a_desc);
-        static bool Process(const std::string& a_msg);
+		//Convenience for a command that takes no arguments.
+		static void RegisterCommand(std::string_view a_Name, const std::function<void()>& a_Callback, const std::string& a_Desc);
 
-        // Inherited via EventListener
-        void OnSKSEDataLoaded() override;
-    };
+		//True when the line was ours and has been handled, which stops the game compiling it.
+		static bool Process(const std::string& a_Line);
 
+		[[nodiscard]] static const std::string& Prefix() { return kPrefix; }
 
+		//Prints "Usage: gts <name> <spec>". Commands can call this on a bad argument.
+		static void PrintUsage(const ConsoleCommand& a_Command);
+		static void PrintUsage(std::string_view a_Name);
 
+		void OnSKSEDataLoaded() override;
 
+		private:
 
+		inline static const std::string kPrefix = "gts";
 
+		//Ordered, so help always prints the same list in the same order.
+		static inline std::map<std::string, ConsoleCommand> RegisteredCommands = {};
 
+		//Alias to canonical name.
+		static inline std::map<std::string, std::string> RegisteredAliases = {};
 
+		[[nodiscard]] static const ConsoleCommand* Find(const std::string& a_Name);
+		static void Dispatch(const ConsoleCommand& a_Command, const ConsoleArgs& a_Args);
+		static void PrintUnknown(const std::string& a_Name);
+
+		static void CMD_Help(const ConsoleArgs& a_Args);
+		static void CMD_Version(const ConsoleArgs& a_Args);
+		static void CMD_Unlimited(const ConsoleArgs& a_Args);
+		static void CMD_Scale(const ConsoleArgs& a_Args);
+	};
 }

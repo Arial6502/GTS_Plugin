@@ -1,5 +1,5 @@
-#include "Managers/Size_Killmoves/KillMoveHelper.hpp"
 #pragma once
+#include "Managers/Size_Killmoves/KillMoveHelper.hpp"
 
 using namespace GTS;
 namespace Calamity {

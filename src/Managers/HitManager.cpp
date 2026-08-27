@@ -103,8 +103,8 @@ namespace GTS {
 		float size_difference = attackerscale/receiverscale;
 
 		// Apply it
-		logger::info("Hit Name: {}", hitName);
-		logger::info("Hit FormType: {}", RE::FormTypeToString(HitId->GetFormType()));
+		//logger::info("Hit Name: {}", hitName);
+		//logger::info("Hit FormType: {}", RE::FormTypeToString(HitId->GetFormType()));
 		float pushpower = GetPushPower(size_difference);
 		if (attacker->IsPlayerRef()) {
 			FormType formType = HitId->GetFormType();
