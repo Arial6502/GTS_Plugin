@@ -2,9 +2,6 @@
 
 namespace GTS {
 
-	// Attack suppression is derived, never stored. Nothing here writes a flag onto the actor,
-	// so there is no state that can be left set or cleared at the wrong moment - the answer is
-	// recomputed from live game state every time it is asked for.
 	class AttackManager : public EventListener, public CInitSingleton<AttackManager> {
 
 		public:
