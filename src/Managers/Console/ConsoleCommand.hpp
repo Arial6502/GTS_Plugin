@@ -26,8 +26,7 @@ namespace GTS {
 		[[nodiscard]] std::size_t FirstValue(std::size_t a_From = 0) const;
 
 		// "player"/"self"/"me", "target"/"sel", or a form id. When the index holds no token at
-		// all this falls back to the console selection and then the player, which is what makes
-		// "gts scale 5" work on whoever is clicked without naming them.
+		// all this falls back to the console selection and then the player.
 		[[nodiscard]] RE::Actor* ResolveActor(std::size_t a_Index) const;
 
 		[[nodiscard]] static RE::Actor* SelectedActor();
