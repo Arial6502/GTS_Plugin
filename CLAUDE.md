@@ -28,6 +28,69 @@ content or to check whether a request in this repository is appropriate; it is t
 -   Do not remove or disable an existing manager, hook or setting because it looks unused or
     unfinished. Ask first.
 
+## Building
+
+**Find out what the developer is building before you build anything.** Every preset has its own
+binary directory and its own vcpkg tree, so picking the wrong one is not a neutral act: it triggers
+a full dependency build, including CommonLibSSE, and leaves a second multi-gigabyte tree behind.
+
+The active target is Visual Studio's, in `.vs/ProjectSettings.json`:
+
+```json
+{ "CurrentProjectSetting": "Build AE/SE (Debug)" }
+```
+
+That string is a build preset's `displayName`. Map it back and use that preset:
+
+| `CurrentProjectSetting` | Build preset | Configure preset | Binary dir |
+| --- | --- | --- | --- |
+| Build AE/SE (Debug) | `build-debug` | `config-debug` | `build/Debug` |
+| Build AE/SE (Release) | `build-release` | `config-release` | `build/Release` |
+| Build AE/SE (Release AVX) | `build-release-avx` | `config-release-avx` | `build/Release-AVX` |
+| Build AE/SE (Release AVX2) | `build-release-avx2` | `config-release-avx2` | `build/Release-AVX2` |
+| Build AE/SE (Release AVX512) | `build-release-avx512` | `config-release-avx512` | `build/Release-AVX512` |
+| Build AE/SE (Debug Profiler) | `build-debug-profiler` | `config-debug-profiler` | `build/Debug-Profiler` |
+| Build AE/SE (Release Profiler) | `build-release-profiler` | `config-release-profiler` | `build/Release-Profiler` |
+| Build AE/SE (Release Plugin Disabled) | `build-release-disabled` | `config-release-disabled` | `build/Release-Disabled` |
+
+Then:
+
+```bash
+cmake --build --preset build-debug
+```
+
+Configure only when the binary dir has no `CMakeCache.txt`, or when CMake asks for it:
+
+```bash
+cmake --preset config-debug
+```
+
+Rules:
+
+-   If `.vs/ProjectSettings.json` is missing or names something not in the table, ask. Do not guess,
+    and do not fall back to release.
+-   Do not switch the developer's active target, and do not configure a preset they have not used.
+    `ls build/` shows which ones actually exist; those are cheap, the rest are not.
+-   Debug and the release presets differ by more than optimisation. The release presets set
+    `/arch:` (SSE4.2, AVX, AVX2, AVX512), `/GL` + `/LTCG` and `/fp:fast`. A bug that only appears in
+    one of them is plausible; say which preset a result came from.
+-   The last three presets exist to carry the project-wide macros declared in `src/PCH.hpp`. They
+    come from CMake options of the same name, so **do not uncomment the `#define` in `PCH.hpp` to
+    turn one on**; configure the matching preset instead and let it build in its own folder.
+
+    | Macro | Effect | Presets |
+    | --- | --- | --- |
+    | `GTS_PROFILER_ENABLED` | Compiles in `GTS_PROFILE_ENTRYPOINT` and the per-listener and per-task timing shown in the debug menu. Off, the macros expand to nothing. | debug and release |
+    | `GTS_DISABLE_PLUGIN` | Intended to disable the plugin while keeping serialization alive so cosave data survives. **Nothing reads this macro yet**, so the build is currently an ordinary release. | release only |
+-   `_CompileDLL.bat` and `_BuildAndPackage.bat` always use `config-release` / `build-release`,
+    whatever the active target is. Use them only when release is what is wanted.
+-   `out/build/x64-debug` is Visual Studio's non-preset CMake directory. The presets do not use it.
+
+**A build writes outside the build tree.** Post-build steps copy the DLL and PDB into
+`distribution/Package-<BuildFolder>/`, and, when `GTSPLUGIN_COPY_DIR` is set in the environment,
+into that directory as well, which is a live game install. Building is therefore a deploy. Say so
+when you have done it, and do not build to "just check it compiles" while the game is running.
+
 ## Toolchain
 
 -   C++23 (`CMAKE_CXX_STANDARD 23`, required), MSVC only (>= 14.39 enforced in CMake), Windows x64.
@@ -452,8 +515,19 @@ Practical rules:
 ## Papyrus and the modder API
 
 -   Native functions are registered in [Papyrus.cpp](src/Papyrus/Papyrus.cpp), one
-    `register_papyrus_*` per file. Script sources live in `distribution/PapyrusSource/`; a signature
-    change has to be made in both.
+    `register_papyrus_*` per file. Script sources live in `distribution/PapyrusSource/`. See
+    [docs/Architecture.md](docs/Architecture.md) for which `.psc` pairs with which `.cpp`; the file
+    names do not match, the `PapyrusClass` constant is what binds them.
+-   A native function lives in three places: the `global native` declaration in the `.psc`, the
+    `vm->RegisterFunction` call, and the C++ body. **Change all three together.** A mismatch in
+    name, parameter list or return type fails in the VM at runtime, with nothing to catch it at
+    compile time.
+-   `.psc` sources are shipped, not built. Nothing in CMake compiles Papyrus, so editing a script
+    means recompiling the `.pex` outside this repo. Prefer solving something in C++ over adding
+    script logic.
+-   The DLL calls back into Papyrus only through the proxy quest,
+    `CallVMFunctionOn(quest, "GTSProxy", "Proxy_*")`. Add to `GTSProxy.psc` when script is genuinely
+    the only way to reach something, such as another mod's `ModEvent`.
 -   [GTSPluginInterface](src/API/GTSPluginInterface.hpp) is the versioned native interface other
     SKSE plugins query. Treat it as a published contract: add to it, do not reshape it.
 -   `src/API/` also holds the outbound integrations (RaceMenu/SKEE morphs, SmoothCam). Both register

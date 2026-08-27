@@ -21,6 +21,8 @@ set(PROJECT_FRIENDLY_NAME "${PROJECT_NAME}")
 # Options
 option(GTS_DEPLOY_TO_FOLDER "Copy The Built DLL and PDB to the EnvVar Defined Target location" ON)
 option(GTS_BUILD_DISTRIBUTION "Construct a distribution folder after each build" ON)
+option(GTS_PROFILER_ENABLED "Enable the performance profiler, accessible from the debug menu" OFF)
+option(GTS_DISABLE_PLUGIN "Disable the plugin but keep serialization active to preserve cosave data" OFF)
 
 # #######################################################################################################################
 # # Flags
@@ -49,6 +51,23 @@ endif()
 # #######################################################################################################################
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(xSEPlugin)
+
+# #######################################################################################################################
+# # Project-wide defines
+# #######################################################################################################################
+
+# These match the macros documented in src/PCH.hpp. Set them through the matching presets rather than
+# by editing the header, so a profiler or disabled build lands in its own binary dir.
+
+if(GTS_PROFILER_ENABLED)
+	message(STATUS "GTS_PROFILER_ENABLED is ON")
+	target_compile_definitions(${PROJECT_NAME} PRIVATE GTS_PROFILER_ENABLED)
+endif()
+
+if(GTS_DISABLE_PLUGIN)
+	message(STATUS "GTS_DISABLE_PLUGIN is ON")
+	target_compile_definitions(${PROJECT_NAME} PRIVATE GTS_DISABLE_PLUGIN)
+endif()
 
 # #######################################################################################################################
 # # Find dependencies - VCPKG Ports

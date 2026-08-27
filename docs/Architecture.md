@@ -497,8 +497,50 @@ The frame is built in `GTSMenu::AdvanceMovie` and presented from either `PostDis
 
 ## 13. External surfaces
 
--   **Papyrus** (`Papyrus/`): native functions for scale, height, plugin control and total control,
-    plus mod events. Script sources are in `distribution/PapyrusSource/`.
+### Papyrus (`src/Papyrus/`, `distribution/PapyrusSource/`)
+
+Traffic runs both ways, by two different mechanisms.
+
+**Script calls the DLL.** Each C++ file binds its functions to one Papyrus script name, held in a
+`PapyrusClass` constant, and `register_papyrus` in [Papyrus.cpp](../src/Papyrus/Papyrus.cpp) calls
+every `register_papyrus_*` in turn from `SKSEPluginLoad`. The script side is a `hidden` script of
+`global native` declarations with no body. **The C++ file names do not match the script names**, so
+go by `PapyrusClass`:
+
+| Script source | `PapyrusClass` | C++ |
+| --- | --- | --- |
+| `GTSScale.psc` | `GTSScale` | [Scale.cpp](../src/Papyrus/Scale.cpp) |
+| `GTSHeight.psc` | `GTSHeight` | [Height.cpp](../src/Papyrus/Height.cpp) |
+| `GTSPlugin.psc` | `GTSPlugin` | [Plugin.cpp](../src/Papyrus/Plugin.cpp) |
+| `GTSControl.psc` | `GTSControl` | [TotalControl.cpp](../src/Papyrus/TotalControl.cpp) |
+| `GTSEvent.psc` | `GTSEvent` | [ModEvents.cpp](../src/Papyrus/ModEvents.cpp) |
+
+A native function exists in three places at once: the `global native` line in the `.psc`, the
+`RegisterFunction` call, and the C++ implementation. All three have to agree on name, parameters and
+return type, and a mismatch is a runtime failure in the VM, not a compile error.
+
+**DLL calls script.** For work that is easier or only possible in Papyrus, the plugin calls into a
+proxy quest: `CallVMFunctionOn(quest, "GTSProxy", "Proxy_*")`, with the quest resolved through
+`Runtime::QUST.GTSQuestProxy`. `GTSProxy.psc` holds those entry points, all named `Proxy_*`, and its
+job is to reach things the DLL cannot: sending Devourment's `ModEvent`s, satisfying the vampire feed
+quest, teaching and unlocking the Tiny Calamity shout. The wrappers are in
+[ProxyFunctions.cpp](../src/Papyrus/ProxyFunctions.cpp). Some carry a "Ported From Papyrus" comment;
+the direction of travel is script logic moving into C++, not the other way.
+
+**The rest of the scripts are game-side.** `GTSProgressionQuest`, `QF_GTSProgressionQuest`,
+`GTSProxyPlayerAlias`, `GTSPileCleaner`, `GTSStartProgressionQuest` and
+`GTSUtilTalkToActorFragment` extend `Quest`, `ObjectReference`, `ReferenceAlias` or `Perk` and are
+attached to forms in the plugin's ESP. The DLL does not bind them; it reaches them through the forms
+in `Data/Runtime/`.
+
+Note that this repository ships `.psc` sources only. No `.pex` is built here, and nothing in CMake
+compiles Papyrus. Editing a script means recompiling it and shipping the result with the mod's
+archive, outside this repo.
+
+`GTSEvent`'s `RegisterOnFootstep` / `UnRegisterOnFootstep` are for other mods: a form registers and
+then receives the plugin's footstep mod events. Treat those, and every function in the tables above,
+as a published contract.
+
 -   **Native API** (`API/GTSPluginInterface.hpp`): the versioned interface other SKSE plugins query.
 -   **Bridges** (`API/Racemenu.cpp`, `API/SmoothCam.cpp`): morph application through SKEE, and
     handing camera control to and from SmoothCam. Both degrade to no-ops when the other mod is

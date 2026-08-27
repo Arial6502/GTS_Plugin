@@ -160,14 +160,33 @@
       }
     },
     {
-      "name": "config-strict",
-      "displayName": "Strict",
-      "description": "Configure a strict build with warnings as errors.",
-      "inherits": "base-config",
-      "binaryDir": "${sourceDir}/build/Strict",
+      "name": "config-debug-profiler",
+      "displayName": "Debug (Profiler)",
+      "description": "Configure a debug build with GTS_PROFILER_ENABLED.",
+      "inherits": "config-debug",
+      "binaryDir": "${sourceDir}/build/Debug-Profiler",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "GTS_STRICT_COMPILE": "ON"
+        "GTS_PROFILER_ENABLED": "ON"
+      }
+    },
+    {
+      "name": "config-release-profiler",
+      "displayName": "Release (Profiler)",
+      "description": "Configure a release build with GTS_PROFILER_ENABLED.",
+      "inherits": "config-release",
+      "binaryDir": "${sourceDir}/build/Release-Profiler",
+      "cacheVariables": {
+        "GTS_PROFILER_ENABLED": "ON"
+      }
+    },
+    {
+      "name": "config-release-disabled",
+      "displayName": "Release (Plugin Disabled)",
+      "description": "Configure a release build with GTS_DISABLE_PLUGIN.",
+      "inherits": "config-release",
+      "binaryDir": "${sourceDir}/build/Release-Disabled",
+      "cacheVariables": {
+        "GTS_DISABLE_PLUGIN": "ON"
       }
     }
   ],
@@ -203,10 +222,22 @@
       "description": "Compile an optimized release build (AVX512)."
     },
     {
-      "name": "build-strict",
-      "displayName": "Build AE/SE (Strict)",
-      "configurePreset": "config-strict",
-      "description": "Compile a strict release build with warnings as errors."
+      "name": "build-debug-profiler",
+      "displayName": "Build AE/SE (Debug Profiler)",
+      "configurePreset": "config-debug-profiler",
+      "description": "Compile a debug build with the performance profiler enabled."
+    },
+    {
+      "name": "build-release-profiler",
+      "displayName": "Build AE/SE (Release Profiler)",
+      "configurePreset": "config-release-profiler",
+      "description": "Compile an optimized release build with the performance profiler enabled."
+    },
+    {
+      "name": "build-release-disabled",
+      "displayName": "Build AE/SE (Release Plugin Disabled)",
+      "configurePreset": "config-release-disabled",
+      "description": "Compile an optimized release build with the plugin disabled, serialization only."
     }
   ]
 }
