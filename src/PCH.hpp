@@ -165,9 +165,6 @@ namespace Hooks {
 	using namespace GTS;
 }
 
-//Project-Wide Defines
-//#define GTS_PROFILER_ENABLED //<---- Enable The Performance Profiller. Accessible by opening the debug menu.
-//#define GTS_DISABLE_PLUGIN   //<---- If defined, Disables the entire plugin but keeps serialization active to preserve cosave data.
 
 
 // ---- Own Includes ----
