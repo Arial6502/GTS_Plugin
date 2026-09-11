@@ -49,6 +49,39 @@ namespace ImGuiEx {
 		return res;
 	}
 
+	// Same widget over the enum itself, for settings that are not stored as a name.
+	template <typename T> requires std::is_enum_v<T>
+	bool ComboEx(const char* a_label, T& a_currentValue, const char* a_toolTip = nullptr, bool a_disabled = false, bool a_hasTotal = false) {
+
+		constexpr auto enumNames = magic_enum::enum_names<T>();
+		constexpr auto enumValues = magic_enum::enum_values<T>();
+
+		std::string items;
+		{
+			const int offset = a_hasTotal ? 2 : 1;
+			for (size_t i = 0; i <= enumNames.size() - offset; i++) {
+				items += GTS::HumanizeString(enumNames[i]);
+				items += '\0';
+			}
+		}
+
+		const auto it = std::ranges::find(enumValues, a_currentValue);
+		int currentIndex = it != enumValues.end() ? static_cast<int>(std::distance(enumValues.begin(), it)) : 0;
+
+		ImGui::BeginDisabled(a_disabled);
+
+		const bool res = ImGui::Combo(a_label, &currentIndex, items.c_str());
+		Tooltip(a_toolTip);
+
+		ImGui::EndDisabled();
+
+		if (res) {
+			a_currentValue = enumValues[currentIndex];
+		}
+
+		return res;
+	}
+
 	template <typename T>
 	bool ComboExFiltered(const char* a_label, std::string& a_currentValue, std::function<bool(T)> a_isDisabled = nullptr, std::function<bool(T)> a_isHidden = nullptr, const char* a_toolTip = nullptr, bool a_disabled = false) {
 		constexpr auto enumNames = magic_enum::enum_names<T>();

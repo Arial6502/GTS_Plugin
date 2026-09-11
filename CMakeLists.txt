@@ -30,6 +30,8 @@ option(GTS_DISABLE_PLUGIN "Disable the plugin but keep serialization active to p
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+ #Disables Module Support, we don't use any anyways and it just slows compilation down.
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 add_compile_definitions(_DISABLE_EXTENDED_ALIGNED_STORAGE)
 
 # Check if MSVC is the compiler
@@ -67,6 +69,15 @@ endif()
 if(GTS_DISABLE_PLUGIN)
 	message(STATUS "GTS_DISABLE_PLUGIN is ON")
 	target_compile_definitions(${PROJECT_NAME} PRIVATE GTS_DISABLE_PLUGIN)
+endif()
+
+# LTCG's code generation phase defaults to 4 threads (/cgthreads4) regardless of core count.
+# Raise it to match this machine so release links use the cores actually available.
+include(ProcessorCount)
+ProcessorCount(GTS_CPU_COUNT)
+if(GTS_CPU_COUNT GREATER 0)
+	message(STATUS "Detected ${GTS_CPU_COUNT} logical processors, setting /CGTHREADS:${GTS_CPU_COUNT}")
+	target_link_options(${PROJECT_NAME} PRIVATE $<$<CONFIG:Release>:/CGTHREADS:${GTS_CPU_COUNT}>)
 endif()
 
 # #######################################################################################################################

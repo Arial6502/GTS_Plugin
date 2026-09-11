@@ -12,8 +12,6 @@
 #include "Managers/AI/ButtCrush/ButtCrushAI.hpp"
 #include "Managers/AI/Thigh/ThighSandwichAI.hpp"
 #include "Managers/AI/StompKick/StompKickSwipeAI.hpp"
-#include "Managers/Animation/Grab.hpp"
-#include "Managers/Animation/HugShrink.hpp"
 #include "Managers/Animation/Controllers/VoreController.hpp"
 
 #include "Managers/AI/Grab/GrabAI.hpp"

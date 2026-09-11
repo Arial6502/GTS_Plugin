@@ -19,9 +19,10 @@ namespace GTS {
 		std::size_t currentTrigger = 0;
 		// Stage a value of 0 means finished and will be cleaned up
 		std::size_t stage = 0;
-		// Anim speed, can be adjusted via the animation itself or via AdjustAnimSpeed
+		// Anim speed, set by the animation itself. Never read: the map holding these is only filled
+		// by StartAnim, and nothing registers triggers any more.
 		float animSpeed = 1.0f;
-		// Make true during a stage of the anim to allow animSpeed adjust via AdjustAnimSpeed
+		// Dead alongside animSpeed above. ActorAction::CanEditAnimSpeed is the live one.
 		bool canEditAnimSpeed = false;
 		// If true then hhs are disabled
 		bool disableHH = false;
@@ -72,7 +73,6 @@ namespace GTS {
 		// that have the data.canEditAnimSpeed == true
 		//
 		// Each anim gets it's own adjustable speed
-		static void AdjustAnimSpeed(float bonus);
 
 		// Get total animation speed of an actor
 		static float GetAnimSpeed(Actor* actor);

@@ -529,6 +529,6 @@ vcpkg
 .clangd
 Package/
 
-# Claude Code local files
-.claude/USER.md
-.claude/settings.local.json
+# Claude stuff
+/.claude
+/*graphify*

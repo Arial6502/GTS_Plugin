@@ -1,7 +1,6 @@
+#include "Actions/Nodes/Grab/GrabCommon.hpp"
 #include "Utils/Actions/ActionUtils.hpp"
-
-#include "Managers/Animation/Grab.hpp"
-#include "Managers/Animation/HugShrink.hpp"
+#include "Actions/Core/Possession.hpp"
 #include "Managers/Animation/Utils/AnimationUtils.hpp"
 
 #include "Magic/Effects/Common.hpp"
@@ -20,7 +19,7 @@ namespace GTS {
 		return false;
 	}
 	bool IsBeingHeld(Actor* giant, Actor* tiny) {
-		auto grabbed = Grab::GetHeldActor(giant);
+		auto grabbed = Actions::Possession::Carried(giant->formID);
 
 		if (grabbed) {
 			if (grabbed == tiny) {
@@ -77,11 +76,11 @@ namespace GTS {
 		Actor* player = PlayerCharacter::GetSingleton();
 		auto transient = Transient::GetActorData(player);
 		if (transient) {
-			if (reset) {
-				transient->IsInControl = nullptr;
+			if (reset || !target) {
+				transient->IsInControl = {};
 				return;
 			}
-			transient->IsInControl = target;
+			transient->IsInControl = target->GetHandle();
 		}
 	}
 
@@ -136,7 +135,7 @@ namespace GTS {
 			NiPoint3 NodePosition = giant->GetPosition();
 
 			float giantScale = get_visual_scale(giant);
-			auto huggedActor = HugShrink::GetHuggiesActor(giant);
+			auto huggedActor = Actions::Possession::FirstActor(giant->formID, Actions::PossessionSlot::kArms);
 
 			constexpr float BASE_DISTANCE = 124.0f;
 			float CheckDistance = BASE_DISTANCE * giantScale;
@@ -174,7 +173,7 @@ namespace GTS {
 								if (nodeCollisions > 0) {
 									auto node = find_node(otherActor, "NPC Root [Root]");
 									if (node) {
-										auto grabbedActor = Grab::GetHeldActor(giant);
+										auto grabbedActor = Actions::Possession::Carried(giant->formID);
 										float correction = 0;
 										if (tinyScale < 1.0f) {
 											correction = std::clamp((18.0f / tinyScale) - 18.0f, 0.0f, 144.0f);
@@ -298,7 +297,7 @@ namespace GTS {
 
 	void ResetGrab(Actor* giant) {
 		if (giant->IsPlayerRef() || IsTeammate(giant)) {
-			Grab::ExitGrabState(giant);
+			Actions::Grabbing::Abort(giant);
 
 			AnimationVars::Grab::SetHasGrabbedTiny(giant, false); // Tell behaviors 'we have nothing in our hands'. A must.
 			AnimationVars::Grab::SetGrabState(giant, false);
@@ -381,14 +380,20 @@ namespace GTS {
 	}
 
 	Actor* GetPlayerOrControlled() {
-		Actor* controlled = PlayerCharacter::GetSingleton();
-		auto transient = Transient::GetActorData(controlled);
+
+		Actor* player = PlayerCharacter::GetSingleton();
+		auto transient = Transient::GetActorData(player);
+
 		if (transient) {
-			if (transient->IsInControl != nullptr) {
-				return transient->IsInControl;
+			// A handle that no longer resolves means the follower unloaded mid action. Drop it here
+			// so input goes back to the player instead of following a stale entry.
+			if (Actor* controlled = transient->IsInControl.get().get()) {
+				return controlled;
 			}
+			transient->IsInControl = {};
 		}
-		return controlled;
+
+		return player;
 	}
 
 	//RenameTo CanPerformActionOn

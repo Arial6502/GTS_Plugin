@@ -1,4 +1,6 @@
 #include "Managers/AI/Vore/VoreAI.hpp"
+#include "Actions/Core/ActionRegistry.hpp"
+#include "Actions/Nodes/Vore/VoreNode.hpp"
 #include "Managers/Animation/AnimationManager.hpp"
 #include "Managers/Animation/Controllers/VoreController.hpp"
 
@@ -156,7 +158,7 @@ namespace GTS {
 				VoreData.AddTiny(Prey);
 			}
 			DamageAV(a_Predator, ActorValue::kStamina, 30 * a_PotentialPrey.size());
-			AnimationManager::StartAnim("StartVore", a_Predator);
+			Actions::ActionRegistry::Perform(a_Predator, "Vore.Enter");
 		} else {
 			logger::info("{} tried to start vore, but not all actors passed", a_Predator->GetDisplayFullName());
 			logger::info("Actors passed: {}, Requirement: {}", passed, a_PotentialPrey.size());

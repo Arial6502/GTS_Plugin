@@ -25,7 +25,7 @@ namespace GTS {
 	void ForceRagdoll(Actor* a_target, bool a_enableRagDoll);
 	void ApplyManualHavokImpulse(Actor* a_target, float a_forceX, float a_forceY, float a_forceZ, float a_multiplier);
 
-	void DisableCollisions(Actor* a_actor, TESObjectREFR* a_target);
+	void DisableCollisions(Actor* a_actor, Actor* a_target);
 	void EnableCollisions(Actor* a_actor);
 
 	void StaggerActor(Actor* a_target, float a_power);

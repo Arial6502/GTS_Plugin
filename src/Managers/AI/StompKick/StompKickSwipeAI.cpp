@@ -1,9 +1,9 @@
+#include "Actions/Core/ActionRegistry.hpp"
 #include "Managers/AI/StompKick/StompKickSwipeAI.hpp"
 #include "Utils/Actions/AutoAim/AimAssist.hpp"
 #include "Config/Config.hpp"
 #include "Managers/Animation/Utils/AnimationUtils.hpp"
 #include "Managers/Animation/AnimationManager.hpp"
-#include "Managers/Animation/Stomp_Under.hpp"
 #include "Utils/Actions/AutoAim/AutoAimUtils.hpp"
 
 
@@ -16,19 +16,9 @@ namespace {
 	constexpr float STOMP_ANGLE = 50;
 	constexpr float PI = std::numbers::pi_v<float>;
 
-	//Light Kick/Swipe
-	const std::vector<std::string> light_kicks = {
-		"SwipeLight_Left",                  // 0
-		"SwipeLight_Right",                 // 1
-	};
-
-	//Heavy Kick/Swipe, The low ones only work when standing
-	const std::vector<std::string> heavy_kicks = {
-		"SwipeHeavy_Left",                  // 0
-		"SwipeHeavy_Right",                 // 1
-		"StrongKick_Low_Right",             // 2
-		"StrongKick_Low_Left",              // 3
-	};
+	// The heavy roll can land on the low sweep, which only exists standing. Which side each plays is
+	// the entry resolver's business now, so the AI only says what kind of attack it wants.
+	constexpr std::array HEAVY_KICKS = { "Kick.Heavy"sv, "Kick.LowSweep"sv };
 
 	bool ProtectFollowers(Actor* a_Pred, Actor* a_Prey) {
 		bool NPC = Config::General.bProtectFollowers;
@@ -86,65 +76,36 @@ namespace {
 		return false;
 	}
 
+	// The aim, the side and whether the understomp plays are all resolved by the entry, so every one
+	// of these is now the name of what the AI wants and nothing else.
 	void Do_LightKick(Actor* pred) {
-		const int idx = RandomIntWeighted(10, 10);
-		AnimationManager::StartAnim(light_kicks.at(idx), pred);
+		Actions::ActionRegistry::Perform(pred, "Kick.Light");
 	}
 
 	void Do_HeavyKick(Actor* a_Performer) {
-		int idx = RandomIntWeighted(10, 10, 10, 10);
-		AnimationManager::StartAnim(heavy_kicks.at(idx), a_Performer);
+		Actions::ActionRegistry::Perform(a_Performer, HEAVY_KICKS.at(RandomIntWeighted(10, 10)));
 	}
 
 	void Do_LightSwipe(Actor* a_Performer) {
-		int idx = RandomIntWeighted(10, 10);
-		AnimationManager::StartAnim(light_kicks.at(idx), a_Performer);
+		Actions::ActionRegistry::Perform(a_Performer, "Swipe.Light");
 	}
 
 	void Do_HeavySwipe(Actor* a_Performer) {
-		int idx = RandomIntWeighted(10, 10);
-		AnimationManager::StartAnim(heavy_kicks.at(idx), a_Performer);
+		Actions::ActionRegistry::Perform(a_Performer, "Swipe.Heavy");
 	}
 
 	void Do_StrongStomp(Actor* a_Performer, Actor* a_Prey) {
-		bool Left = AutoAim_Miss_GetNextStompSide(a_Performer, StompAimType::T1);
-		const bool UnderStomp = AutoAim_And_DetermineStompType(a_Performer, Left, true);
-		const std::string_view StompType_R = UnderStomp ? "UnderStompStrongRight" : "StrongStompRight";
-		const std::string_view StompType_L = UnderStomp ? "UnderStompStrongLeft" : "StrongStompLeft";
-
-		if (!Left) {
-			AnimationManager::StartAnim(StompType_R, a_Performer);
-		} else {
-			AnimationManager::StartAnim(StompType_L, a_Performer);
-		}
+		Actions::ActionRegistry::Perform(a_Performer, "Stomp.Strong");
 	}
 
 	void Do_LightStomp(Actor* a_Performer, Actor* a_Prey) {
-		bool Left = AutoAim_Miss_GetNextStompSide(a_Performer, StompAimType::T1);
 		Utils_UpdateHighHeelBlend(a_Performer, false);
-		const bool UnderStomp = AutoAim_And_DetermineStompType(a_Performer, Left);
-		const std::string_view StompType_R = UnderStomp ? "UnderStompRight" : "StompRight";
-		const std::string_view StompType_L = UnderStomp ? "UnderStompLeft" : "StompLeft";
-
-		if (!Left) {
-			AnimationManager::StartAnim(StompType_R, a_Performer);
-		} else {
-			AnimationManager::StartAnim(StompType_L, a_Performer);
-		}
+		Actions::ActionRegistry::Perform(a_Performer, "Stomp.Light");
 	}
 
 	void Do_Tramples(Actor* a_Performer, Actor* a_Prey) {
-		bool Left = AutoAim_Miss_GetNextStompSide(a_Performer, StompAimType::T1);
-		bool UnderTrample = AutoAim_And_DetermineStompType(a_Performer, Left);
-		const std::string_view TrampleType_L = UnderTrample ? "UnderTrampleL" : "TrampleL";
-		const std::string_view TrampleType_R = UnderTrample ? "UnderTrampleR" : "TrampleR";
-
 		Utils_UpdateHighHeelBlend(a_Performer, false);
-		if (!Left) {
-			AnimationManager::StartAnim(TrampleType_R, a_Performer);
-		} else {
-			AnimationManager::StartAnim(TrampleType_L, a_Performer);
-		}
+		Actions::ActionRegistry::Perform(a_Performer, "Stomp.Trample");
 	}
 }
 

@@ -1,41 +1,31 @@
-#include "Managers/Size_Killmoves/SizeKillMove_WrathfulCalamity.hpp"
-#include "Managers/Size_Killmoves/SizeKillMove_Calamity.hpp"
 #include "Managers/Size_Killmoves/KillMoveHelper.hpp"
 #include "Managers/Size_Killmoves/SizeKillMove.hpp"
-#include "Managers/Animation/Controllers/VoreController.hpp"
+#include "Actions/Core/ActionRegistry.hpp"
 #include "Hooks/Actor/Controls.hpp"
 #include "Managers/Animation/AnimationManager.hpp"
-#include "Managers/Damage/TinyCalamity.hpp"
 #include "Hooks/Util/HookUtil.hpp"
 
 using namespace GTS;
-const RE::BSFixedString sneak 			= "Sneak";
-const RE::BSFixedString activate 		= "Activate";
-
 
 namespace {
-	bool AllowToPerformSneak(RE::IDEvent* id) {
-		bool allow = true;
-		if (id) {
-			auto player = PlayerCharacter::GetSingleton();
-			if (player) {
-				auto as_str = id->userEvent;
-				if (as_str == sneak && AnimationVars::Prone::IsProne(player)) {
-					if (player->IsSneaking()) {
-						allow = false;
-						AnimationManager::StartAnim("SBO_ProneOff", player);
-					}
-				} else if (as_str == activate) {
-					if (TinyCalamityActive(player)) {
-						auto preys = VoreController::GetSingleton().GetVoreTargetsInFront(player, 1);
-						if (TinyCalamity_WrathfulCalamity(player, preys)) {
-							allow = false;
-						}
-					}
-				}
-			}
+
+	// Which vanilla inputs are taken over is declared on the states that take them over, so this only
+	// has to ask. One input event is offered to every handler in turn and CanProcess is hooked on six
+	// of them, so this runs several times for one press: the answer has to be the same each time or a
+	// later handler passes the press to the game after an earlier one consumed it.
+	bool AllowVanillaInput(RE::IDEvent* a_Event) {
+
+		if (!a_Event) {
+			return true;
 		}
-		return allow;
+
+		auto* player = PlayerCharacter::GetSingleton();
+
+		if (!player) {
+			return true;
+		}
+
+		return !Actions::ActionRegistry::HandleVanillaInput(player, a_Event->userEvent.c_str());
 	}
 
 	bool CanMove() {
@@ -89,7 +79,7 @@ namespace Hooks {
 					}
 
 					auto EvtID = a_event->AsIDEvent();
-					if (!AllowToPerformSneak(EvtID)) {
+					if (!AllowVanillaInput(EvtID)) {
 						return false;
 					}
 				}

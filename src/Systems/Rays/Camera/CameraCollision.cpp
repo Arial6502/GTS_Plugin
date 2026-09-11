@@ -1,6 +1,7 @@
 #include "Systems/Rays/Camera/CameraCollision.hpp"
 #include "CameraRayCollector.hpp"
 #include "Managers/Cameras/CamUtil.hpp"
+#include "Managers/Collision/DynamicCollisionUtils.hpp"
 #include "config/Config.hpp"
 
 namespace {
@@ -112,7 +113,7 @@ namespace GTS::CameraCol {
 		};
 
 		// -------------------------------------------------------------------------
-		std::vector<RE::hkpCdBody*> ignoreList;
+		absl::InlinedVector<RE::hkpCdBody*, 32> ignoreList;
 		{
 			const glm::vec4 origin4 = toVec4(currentStart);
 
@@ -164,8 +165,7 @@ namespace GTS::CameraCol {
 		ignoreList.erase(std::ranges::unique(ignoreList).begin(), ignoreList.end());
 
 		//Disable collision for all valid hit objects for the duration of this function
-		std::vector<COL_LAYER> disabledLayers;
-		disabledLayers.reserve(8);
+		absl::InlinedVector<COL_LAYER, 32> disabledLayers;
 
 		{
 			for (RE::hkpCdBody* av : ignoreList) {
@@ -190,12 +190,48 @@ namespace GTS::CameraCol {
 			}
 		}
 
+		//Verified start
+		//Use the havok char controller to build a "safe" point.
+		//To then raycast from this point onto the actual wanted postion.
+		//And move along the hit ray's normal if the desired position can not be reached.
+		float safeZ = actorZPos + Hullx2;
 		{
-			//Underground prevention
-			//Force raystart to be atleast at the same z pos as hullx2 + char controller position. 
-			//prevents tracking bones that are underground,
-			if (currentStart.z < actorZPos + Hullx2) {
-				currentStart.z = actorZPos + Hullx2;
+			NiPoint3 anchor = {};
+			float halfHeight = 0.0f;
+
+			if (GetControllerExtent(cameraActor, anchor, halfHeight)) {
+
+				//A shrunk actor's own half height can be smaller than the camera hull, so the anchor
+				//never sits closer to the ground than the hull the sweep will use.
+				anchor.z += std::max(halfHeight, Hullx2);
+				safeZ = anchor.z;
+
+				if (DebugDraw::Wants()) {
+					DebugDraw::Line(anchor, currentStart, { .Color = IM_COL32(255, 0, 255, 255), .Thickness = 1.0f }); //Magenta
+				}
+
+				constexpr int maxChecks = 3;
+				for (int check = 0; check < maxChecks; ++check) {
+
+					const CamRayResult verify = RaycastAsCamera(cameraActor, toVec4(anchor), toVec4(currentStart), Hull);
+
+					if (!verify.hit) {
+						break;
+					}
+
+					const NiPoint3 hitPos = { verify.hitPos.x, verify.hitPos.y, verify.hitPos.z };
+					const NiPoint3 hitNorm = { verify.cdPoint.normal.x, verify.cdPoint.normal.y, verify.cdPoint.normal.z };
+
+					currentStart = hitPos + (hitNorm * Hull);
+
+					if (DebugDraw::Wants()) {
+						DebugDraw::Line(hitPos, currentStart, { .Color = IM_COL32(255, 128, 0, 255), .Thickness = 1.5f }); //Orange
+					}
+				}
+			}
+			else if (currentStart.z < safeZ) {
+				//No readable controller shape. Fall back to the old z only clamp.
+				currentStart.z = safeZ;
 			}
 		}
 
@@ -209,7 +245,6 @@ namespace GTS::CameraCol {
 			if (floorResult.hit && floorResult.rayLength < Hull) {
 				currentStart.z += Hull - floorResult.rayLength;
 			}
-				
 
 			if (DebugDraw::Wants()) {
 				DebugDraw::Line(toNiPoint(floorStart4), currentStart, { .Color = IM_COL32(0, 255, 255, 255), .Thickness = 1.5f }); //Blue
@@ -222,8 +257,10 @@ namespace GTS::CameraCol {
 			const glm::vec4 ceilEnd4 = { currentStart.x, currentStart.y, currentStart.z + Hull, 0.0f };
 			const CamRayResult ceilResult = RaycastAsCamera(cameraActor, ceilStart4, ceilEnd4, 1.0f); //Hull should be thin here.
 
+			//Clamped against the verified start: from inside geometry every upward hit reads as a
+			//ceiling, and the correction would drive the camera further down.
 			if (ceilResult.hit && ceilResult.rayLength < Hull) {
-				currentStart.z -= Hull - ceilResult.rayLength;
+				currentStart.z = std::max(currentStart.z - (Hull - ceilResult.rayLength), safeZ);
 			}
 
 			if (DebugDraw::Wants()) {

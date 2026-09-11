@@ -377,17 +377,15 @@ namespace GTS {
 		}
 	}
 
-	void DisableCollisions(Actor* a_actor, TESObjectREFR* a_target) {
+	void DisableCollisions(Actor* a_actor, Actor* a_target) {
 		if (a_actor) {
 			if (TransientActorData* data = Transient::GetActorData(a_actor)) {
-				data->DisableColissionWith = a_target;
+				data->DisableColissionWith = a_target ? a_target->GetHandle() : ActorHandle{};
 				ActorCollisionData colliders = ActorCollisionData(a_actor);
 				colliders.UpdateCollisionFilter();
 				if (a_target) {
-					if (Actor* asOtherActor = skyrim_cast<Actor*>(a_target)) {
-						ActorCollisionData otherColliders = ActorCollisionData(asOtherActor);
-						otherColliders.UpdateCollisionFilter();
-					}
+					ActorCollisionData otherColliders = ActorCollisionData(a_target);
+					otherColliders.UpdateCollisionFilter();
 				}
 			}
 		}
@@ -396,15 +394,13 @@ namespace GTS {
 	void EnableCollisions(Actor* a_actor) {
 		if (a_actor) {
 			if (TransientActorData* data = Transient::GetActorData(a_actor)) {
-				TESObjectREFR* otherActor = data->DisableColissionWith;
-				data->DisableColissionWith = nullptr;
+				NiPointer<Actor> otherActor = data->DisableColissionWith.get();
+				data->DisableColissionWith = ActorHandle{};
 				ActorCollisionData colliders = ActorCollisionData(a_actor);
 				colliders.UpdateCollisionFilter();
 				if (otherActor) {
-					if (Actor* asOtherActor = skyrim_cast<Actor*>(otherActor)) {
-						auto otherColliders = ActorCollisionData(asOtherActor);
-						otherColliders.UpdateCollisionFilter();
-					}
+					auto otherColliders = ActorCollisionData(otherActor.get());
+					otherColliders.UpdateCollisionFilter();
 				}
 			}
 		}

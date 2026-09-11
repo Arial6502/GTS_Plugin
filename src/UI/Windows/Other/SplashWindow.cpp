@@ -1,26 +1,10 @@
 #include "UI/Windows/Other/SplashWindow.hpp"
 #include "UI/Core/ImFontManager.hpp"
-#include "Config/Util/KeybindHandler.hpp"
+#include "Config/Keybinds.hpp"
 
 #include "Version.hpp"
 
 #include "Config/Config.hpp"
-
-namespace {
-
-	//Helper function to get the current keybind for opening the settings menu
-	std::string GetSettingsKeybind() {
-		for (const auto& evt : GTS::KeybindHandler::GetAllInputEvents()) {
-			if (evt.Event == "OpenModSettings") {
-				return std::accumulate(std::next(evt.Keys.begin()), evt.Keys.end(), evt.Keys.front(),[](const std::string& a, const std::string& b) {
-					return a + " + " + b;
-				});
-			}
-		}
-		return "UNKNOWN";
-	}
-
-}
 
 namespace GTS {
 
@@ -31,13 +15,14 @@ namespace GTS {
 		{
 			ImFontManager::Push(ImFontManager::kWidgetBody, 1.2f);
 
+			const std::string shortcut = Keybinds::ShortcutFor("UI.Settings.Open");
+
 			ImGui::Text(
 				"Size Matters - %s\n"
 				"Press %s or type \"gts menu\" in the console to open the mod's settings while in-game.",
-				GTSPlugin::ModVersion.string(".").c_str(), 
-				GetSettingsKeybind().c_str()
+				GTSPlugin::ModVersion.string(".").c_str(),
+				shortcut.empty() ? "UNKNOWN" : shortcut.c_str()
 			);
-
 
 			ImFontManager::Pop();
 		}

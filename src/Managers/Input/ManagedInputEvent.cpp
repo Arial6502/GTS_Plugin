@@ -2,38 +2,28 @@
 
 namespace GTS {
 
-	ManagedInputEvent::ManagedInputEvent(const BaseEventData_t& a_event) {
+	ManagedInputEvent::ManagedInputEvent(const InputBind& a_event) {
 
 		this->Disabled = a_event.Disabled;
-		this->name = a_event.Event;
+		this->name = a_event.Name;
 		this->exclusive = a_event.Exclusive;
-		this->trigger = StringToEnum<LTriggerType_t>(a_event.Trigger);
-		this->blockinput = StringToEnum<LBlockInputTypes_t>(a_event.BlockInput);
+		this->trigger = a_event.Trigger;
+		this->blockinput = a_event.Block;
 		this->minDuration = a_event.Duration;
 		this->startTime = 0.0;
 		this->keys = {};
 
-		const auto& EventKeys = a_event.Keys;
+		for (const auto& key : a_event.Keys) {
 
-		for (const auto& key : EventKeys) {
-			std::string upper_key = str_toupper(remove_whitespace(key));
-			if (upper_key != "LEFT" && upper_key != "DIK_LEFT") {
-				// This changes LEFTALT to LALT
-				// But NOT LEFT into L
-				replace_first(upper_key, "LEFT", "L");
-			}
-			if (upper_key != "RIGHT" && upper_key != "DIK_RIGHT") {
-				replace_first(upper_key, "RIGHT", "R");
-			}
-			try {
-				std::uint32_t key_code = NAMED_KEYS.at(upper_key);
-				this->keys.emplace(key_code);
-			}
-			catch (const std::out_of_range&) {
-				logger::warn("Key named {}=>{} in {} was unrecongized.", key, upper_key, this->name);
+			const auto parsed = InputKeyFromName(key);
+
+			if (!parsed) {
+				logger::warn("Key named {} in {} was unrecognized.", key, this->name);
 				this->keys.clear();
-				return; // Remove all keys and return so that this becomes an INVALID key entry and won't fire
+				return; // Drop every key so this becomes an invalid entry and never fires
 			}
+
+			this->keys.emplace(*parsed);
 		}
 	}
 
@@ -56,7 +46,7 @@ namespace GTS {
 	}
 
 	bool ManagedInputEvent::IsOnUp() const {
-		return this->trigger == LTriggerType_t::Release;
+		return this->trigger == BindTriggerType::Release;
 	}
 
 	bool ManagedInputEvent::SameGroup(const ManagedInputEvent& other) const {
@@ -66,7 +56,7 @@ namespace GTS {
 		return false;
 	}
 
-	bool ManagedInputEvent::AllKeysPressed(const absl::flat_hash_set<std::uint32_t>& keys) const {
+	bool ManagedInputEvent::AllKeysPressed(const InputKeySet& keys) const {
 
 		if (this->keys.empty()) {
 			return false;
@@ -81,15 +71,16 @@ namespace GTS {
 		return true;
 	}
 
-	bool ManagedInputEvent::OnlyKeysPressed(const absl::flat_hash_set<std::uint32_t>& keys_in) const {
-		absl::flat_hash_set<std::uint32_t> keys(keys_in); // Copy
-		for (const auto& key : this->keys) {
-			keys.erase(key);
+	bool ManagedInputEvent::OnlyKeysPressed(const InputKeySet& keys_in) const {
+		for (const auto& key : keys_in) {
+			if (!this->keys.contains(key)) {
+				return false;
+			}
 		}
-		return keys.empty();
+		return true;
 	}
 
-	bool ManagedInputEvent::ShouldFire(const absl::flat_hash_set<std::uint32_t>& a_gameInputKeys) {
+	bool ManagedInputEvent::ShouldFire(const InputKeySet& a_gameInputKeys) {
 		bool shouldFire = false;
 		// Check based on keys and duration
 		if (this->AllKeysPressed(a_gameInputKeys) && (!this->exclusive || this->OnlyKeysPressed(a_gameInputKeys))) {
@@ -118,11 +109,11 @@ namespace GTS {
 					switch (this->trigger) {
 						// If once or continius start firing now
 	
-						case LTriggerType_t::Once:
-						case LTriggerType_t::Continuous: {
+						case BindTriggerType::Once:
+						case BindTriggerType::Continuous: {
 							return true;
 						}
-						case LTriggerType_t::Release: {
+						case BindTriggerType::Release: {
 							return false;
 						}
 						default:{
@@ -135,12 +126,12 @@ namespace GTS {
 					switch (this->trigger) {
 						// If once stop firing
 
-						case LTriggerType_t::Once:
-						case LTriggerType_t::Release:{
+						case BindTriggerType::Once:
+						case BindTriggerType::Release:{
 							// For release still do nothing
 							return false;
 						}
-						case LTriggerType_t::Continuous:{
+						case BindTriggerType::Continuous:{
 							// if continous keep firing
 							return true;
 						}
@@ -161,7 +152,7 @@ namespace GTS {
 		if (this->primed) {
 			this->primed = false;
 			switch (this->trigger) {
-				case LTriggerType_t::Release:{
+				case BindTriggerType::Release:{
 					// For release fire now that we have stopped pressing
 					return true;
 				}
@@ -177,15 +168,23 @@ namespace GTS {
 		return !this->keys.empty();
 	}
 
-	std::string ManagedInputEvent::GetName() const {
+	std::string_view ManagedInputEvent::GetName() const {
 		return this->name;
 	}
 
-	absl::flat_hash_set<std::uint32_t> ManagedInputEvent::GetKeys() {
-		return keys;
+	void ManagedInputEvent::SetAllowed(bool a_allowed) {
+		this->allowed = a_allowed;
 	}
 
-	LBlockInputTypes_t ManagedInputEvent::ShouldBlock() const {
+	bool ManagedInputEvent::Allowed() const {
+		return this->allowed;
+	}
+
+	const InputKeySet& ManagedInputEvent::GetKeys() const {
+		return this->keys;
+	}
+
+	BindBlockType ManagedInputEvent::ShouldBlock() const {
 		return this->blockinput;
 	}
 }

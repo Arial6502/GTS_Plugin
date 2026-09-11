@@ -183,6 +183,8 @@ namespace Hooks {
 #include "Utils/Text/Text.hpp"
 #include "Utils/Text/Format.hpp"
 #include "Utils/Input/DInput.hpp"
+#include "Utils/Input/InputDef.hpp"
+#include "Utils/Input/InputKey.hpp"
 #include "Utils/Win32/Messagebox.hpp"
 
 //Systems

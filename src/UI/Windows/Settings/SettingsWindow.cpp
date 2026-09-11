@@ -156,7 +156,7 @@ namespace GTS {
 
 		BuildFooterText();
 
-		InputManager::RegisterInputEvent("OpenModSettings", OpenSettingsKeybindCallback);
+		InputManager::RegisterInputEvent("UI.Settings.Open", OpenSettingsKeybindCallback);
 		ConsoleManager::RegisterCommand("menu", OpenSettingsConsoleCallback,"Open the settings menu");
 	}
 
@@ -215,6 +215,9 @@ namespace GTS {
 		}
 
 		else {
+
+			//An armed capture with no page left to end it would swallow every key press.
+			ImInput::EndKeyCapture();
 
 			if (m_MorphDataWasModified) {
 				ConfigModHandler::HandleRaceMenuDataUpdate();

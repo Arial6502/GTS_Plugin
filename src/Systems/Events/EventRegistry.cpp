@@ -5,16 +5,18 @@
 #include "API/SmoothCam.hpp"
 #include "Config/ConfigModHandler.hpp"
 #include "Config/Keybinds.hpp"
+#include "Actions/Core/ActionRecovery.hpp"
+#include "Actions/Core/ActionRegistry.hpp"
+#include "Actions/Core/Possession.hpp"
+#include "Debug/AnimDebug/AnimationDebugger.hpp"
+#include "Debug/Trace/AnimationTracer.hpp"
 #include "Hooks/Hooks.hpp"
 #include "Magic/Magic.hpp"
 #include "Managers/AI/AIManager.hpp"
 #include "Managers/AI/headtracking.hpp"
 #include "Managers/Animation/AnimationManager.hpp"
-#include "Managers/Animation/BoobCrush.hpp"
 #include "Managers/Animation/Controllers/ThighSandwichController.hpp"
 #include "Managers/Animation/Controllers/VoreController.hpp"
-#include "Managers/Animation/Grab.hpp"
-#include "Managers/Animation/HugShrink.hpp"
 #include "Managers/Animation/Utils/CooldownManager.hpp"
 #include "Managers/AttackManager.hpp"
 #include "Managers/AttributeManager.hpp"
@@ -94,10 +96,7 @@ namespace GTS {
 		EventDispatcher::AddListener<AnimationManager>();        // Owns the anim events controllers respond to
 		EventDispatcher::AddListener<RandomGrowth>();            // Random growth perk
 		EventDispatcher::AddListener<VoreController>();          // Vore
-		EventDispatcher::AddListener<Grab>();                    // Grabbing
 		EventDispatcher::AddListener<ThighSandwichController>(); // Thigh sandwiching
-		EventDispatcher::AddListener<AnimationBoobCrush>();      // Breast crush
-		EventDispatcher::AddListener<HugShrink>();               // Hug shrinking
 		EventDispatcher::AddListener<AIManager>();               // Picks GTS actions once everything above is current
 		EventDispatcher::AddListener<AttackManager>();           // Keeps oversized actors from drawing a weapon
 
@@ -118,6 +117,14 @@ namespace GTS {
 		EventDispatcher::AddListener<SpectatorManager>();  // Camera targets
 		EventDispatcher::AddListener<CameraManager>();     // Edits the camera
 		EventDispatcher::AddListener<GTSMenu>();           // Mod settings menu
+
+		// Last, so the graph variable snapshot sees end-of-frame state. Possession is ahead of the
+		// registry because node exits read the slots it owns.
+		EventDispatcher::AddListener<AnimationTracer>();        // "gts trace" animation capture
+		EventDispatcher::AddListener<AnimationDebugger>();      // Animation variable / event debug windows
+		EventDispatcher::AddListener<Actions::Possession>();    // Who is holding whom, and where
+		EventDispatcher::AddListener<Actions::ActionRegistry>();// "gts action" node machine
+		EventDispatcher::AddListener<Actions::ActionRecovery>();// Clears stale action animvars after a load
 
 		logger::info("Managers Registered");
 		EventDispatcher::LogSubscriptions();

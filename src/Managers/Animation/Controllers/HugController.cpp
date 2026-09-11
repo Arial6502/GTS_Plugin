@@ -3,8 +3,10 @@
 #include "Managers/Animation/Utils/CooldownManager.hpp"
 #include "Managers/Animation/Utils/AnimationUtils.hpp"
 
+#include "Actions/Core/ActionRegistry.hpp"
+#include "Actions/Core/Possession.hpp"
 #include "Managers/Animation/AnimationManager.hpp"
-#include "Managers/Animation/HugShrink.hpp"
+#include "Actions/Core/Possession.hpp"
 
 #include "Managers/GTSSizeManager.hpp"
 
@@ -69,17 +71,11 @@ namespace {
 			auto pred = giantHandle.get().get();
 			auto prey = tinyHandle.get().get();
 			
-			HugShrink::GetSingleton().HugActor(pred, prey);
-			AnimationManager::StartAnim("Huggies_Try", pred);
+			Actions::Possession::Take(pred->formID, Actions::PossessionSlot::kArms, prey->GetHandle());
 
-			if (pred->IsSneaking()) {
-				if (!AnimationVars::Crawl::IsCrawling(pred)) {
-					SetSneaking(pred, true, 0); // If just sneaking, disable sneaking so footstep sounds will work properly
-				}
-				AnimationManager::StartAnim("Huggies_Try_Victim_S", prey); // GTSBEH_HugAbsorbStart_Sneak_V
-			} else {
-				AnimationManager::StartAnim("Huggies_Try_Victim", prey); //   GTSBEH_HugAbsorbStart_V
-			}
+			// The node drives both halves from here: the slot is what tells it who its partner is.
+			Actions::Possession::Take(pred->formID, Actions::PossessionSlot::kArms, prey->GetHandle());
+			Actions::ActionRegistry::Perform(pred, "Hug.Enter");
 		});
 	}
 }
@@ -251,15 +247,15 @@ namespace GTS {
 		return false;
 	}
 
-	void HugAnimationController::StartHug(Actor* pred, Actor* prey) {
+	bool HugAnimationController::StartHug(Actor* pred, Actor* prey) {
 		auto& hugging = HugAnimationController::GetSingleton();
 		if (!hugging.CanHug(pred, prey)) {
-			return;
+			return false;
 		}
 
 		if (IsActionOnCooldown(pred, CooldownSource::Action_Hugs)) {
 			HugAnimationController::Hugs_OnCooldownMessage(pred);
-			return;
+			return false;
 		}
 
 		if (AnimationVars::Crawl::IsCrawling(pred)) {
@@ -268,7 +264,7 @@ namespace GTS {
 				if (pred->IsPlayerRef()) {
 					NotifyWithSound(pred, "You're not experienced enough for Crawl Hugs");
 				}
-				return;
+				return false;
 			}
 			DamageAV(pred, ActorValue::kMagicka, 225 * Perk_GetCostReduction(pred));
 		}
@@ -280,6 +276,7 @@ namespace GTS {
 		DisarmActor(prey);
 
 		Task_PerformHugs(pred, prey); // Start hugs
+		return true;
 	}
 
 	void HugAnimationController::AllowMessage(bool allow) {

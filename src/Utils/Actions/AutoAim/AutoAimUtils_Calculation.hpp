@@ -1,5 +1,28 @@
 #pragma once
 
+namespace GTS::AutoAim {
+
+	// While one of these is alive, that actor wins any aim search whose zone it is already inside.
+	// It cannot pull in an actor the search would have rejected, so a preference only decides
+	// between targets that were all valid anyway.
+	//
+	// Scoped rather than a setter so an early return in a Resolve cannot leave it stuck on.
+	class PreferTarget {
+
+		public:
+		explicit PreferTarget(RE::Actor* a_Actor);
+		~PreferTarget();
+
+		PreferTarget(const PreferTarget&) = delete;
+		PreferTarget& operator=(const PreferTarget&) = delete;
+
+		[[nodiscard]] static RE::FormID Current();
+
+		private:
+		RE::FormID m_Previous = 0;
+	};
+}
+
 namespace GTS {
     //-----------------------------------------------------
 	// FOOT OR HAND AUTO AIM

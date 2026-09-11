@@ -1,5 +1,5 @@
+#include "Actions/Core/Possession.hpp"
 #include "Hooks/Actor/Detection.hpp"
-#include "Managers/Animation/Grab.hpp"
 #include "Hooks/Util/HookUtil.hpp"
 
 using namespace GTS;
@@ -154,7 +154,7 @@ namespace Hooks {
                         //Basically makes the holder blind to other npcs
                         //or the target if the target is being hugged
                         const bool isTargetBeingHugged = GTS::AnimationVars::Tiny::IsBeingHugged(target) || GTS::AnimationVars::Tiny::IsBeingCrawlHugged(target);
-                        const bool isObserverGrabbing = Grab::GetHeldActor(a_observer);
+                        const bool isObserverGrabbing = Actions::Possession::Carried(a_observer->formID);
                         const bool shouldNotBeDetected = (isTargetBeingHugged || isObserverGrabbing) && !IsPlayerTarget;
                        
                     	if (shouldNotBeDetected) {

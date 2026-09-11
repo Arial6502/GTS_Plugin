@@ -11,10 +11,10 @@ Checks: >
 
 WarningsAsErrors: 'bugprone-dangling-handle'
 
-# Diagnose in our own headers only.
+# Own headers only.
 HeaderFilterRegex: '.*[\\/]src[\\/].*\.(h|hpp|hxx)$'
 
-# Vendored third-party code (lib/), exclude just in case.
+# Third-party code (lib/), exclude just in case.
 ExcludeHeaderFilterRegex: '.*[\\/]lib[\\/].*'
 
 SystemHeaders: false

@@ -1,56 +1,14 @@
 
-#include "Managers/Animation/Custom_Events_ModSupport.hpp"
-#include "Managers/Animation/TinyCalamity_Instakill.hpp"
-#include "Managers/Animation/Sneak_Slam_FingerGrind.hpp"
-#include "Managers/Animation/Stomp_Under_FullBody.hpp"
-#include "Managers/Animation/TinyCalamity_Shrink.hpp"
-#include "Managers/Animation/Stomp_Under_Strong.hpp"
-#include "Managers/Animation/Sneak_Slam_Strong.hpp"
-#include "Managers/Animation/Stomp_Under_Slam.hpp"
-#include "Managers/Animation/Stomp_Under_Butt.hpp"
 #include "Managers/Animation/AnimationManager.hpp"
-#include "Managers/Animation/FurnitureAnimations.hpp"
 
 #include "Config/Config.hpp"
 
-#include "Managers/Animation/CleavageStrangle.hpp"
-#include "Managers/Animation/Grab_Sneak_Vore.hpp"
-#include "Managers/Animation/Sneak_KneeCrush.hpp"
-#include "Managers/Animation/CleavageEvents.hpp"
-#include "Managers/Animation/CleavageState.hpp"
-#include "Managers/Animation/Vore_Standing.hpp"
-#include "Managers/Animation/ThighSandwich.hpp"
-#include "Managers/Animation/ThighSandwichPart2.hpp"
-#include "Managers/Animation/Sneak_Swipes.hpp"
-#include "Managers/Animation/RandomGrowth.hpp"
-#include "Managers/Animation/Stomp_Normal.hpp"
-#include "Managers/Animation/Stomp_Strong.hpp"
-#include "Managers/Animation/Stomp_Under.hpp"
-#include "Managers/Animation/FootTrample.hpp"
-#include "Managers/Animation/Grab_Attack.hpp"
-
-#include "Managers/Animation/Grab_Throw.hpp"
-#include "Managers/Animation/Grab_Play_Events.hpp"
-#include "Managers/Animation/Grab_Play.hpp"
-#include "Managers/Animation/Sneak_Slam.hpp"
-#include "Managers/Animation/Vore_Sneak.hpp"
-#include "Managers/Animation/Vore_Crawl.hpp"
-#include "Managers/Animation/ThighCrush.hpp"
-#include "Managers/Animation/Grab_Vore.hpp"
-#include "Managers/Animation/ButtCrush.hpp"
-#include "Managers/Animation/BoobCrush.hpp"
-#include "Managers/Animation/FootGrind.hpp"
-#include "Managers/Animation/HugShrink.hpp"
-#include "Managers/Animation/Crawling.hpp"
-#include "Managers/Animation/HugHeal.hpp"
-#include "Managers/Animation/Proning.hpp"
-#include "Managers/Animation/Growth.hpp"
-#include "Managers/Animation/Shrink.hpp"
-#include "Managers/Animation/Kicks.hpp"
-#include "Managers/Animation/Grab.hpp"
-
 #include "Managers/Perks/PerkHandler.hpp"
 #include "Utils/Actions/InputFunctions.hpp"
+
+#include "Debug/AnimDebug/AnimationDebugger.hpp"
+#include "Debug/Trace/AnimationTracer.hpp"
+#include "Actions/Core/ActionRegistry.hpp"
 
 namespace GTS {
 
@@ -65,110 +23,17 @@ namespace GTS {
 	}
 
 	void AnimationManager::OnSKSEDataLoaded() {
-		AnimationStomp::RegisterEvents();
-		AnimationStomp::RegisterTriggers();
 
-		AnimationStrongStomp::RegisterEvents();
-		AnimationStrongStomp::RegisterTriggers();
-
-		AnimationUnderStomp::RegisterEvents();
-		AnimationUnderStomp::RegisterTriggers();
-
-		AnimationUnderStompStrong::RegisterEvents();
-		AnimationUnderStompStrong::RegisterTriggers();
-
-		AnimationUnderStompFullBody::RegisterEvents();
-		AnimationUnderStompSlam::RegisterEvents();
-		AnimationUnderStompButt::RegisterEvents();
-
-		AnimationThighSandwich::RegisterEvents();
-		AnimationThighSandwich::RegisterTriggers();
-
-		AnimationThighSandwich_P2::RegisterEvents();
-		AnimationThighSandwich_P2::RegisterTriggers();
-
-		AnimationThighCrush::RegisterEvents();
-		AnimationThighCrush::RegisterTriggers();
-
-		AnimationCrawling::RegisterEvents();
-		AnimationCrawling::RegisterTriggers();
-
-		Animation_VoreStanding::RegisterEvents();
-		Animation_VoreStanding::RegisterTriggers();
-
-		Animation_VoreCrawl::RegisterEvents();
-		Animation_VoreSneak::RegisterEvents();
-
-		Animation_SneakSwipes::RegisterEvents();
-		Animation_SneakSlam::RegisterEvents();
-		Animation_SneakSlam_Strong::RegisterEvents();
-		Animation_SneakSlam_FingerGrind::RegisterEvents();
-		Animation_SneakSlam_FingerGrind::RegisterTriggers();
-
-		Animation_Cleavage::RegisterEvents();
-		Animation_Cleavage::RegisterTriggers();
-
-		Animation_CleavageEvents::RegisterEvents();
-
-		Animation_CleavageStrangle::RegisterEvents();
-		Animation_CleavageStrangle::RegisterTriggers();
-
-		Animation_TinyCalamity::RegisterEvents();
-		Animation_TinyCalamity::RegisterTriggers();
-
-		Animation_TinyCalamity_InstaKill::RegisterEvents();
-		Animation_TinyCalamity_InstaKill::RegisterTriggers();
-
-		AnimationButtCrush::RegisterEvents();
-		AnimationButtCrush::RegisterTriggers();
-
-		AnimationSneakCrush::RegisterEvents();
-
-		AnimationBoobCrush::RegisterEvents();
-
-		Animation_GrabSneak_Vore::RegisterEvents();
-		Animation_GrabVore::RegisterEvents();
-		Animation_GrabThrow::RegisterEvents();
-		Animation_GrabAttack::RegisterEvents();
-		Animation_GrabPlay_Events::RegisterEvents();
-		Animation_GrabPlay::RegisterTriggers();
-		
-		Animation_RandomGrowth::RegisterEvents();
-		Animation_RandomGrowth::RegisterTriggers();
-
-		AnimationFootGrind::RegisterEvents();
-		AnimationFootGrind::RegisterTriggers();
-
-		AnimationFootTrample::RegisterEvents();
-		AnimationFootTrample::RegisterTriggers();
-
-		Animation_ModSupport::RegisterEvents();
-		Animation_ModSupport::RegisterTriggers();
-
-		AnimationProning::RegisterEvents();
-		AnimationProning::RegisterTriggers();
-
-		AnimationGrowth::RegisterEvents();
-		AnimationGrowth::RegisterTriggers();
-
-		AnimationShrink::RegisterEvents();
-		AnimationShrink::RegisterTriggers();
+		// Every animation is owned by src/Actions now: nodes for the ones with a state, stances in
+		// src/Actions/Movement for crawling and prone, and tables in src/Actions/Reactions for the
+		// tags that belong to no state at all. The old files are kept as .legacy next to this one,
+		// out of the build, so nothing can reach them and the compiler proves it.
+		//
+		// What is left of this class is the parts other code still reads: the animation speed and
+		// high heel aggregation below, and the two chokepoints that feed the action registry.
 
 		InputFunctions::RegisterEvents();
 
-		AnimationKicks::RegisterEvents();
-		AnimationKicks::RegisterTriggers();
-
-		HugShrink::RegisterEvents();
-		HugShrink::RegisterTriggers();
-
-		HugHeal::RegisterEvents();
-		HugHeal::RegisterTriggers();
-
-		Grab::RegisterEvents();
-		Grab::RegisterTriggers();
-
-		FurnitureAnimations::RegisterEvents();
 	}
 
 	void AnimationManager::OnMainUpdate() {
@@ -208,7 +73,7 @@ namespace GTS {
 		}
 		catch (const std::out_of_range&) {}
 
-		return Speed;
+		return Speed * Actions::ActionRegistry::HHSpeed(actor);
 	}
 
 	float AnimationManager::GetBonusAnimationSpeed(Actor* actor) {
@@ -228,35 +93,7 @@ namespace GTS {
 			}
 		}
 		catch (const std::out_of_range&) {}
-		return totalSpeed;
-	}
-
-	void AnimationManager::AdjustAnimSpeed(float bonus) {
-
-		const auto player = PlayerCharacter::GetSingleton();
-		auto& AnimMgr = AnimationManager::GetSingleton();
-
-		try {
-
-			if (!AnimMgr.data.empty()) {
-
-				if (AnimMgr.data.contains(player)) {
-
-					for (auto& data : AnimMgr.data.at(player) | std::views::values) {
-
-						if (data.canEditAnimSpeed) {
-							data.animSpeed += (bonus * GetAnimationSlowdown(player));
-						}
-						const bool isBreastStrangling = AnimationVars::Cleavage::IsBoobsDoting(player);
-						float min = isBreastStrangling ? 0.50f : 0.33f;
-						float max = isBreastStrangling ? 1.75f : 3.0f;
-						data.animSpeed = std::clamp(data.animSpeed, min, max);
-					}
-				}
-			}
-		}
-
-		catch (std::out_of_range&) {}
+		return totalSpeed * Actions::ActionRegistry::AnimSpeed(actor);
 	}
 
 	float AnimationManager::GetAnimSpeed(Actor* actor) {
@@ -291,6 +128,8 @@ namespace GTS {
 
 			}
 			catch (const std::out_of_range&) {}
+
+			speed *= Actions::ActionRegistry::AnimSpeed(actor);
 		}
 		return speed;
 	}
@@ -312,7 +151,6 @@ namespace GTS {
 		}
 	}
 
-
 	void AnimationManager::StartAnim( std::string_view trigger, Actor& giant) {
 		AnimationManager::StartAnim(trigger, giant, nullptr);
 	}
@@ -327,15 +165,21 @@ namespace GTS {
 	void AnimationManager::StartAnim(std::string_view trigger, Actor& giant, TESObjectREFR* tiny) {
 
 		if (AnimationVars::General::IsTransitioning(&giant)) {
+			AnimationTracer::Trigger(&giant, trigger, "transitioning", false);
+			Actions::ActionRegistry::OnLegacyTrigger(&giant, trigger, "transitioning", false);
+			AnimationDebugger::Trigger(&giant, trigger, "refused: transitioning", false);
 			return;
 		}
 
 		if (giant.IsPlayerRef()) {
-			if (IsFirstPerson() || State::IsInRaceMenu()) { 
+			if (IsFirstPerson() || State::IsInRaceMenu()) {
 				//Time::WorldTimeElapsed() > 1.0
 				//ForceThirdPerson(&giant);
 				// It kinda works in fp that way, but it introduces some issues with animations such as Hugs and Butt Crush.
 				// Better to wait for full support someday
+				AnimationTracer::Trigger(&giant, trigger, "first person", false);
+				Actions::ActionRegistry::OnLegacyTrigger(&giant, trigger, "first person", false);
+				AnimationDebugger::Trigger(&giant, trigger, "refused: first person", false);
 				return; // Don't start animations in FP, it's not supported.
 			}
 		}
@@ -355,11 +199,17 @@ namespace GTS {
 			//log::info("Playing Trigger {} for {}", trigger, giant.GetDisplayFullName());
 			//log::info("Playing {}", behavorToPlay.behavors[0]);
 			giant.NotifyAnimationGraph(behavorToPlay.behavors[0]);
+			AnimationTracer::Trigger(&giant, trigger, behavorToPlay.behavors[0], true);
+			AnimationDebugger::Trigger(&giant, trigger, behavorToPlay.behavors[0], true);
+			Actions::ActionRegistry::OnLegacyTrigger(&giant, trigger, behavorToPlay.behavors[0], true);
 
 			PerkHandler::UpdatePerkValues(&giant, PerkUpdate::Perk_Acceleration); // Currently used for Anim Speed buff only
 		}
 		catch (const std::out_of_range&) {
 			logger::error("Requested play of unknown animation named: {}", trigger);
+			AnimationTracer::Trigger(&giant, trigger, "unknown trigger", false);
+			Actions::ActionRegistry::OnLegacyTrigger(&giant, trigger, "unknown trigger", false);
+			AnimationDebugger::Trigger(&giant, trigger, "refused: unknown trigger", false);
 			return;
 		}
 	}
@@ -383,8 +233,6 @@ namespace GTS {
 		}
 		catch (std::out_of_range&) {}
 	}
-
-
 
 	void AnimationManager::StartAnim(std::string_view trigger, Actor* giant, TESObjectREFR* tiny) {
 		if (giant) {
@@ -421,8 +269,13 @@ namespace GTS {
 			if (actor) {
 
 				if (!this->eventCallbacks.contains(std::string(tag))){
+					AnimationTracer::Annotation(actor, tag, false);
+					Actions::ActionRegistry::OnAnnotation(actor, tag);
 					return;
 				}
+
+				AnimationTracer::Annotation(actor, tag, true);
+				Actions::ActionRegistry::OnAnnotation(actor, tag);
 
 				// Try to get the registerd anim for this tag
 				auto& animToPlay = this->eventCallbacks.at(std::string(tag));
@@ -480,8 +333,12 @@ namespace GTS {
 	bool AnimationManager::HHDisabled(Actor& actor) {
 		auto& me = AnimationManager::GetSingleton();
 
-		if (!IsHumanoid(&actor) || me.data.empty()) {
+		if (!IsHumanoid(&actor)) {
 			return false;
+		}
+
+		if (Actions::ActionRegistry::HHDisabled(&actor)) {
+			return true;
 		}
 
 		auto it = me.data.find(&actor);

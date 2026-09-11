@@ -10,7 +10,7 @@ namespace GTS::AnimationVars {
 		bool IsPandoraGenerated(RE::Actor* a_actor);
 		bool IsNemesisGenerated(RE::Actor* a_actor);
 		bool IsJumping(RE::Actor* a_actor);
-		bool IsSynched(RE::Actor* a_actor);
+		bool IsSynced(RE::Actor* a_actor);
 
 		int CurrentDefaultState(RE::Actor* a_actor);
 
@@ -122,6 +122,7 @@ namespace GTS::AnimationVars {
 		bool IsKicking(RE::Actor* a_actor);
 		bool IsInCleavageState(RE::Actor* a_actor);
 		bool IsCleavageZOverrideEnabled(RE::Actor* a_actor);
+		bool DontExit(RE::Actor* a_actor);
 		bool IsInGrabPlayState(RE::Actor* a_actor);
 		bool IsKissing(RE::Actor* a_actor);
 		bool IsGrabPlaying(RE::Actor* a_actor);

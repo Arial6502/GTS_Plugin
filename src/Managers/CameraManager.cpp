@@ -76,16 +76,19 @@ namespace {
 namespace GTS {
 
 	void CameraManager::OnSKSEDataLoaded() {
-		InputManager::RegisterInputEvent("HorizontalCameraReset", HorizontalResetEvent, AutoCamEnabledCondition);
-		InputManager::RegisterInputEvent("VerticalCameraReset", VerticalResetEvent, AutoCamEnabledCondition);
 
-		InputManager::RegisterInputEvent("CameraUp", CamUpEvent, AutoCamEnabledCondition);
-		InputManager::RegisterInputEvent("CameraDown", CamDownEvent, AutoCamEnabledCondition);
-		InputManager::RegisterInputEvent("CameraLeft", CamLeftEvent, AutoCamEnabledCondition);
-		InputManager::RegisterInputEvent("CameraRight", CamRightEvent, AutoCamEnabledCondition);
+		//Resets
+		InputManager::RegisterInputEvent("Camera.ResetHorizontal", HorizontalResetEvent, AutoCamEnabledCondition);
+		InputManager::RegisterInputEvent("Camera.ResetVertical", VerticalResetEvent, AutoCamEnabledCondition);
 
-		//Ported From Papyrus
-		InputManager::RegisterInputEvent("SwitchCameraMode", SwitchCameraMode, AutoCamEnabledCondition);
+		//Panning
+		InputManager::RegisterInputEvent("Camera.MoveUp", CamUpEvent, AutoCamEnabledCondition);
+		InputManager::RegisterInputEvent("Camera.MoveDown", CamDownEvent, AutoCamEnabledCondition);
+		InputManager::RegisterInputEvent("Camera.MoveLeft", CamLeftEvent, AutoCamEnabledCondition);
+		InputManager::RegisterInputEvent("Camera.MoveRight", CamRightEvent, AutoCamEnabledCondition);
+
+		//Switch Mode
+		InputManager::RegisterInputEvent("Camera.SwitchMode", SwitchCameraMode, AutoCamEnabledCondition);
 	}
 
 	void CameraManager::OnCameraUpdate() {

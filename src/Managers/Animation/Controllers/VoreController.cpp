@@ -3,6 +3,8 @@
 #include "API/Devourment.hpp"
 #include "Managers/Animation/Utils/AnimationUtils.hpp"
 #include "Managers/Animation/Utils/AttachPoint.hpp"
+#include "Actions/Core/ActionRegistry.hpp"
+#include "Actions/Nodes/Vore/VoreNode.hpp"
 #include "Managers/Animation/AnimationManager.hpp"
 #include "Managers/Perks/PerkHandler.hpp"
 #include "Managers/AI/AIFunctions.hpp"
@@ -378,10 +380,10 @@ namespace GTS {
 		this->data.erase(actor->formID);
 	}
 
-	void VoreController::StartVore(Actor* pred, Actor* prey) {
-		if (!pred || !prey) return;
+	bool VoreController::StartVore(Actor* pred, Actor* prey) {
+		if (!pred || !prey) return false;
 		if (!CanVore(pred, prey)) {
-			return;
+			return false;
 		}
 
 		float pred_scale = get_visual_scale(pred);
@@ -404,7 +406,7 @@ namespace GTS {
 					Runtime::PlaySound(Runtime::SNDR.GTSSoundFail, pred, 0.4f, 1.0f);
 				}
 				StaggerActor(pred, prey, 0.25f);
-				return;
+				return false;
 			}
 			DamageAV(pred, ActorValue::kStamina, wastestamina);
 		}
@@ -415,7 +417,7 @@ namespace GTS {
 			if (!notCrawling) {
 				StaggerActor(pred, prey, 0.25f);
 			}
-			return;
+			return false;
 		}
 		
 		if (pred->IsPlayerRef()) {
@@ -424,9 +426,10 @@ namespace GTS {
 		auto& voreData = this->GetVoreData(pred);
 		voreData.AddTiny(prey);
 
-		AnimationManager::StartAnim("StartVore", pred);
+		Actions::ActionRegistry::Perform(pred, "Vore.Enter");
 
 		DisarmActor(pred, false);
+		return true;
 	}
 
 	void VoreController::RecordOriginalScale(Actor* tiny) {

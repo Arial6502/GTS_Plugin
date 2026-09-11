@@ -3,8 +3,7 @@
 #include "Config/Config.hpp"
 
 #include "Managers/OverkillManager.hpp"
-#include "Managers/Animation/Grab.hpp"
-#include "Managers/Animation/HugShrink.hpp"
+#include "Actions/Core/Possession.hpp"
 #include "Managers/Animation/Utils/CooldownManager.hpp"
 
 #include "Utils/DifficultyUtils.hpp"
@@ -232,7 +231,7 @@ namespace GTS {
 	float GetHugDamageResistance(Actor* receiver) {
 		float reduction = 1.0f;
 		// Applies extra layer of damage reduction when hugging someone
-		if (HugShrink::GetHuggiesActor(receiver)) {
+		if (Actions::Possession::FirstActor(receiver->formID, Actions::PossessionSlot::kArms)) {
 			if (Runtime::HasPerk(receiver, Runtime::PERK.GTSPerkHugsToughGrip)) {
 				reduction -= 0.25f; // 25% resistance
 			}

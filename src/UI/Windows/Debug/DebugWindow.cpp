@@ -1,4 +1,5 @@
-﻿#include "UI/Windows/Debug/DebugWindow.hpp"
+﻿#include "Debug/AnimDebug/AnimationDebugger.hpp"
+#include "UI/Windows/Debug/DebugWindow.hpp"
 #include "UI/Controls/Button.hpp"
 #include "UI/Controls/CheckBox.hpp"
 #include "UI/Controls/Slider.hpp"
@@ -8,6 +9,7 @@
 
 #include "Config/Config.hpp"
 
+#include "Managers/Collision/DynamicCollisionUtils.hpp"
 #include "Managers/HighHeel.hpp"
 #include "Managers/Input/InputManager.hpp"
 #include "Managers/Input/ManagedInputEvent.hpp"
@@ -132,6 +134,18 @@ namespace GTS {
 				}
 				#endif
 
+				{
+					bool ShowVars = AnimationDebugger::VarsEnabled();
+					if (ImGuiEx::CheckBox("Show Animation Variables", &ShowVars, "Live behaviour graph variables for one actor")) {
+						AnimationDebugger::SetVarsEnabled(ShowVars);
+					}
+
+					bool ShowEvents = AnimationDebugger::EventsEnabled();
+					if (ImGuiEx::CheckBox("Show Animation Events", &ShowEvents, "Every trigger and annotation, not only the ones a manager claims")) {
+						AnimationDebugger::SetEventsEnabled(ShowEvents);
+					}
+				}
+
 				if (ImGui::CollapsingHeader("Scale Information (Size Debug)")) {
 					for (const auto& actor : find_actors()) {
 						DrawScaleDebugInfo(actor);
@@ -254,16 +268,33 @@ namespace GTS {
 			ImGui::Indent();
 			{
 				// ------------------------------ Char Controller
-				if (ImGui::CollapsingHeader("bhkCharacterController maxSlope")) {
-					//Value is mislabeled in clib, its a float storing the inverse cosine of the max slope angle in radians.
-					auto& maxSlopeRaw = PlayerCharacter::GetSingleton()->GetCharController()->maxSlope;
-					float asFloat = std::bit_cast<float>(maxSlopeRaw);
-					ImGui::Text("Raw uint32: %u", maxSlopeRaw);
-					ImGui::Text("As float: %.6f", asFloat);
-					ImGui::Text("Radians to degrees: %.2f°", asFloat * 180.0f / std::numbers::pi);
-					ImGui::Text("As tan(angle): %.2f°", std::atan(asFloat) * 180.0f / std::numbers::pi);
-					ImGui::Text("As cos(angle): %.2f°", std::acos(asFloat) * 180.0f / std::numbers::pi);
-					ImGui::Text("As slope ratio (rise/run): %.2f%%", asFloat * 100.0f);
+				if (ImGui::CollapsingHeader("bhkCharacterController Traversal")) {
+
+					if (bhkCharacterController* controller = PlayerCharacter::GetSingleton()->GetCharController()) {
+
+						const float toGame = *reinterpret_cast<const float*>(Offset::Havok::WorldScaleInverse.address());
+						const CharControllerKind kind = GetControllerKind(controller);
+
+						{
+							const std::string_view kindName = magic_enum::enum_name(kind);
+							ImGui::Text("Kind: %.*s", static_cast<int>(kindName.size()), kindName.data());
+							ImGui::Text("maxSlope: %.6f (%.2f°)", std::bit_cast<float>(controller->maxSlope), GetControllerMaxSlope(controller));
+							ImGui::Text("Step height: %.6f hk (%.1f units)", GetControllerStepHeight(controller), GetControllerStepHeight(controller) * toGame);
+							ImGui::Text("Step reach: %.6f hk (%.1f units)", GetControllerStepReach(controller), GetControllerStepReach(controller) * toGame);
+						}
+
+						if (const hkpCharacterRigidBody* rigidBody = GetControllerRigidBody(controller, kind)) {
+							ImGui::Text("m_maxSlopeCosine: %.6f (%.2f°)", rigidBody->m_maxSlopeCosine, std::acos(std::clamp(rigidBody->m_maxSlopeCosine, -1.0f, 1.0f)) * (180.0f / std::numbers::pi_v<float>));
+							ImGui::Text("m_supportDistance: %.6f", rigidBody->m_supportDistance);
+							ImGui::Text("m_hardSupportDistance: %.6f", rigidBody->m_hardSupportDistance);
+						}
+						else if (const hkpCharacterProxy* proxy = GetControllerProxy(controller, kind)) {
+							ImGui::Text("maxSlopeCosine: %.6f", proxy->maxSlopeCosine);
+							ImGui::Text("keepDistance: %.6f", proxy->keepDistance);
+							ImGui::Text("keepContactTolerance: %.6f", proxy->keepContactTolerance);
+							ImGui::Text("maxCharacterSpeedForSolver: %.4f", proxy->maxCharacterSpeedForSolver);
+						}
+					}
 				}
 			}
 			ImGui::Unindent();
@@ -349,7 +380,7 @@ namespace GTS {
 		m_anchorPos = WindowAnchor::kTopLeft;
 		m_fadeSettings.enabled = false;
 
-		InputManager::RegisterInputEvent("OpenDebugMenu", OpenSettingsKeybindCallback);
+		InputManager::RegisterInputEvent("Debug.Menu.Open", OpenSettingsKeybindCallback);
 
 	}
 
@@ -371,6 +402,8 @@ namespace GTS {
 
 	void DebugWindow::DebugDraw() {
 
+		AnimationDebugger::Draw();
+
 		if (m_showDemoWindow) {
 			ImGui::ShowDemoWindow(&m_showDemoWindow);
 		}
@@ -388,7 +421,8 @@ namespace GTS {
 	}
 
 	bool DebugWindow::IsDebugging() {
-		return m_showStackWindow       ||
+		return AnimationDebugger::AnyEnabled() ||
+			   m_showStackWindow       ||
 			   m_showMetricsWindow     ||
             #ifdef GTS_PROFILER_ENABLED
 			   Profilers::IsEnabled()   ||

@@ -3,8 +3,7 @@
 #include "Config/Config.hpp"
 
 #include "Managers/Animation/AnimationManager.hpp"
-#include "Managers/Animation/Grab.hpp"
-#include "Managers/Animation/HugShrink.hpp"
+#include "Actions/Nodes/Hug/HugNode.hpp"
 #include "Managers/Animation/Utils/AnimationUtils.hpp"
 
 #include "Managers/Rumble.hpp"
@@ -84,7 +83,7 @@ namespace {
 		if (damage < 6.0f * bonus * scale) {
 			return;
 		}
-		HugShrink::CallRelease(receiver); // Else release
+		Actions::HugNode::Cancel(receiver);
 	}
 
 	void DoHitShake(Actor* receiver, float value) {

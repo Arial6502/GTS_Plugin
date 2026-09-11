@@ -3,6 +3,7 @@
 #include "Config/Config.hpp"
 
 #include "Managers/Animation/Utils/AnimationUtils.hpp"
+#include "Actions/Core/ActionRegistry.hpp"
 #include "Managers/Animation/AnimationManager.hpp"
 #include "Managers/Audio/MoansLaughs.hpp"
 #include "Managers/GTSSizeManager.hpp"
@@ -102,7 +103,7 @@ namespace GTS {
 
 								if (!actor->IsSneaking() && Runtime::HasPerkTeam(actor, Runtime::PERK.GTSPerkRandomGrowthAug) && TotalPower >= Get_Breach_Threshold(actor) && !AnimationVars::General::IsGTSBusy(actor)) { 
 									// Shouldn't happen in sneak, we have no anim for it, and i doubt Lajest will make more
-									AnimationManager::StartAnim("StartRandomGrowth", actor);
+									Actions::ActionRegistry::Perform(actor, "Growth.Random");
 								} else {
 									if (!AnimationVars::Growth::IsGrowing(actor)) {
 										ActorHandle gianthandle = actor->CreateRefHandle();

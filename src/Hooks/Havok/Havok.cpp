@@ -84,14 +84,14 @@ namespace {
 
 			auto tranDataA = Transient::GetActorData(actor_a);
 			if (tranDataA) {
-				if (tranDataA->DisableColissionWith == otherActor) {
+				if (tranDataA->DisableColissionWith == actor_b->GetHandle()) {
 					return true;
 				}
 			}
 
 			auto tranDataB = Transient::GetActorData(actor_b);
 			if (tranDataB) {
-				if (tranDataB->DisableColissionWith == actor) {
+				if (tranDataB->DisableColissionWith == actor_a->GetHandle()) {
 					return true;
 				}
 			}
@@ -259,9 +259,34 @@ namespace Hooks {
 
 	struct ActorInitHavok {
 
+		//Sits on the bhkCharacterController creation call inside the function Actor::InitHavok
+		//calls to build the controller. One site, and Actor, Character and PlayerCharacter all
+		//share that InitHavok body, so this covers every actor type.
 		static void thunk(RE::bhkCharacterController* a_this, uint32_t a2, RE::Actor* a_actor) {
+
+			const auto* Loaded = a_actor ? a_actor->loadedData : nullptr;
+			const bool FirstInit = !Loaded || !(Loaded->flags & 1);
+
 			func(a_this, a2, a_actor);
 			DynamicCollisionManager::CreateInstance(a_actor);
+
+			//loadedData->flags bit 0 is the game's own "havok has been set up for this actor"
+			//marker: the function this call sits in sets it at the end, and Actor::SetParentCell
+			//reads it to decide whether to call InitHavok at all. loadedData is created and
+			//destroyed with the actor's 3d, so it resets on unload without any help.
+			if (a_actor && FirstInit) {
+				//The rest of InitHavok still has to run, so hand the event to the next frame.
+				const auto Handle = a_actor->GetHandle();
+				SKSE::GetTaskInterface()->AddTask([Handle] {
+					//Not gated on State::InGame. A save load sets that false from kPreLoadGame until
+					//kPostLoadGame, and every actor the save builds - the player included - becomes
+					//ready inside that window, so the gate dropped the events the event exists for.
+					//A listener that only wants live gameplay has OnMainUpdate for that.
+					if (const auto Actor = Handle.get()) {
+						EventDispatcher::DispatchActorReady(Actor.get());
+					}
+				});
+			}
 		}
 
 		FUNCTYPE_CALL func;

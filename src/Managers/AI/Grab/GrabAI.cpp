@@ -1,10 +1,11 @@
+#include "Actions/Core/Possession.hpp"
+#include "Actions/Core/ActionRegistry.hpp"
+#include "Actions/Nodes/Grab/GrabCommon.hpp"
 #include "Managers/AI/Grab/GrabAI.hpp"
 
 #include "Config/Config.hpp"
 #include "Managers/Animation/AnimationManager.hpp"
-#include "Managers/Animation/Grab.hpp"
 #include "Managers/Animation/Utils/AnimationUtils.hpp"
-#include "Managers/Animation/CleavageState.hpp"
 
 #include "Utils/Actions/VoreUtils.hpp"
 
@@ -128,7 +129,7 @@ namespace {
 
 	bool GrabAI_CanRelease(Actor* a_Performer) {
 
-		auto grabbedActor = Grab::GetHeldActor(a_Performer);
+		auto grabbedActor = Actions::Possession::Carried(a_Performer->formID);
 		if (!grabbedActor) {
 			return false;
 		}
@@ -163,8 +164,9 @@ namespace {
 			return;
 		}
 		
-		Grab::GrabActor(a_Performer, a_Prey);
-		AnimationManager::StartAnim("GrabSomeone", a_Performer);
+		if (!Actions::Grabbing::Grab(a_Performer, a_Prey)) {
+			return;
+		}
 
 		TaskManager::Run(TaskName, [=](auto& progressData) {
 
@@ -195,7 +197,7 @@ namespace {
 			const bool Devourment = IsInvisible_Devourment(PreyActor);
 			const bool IsDead    = PreyActor->IsDead() || Escaped || Devourment || GetAV(PreyActor, ActorValue::kHealth) <= 0.0f || PerformerActor->IsDead();
 			const bool IsBusy    = AnimationVars::Grab::IsGrabAttacking(PerformerActor) || AnimationVars::General::IsTransitioning(PerformerActor);
-			const bool ValidPrey = Grab::GetHeldActor(PerformerActor) != nullptr;
+			const bool ValidPrey = Actions::Possession::Carried(PerformerActor->formID) != nullptr;
 
 			if (!IsDead && !IsBusy) {
 
@@ -219,33 +221,32 @@ namespace {
 
 							//Attack
 							case 0: {
-								AnimationManager::StartAnim("GrabDamageAttack", PerformerActor);
+								Actions::ActionRegistry::Perform(PerformerActor, "Grab.Attack");
 								break;
 							}
 							//Throw
 							case 1: {
-								AnimationManager::StartAnim("GrabThrowSomeone", PerformerActor);
+								Actions::ActionRegistry::Perform(PerformerActor, "Grab.Throw");
 								break;
 							}
 							//Vore
 							case 2: {
-								AnimationManager::StartAnim("GrabEatSomeone", PerformerActor);
+								Actions::ActionRegistry::Perform(PerformerActor, "Grab.Vore");
 								break;
 							}
 							//Release
 							case 3: {
-								AnimationManager::StartAnim("GrabReleasePunies", PerformerActor);
+								Actions::ActionRegistry::Perform(PerformerActor, "Grab.Release");
 								break;
 							}
 							//Cleavage
 							case 4: {
-								AnimationManager::StartAnim("Breasts_Put", PerformerActor);
+								Actions::ActionRegistry::Perform(PerformerActor, "Grab.Store");
 								break;
 							}
 							//Grab Play
 							case 5: {
-								AnimationManager::StartAnim("GrabPlay_Enter", PerformerActor);
-								AnimationManager::StartAnim("GrabPlay_Enter_T", PreyActor);
+								Actions::ActionRegistry::Perform(PerformerActor, "Grab.Play");
 								break;
 							}
 
@@ -258,8 +259,7 @@ namespace {
 
 						if (RandomBool(80)) {
 							Utils_UpdateHighHeelBlend(PerformerActor, false);
-							AnimationManager::StartAnim("Cleavage_EnterState", PerformerActor);
-							AnimationManager::StartAnim("Cleavage_EnterState_Tiny", PreyActor);
+							Actions::ActionRegistry::Perform(PerformerActor, "Cleavage.Enter");
 						}
 
 					}
@@ -269,8 +269,7 @@ namespace {
 						//Shortest Timer is 1.0 sec so after ~30s max Stop DOT.
 						if (RandomBool(3.333f)) {
 							// Spare tiny, return to idle breast loop
-							AnimationManager::StartAnim("Cleavage_DOT_Stop", PerformerActor);
-							AnimationManager::StartAnim("Cleavage_DOT_Stop_Tiny", PreyActor);
+							Actions::ActionRegistry::Perform(PerformerActor, "Cleavage.DotStop");
 						}
 					}
 					//AnimationVars::General::IsGTSBusy(PerformerActor) is true when in this state
@@ -289,43 +288,37 @@ namespace {
 							case 0: {
 
 								if (RandomBool(50.0f)) {
-									AnimationManager::StartAnim("Cleavage_LightAttack", PerformerActor);
-									AnimationManager::StartAnim("Cleavage_LightAttack_Tiny", PreyActor);
+									Actions::ActionRegistry::Perform(PerformerActor, "Cleavage.Light");
 								}
 								else {
-									AnimationManager::StartAnim("Cleavage_HeavyAttack", PerformerActor);
-									AnimationManager::StartAnim("Cleavage_HeavyAttack_Tiny", PreyActor);
+									Actions::ActionRegistry::Perform(PerformerActor, "Cleavage.Heavy");
 								}
 
 								break;
 							}
 							//Suffocate
 							case 1: {
-								AnimationManager::StartAnim("Cleavage_Suffocate", PerformerActor);
-								AnimationManager::StartAnim("Cleavage_Suffocate_Tiny", PreyActor);
+								Actions::ActionRegistry::Perform(PerformerActor, "Cleavage.Suffocate");
 								break;
 							}
 							//Vore
 							case 2: {
-								AnimationManager::StartAnim("Cleavage_Vore", PerformerActor);
-								AnimationManager::StartAnim("Cleavage_Vore_Tiny", PreyActor);
+								Actions::ActionRegistry::Perform(PerformerActor, "Cleavage.Vore");
 								break;
 							}
 							//Absorb
 							case 3: {
-								AnimationManager::StartAnim("Cleavage_Absorb", PerformerActor);
-								AnimationManager::StartAnim("Cleavage_Absorb_Tiny", PreyActor);
+								Actions::ActionRegistry::Perform(PerformerActor, "Cleavage.Absorb");
 								break;
 							}
 							//Strangle
 							case 4: {
-								AnimationManager::StartAnim("Cleavage_DOT_Start", PerformerActor);
-								Animation_Cleavage::AttemptBreastActionOnTiny("Cleavage_DOT_Start_Tiny", PerformerActor);
+								Actions::ActionRegistry::Perform(PerformerActor, "Cleavage.DotStart");
 								break;
 							}
 							//Stop
 							case 5: {
-								AnimationManager::StartAnim("Cleavage_ExitState", PerformerActor);
+								Actions::ActionRegistry::Perform(PerformerActor, "Cleavage.Exit");
 								break;
 							}
 
@@ -358,62 +351,52 @@ namespace {
 
 							//HeavyCrushChance - Stateless
 							case 0: {
-								AnimationManager::StartAnim("GrabPlay_CrushH", PerformerActor);
-								AnimationManager::StartAnim("GrabPlay_CrushH_T", PreyActor);
+								Actions::ActionRegistry::Perform(PerformerActor, "GrabPlay.Crush");
 								break;
 							}
 							//VoreChance - Stateless
 							case 1: {
-								AnimationManager::StartAnim("GrabPlay_Vore", PerformerActor);
-								AnimationManager::StartAnim("GrabPlay_Vore_T", PreyActor);
+								Actions::ActionRegistry::Perform(PerformerActor, "GrabPlay.Vore");
 								break;
 							}
 							//KissChance - Stateless
 							case 2: {
-								AnimationManager::StartAnim("GrabPlay_Kiss", PerformerActor);
-								AnimationManager::StartAnim("GrabPlay_Kiss_T", PreyActor);
+								Actions::ActionRegistry::Perform(PerformerActor, "GrabPlay.Kiss");
 								break;
 							}
 							//KissVoreChance - Substate of Kiss
 							case 3: {
-								AnimationManager::StartAnim("GrabPlay_KissVore", PerformerActor);
-								AnimationManager::StartAnim("GrabPlay_KissVore_T", PreyActor);
+								Actions::ActionRegistry::Perform(PerformerActor, "GrabPlay.KissVore");
 								break;
 							}
 							//PokeChance - Stateless
 							case 4: {
-								AnimationManager::StartAnim("GrabPlay_Poke", PerformerActor);
-								AnimationManager::StartAnim("GrabPlay_Poke_T", PreyActor);
+								Actions::ActionRegistry::Perform(PerformerActor, "GrabPlay.Poke");
 								break;
 							}
 							//FlickChance - Stateless
 							case 5: {
-								AnimationManager::StartAnim("GrabPlay_Flick", PerformerActor);
-								AnimationManager::StartAnim("GrabPlay_Flick_T", PreyActor);
+								Actions::ActionRegistry::Perform(PerformerActor, "GrabPlay.Flick");
 								break;
 							}
 							//SandwichChance - Stateless
 							case 6: {
-								AnimationManager::StartAnim("GrabPlay_Sandwich", PerformerActor);
-								AnimationManager::StartAnim("GrabPlay_Sandwich_T", PreyActor);
+								Actions::ActionRegistry::Perform(PerformerActor, "GrabPlay.Sandwich");
 								break;
 							}
 							//GrindStartChance - Statefull
 							case 7: {
-								AnimationManager::StartAnim("GrabPlay_GrindStart", PerformerActor);
-								AnimationManager::StartAnim("GrabPlay_GrindStart_T", PreyActor);
+								Actions::ActionRegistry::Perform(PerformerActor, "GrabPlay.GrindStart");
 								break;
 							}
 							//GrindStopChance - Substate of GrindStartChance
 							case 8: {
-								AnimationManager::StartAnim("GrabPlay_GrindStop", PerformerActor);
-								AnimationManager::StartAnim("GrabPlay_GrindStop_T", PreyActor);
+								Actions::ActionRegistry::Perform(PerformerActor, "GrabPlay.GrindStop");
 								break;
 							}
 							//ExitChance - Stateless
 							case 9: {
-								AnimationManager::StartAnim("GrabPlay_Exit", PerformerActor);
-								AnimationManager::StartAnim("GrabPlay_Exit_T", PreyActor);
+								Actions::ActionRegistry::Perform(PerformerActor, "GrabPlay.Exit");
 								break;
 							}
 
@@ -431,9 +414,9 @@ namespace {
 
 				if (ValidPrey) { // We don't want to push/cancel grab on Null actor
 					PushActorAway(PerformerActor, PreyActor, 1.0f);
-					Grab::CancelGrab(PerformerActor, PreyActor);
+					Actions::Grabbing::Abort(PerformerActor);
 				} else {
-					Grab::FailSafeReset(PerformerActor);
+					Actions::Grabbing::Abort(PerformerActor);
 				}
 
 				ResetCombat(PerformerActor);

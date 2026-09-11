@@ -2,8 +2,9 @@
 
 #include "Config/Config.hpp"
 
+#include "Actions/Core/ActionRegistry.hpp"
 #include "Managers/Animation/AnimationManager.hpp"
-#include "Managers/Animation/HugShrink.hpp"
+#include "Actions/Core/Possession.hpp"
 #include "Managers/Animation/Utils/AnimationUtils.hpp"
 
 using namespace GTS;
@@ -169,7 +170,7 @@ namespace {
 			const bool IsBusy = AnimationVars::Hug::IsHugCrushing(PerformerActor) || AnimationVars::Hug::IsHugHealing(PerformerActor);
 			const bool GentleAnim = IsTeammate(PreyActor) || PreyActor->IsPlayerRef();
 
-			if (!HugShrink::GetHuggiesActor(PerformerActor) || IsRagdolled(PerformerActor)) {
+			if (!Actions::Possession::FirstActor(PerformerActor->formID, Actions::PossessionSlot::kArms) || IsRagdolled(PerformerActor)) {
 				if (!GentleAnim) {
 					PushForward(PerformerActor, PreyActor, 300.0f);
 				}
@@ -219,7 +220,7 @@ namespace {
 
 			if (ShouldStop) {
 				UpdateFriendlyHugs(PerformerActor, PreyActor, !GentleAnim);
-				AbortHugAnimation(PerformerActor, PreyActor);
+				Actions::ActionRegistry::Perform(PerformerActor, "Hug.Cancel");
 			}
 
 			if (IsDead) {
@@ -249,7 +250,7 @@ namespace GTS {
 			return {};
 		}
 
-		if (!AnimationVars::General::CanDoPaired(a_Performer) && !AnimationVars::Other::IsSynched(a_Performer) && !AnimationVars::Grab::HasGrabbedTiny(a_Performer)) {
+		if (!AnimationVars::General::CanDoPaired(a_Performer) && !AnimationVars::Other::IsSynced(a_Performer) && !AnimationVars::Grab::HasGrabbedTiny(a_Performer)) {
 			return {};
 		}
 
@@ -319,7 +320,7 @@ namespace GTS {
 	void HugAI_Start(Actor* a_Performer, Actor* a_Prey) {
 
 		RecordSneakingState(a_Performer, a_Prey); // Needed to determine which hugs to play: sneak or crawl ones (when sneaking)
-		HugShrink::HugActor(a_Performer, a_Prey);
+		Actions::Possession::Take(a_Performer->formID, Actions::PossessionSlot::kArms, a_Prey->GetHandle());
 
 		AnimationManager::StartAnim("Huggies_Try", a_Performer);
 

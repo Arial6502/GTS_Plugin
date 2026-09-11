@@ -21,6 +21,7 @@ namespace GTS {
 		virtual void OnImpact(const Impact& impact) {}
 		virtual void OnActorLoad3D(Actor* actor) {}                      // Fired when the game requestes an actor to be 3d Loaded.
 		virtual void OnActor3DUnload(Actor* actor) {}                    // Fired immediately BEFORE an actor's 3d is torn down. Actor and its current 3d are still valid, so cached node pointers must be released here.
+		virtual void OnActorReady(Actor* actor) {}                       // Fired one frame after the game built the actor's character controller, so 3d, AIProcess and havok are all valid. The game rebuilds the controller more than once per 3d load (water boundaries, equipment refresh), so it is announced once per actor until its 3d is torn down. Fires during a save load too, which is where most of them arrive: do the work in OnMainUpdate and use this to record that the actor is usable.
 		virtual void OnActorPerkAdded(const AddPerkEvent& evt) {}        // Fired when a perk is added
 		virtual void OnActorPerkRemoved(const RemovePerkEvent& evt) {}   // Fired when a perk about to be removed
 		virtual void OnActorUpdate(RE::Actor* actor) {} 		         // Called per frame for each currently loaded actor
@@ -89,6 +90,7 @@ namespace GTS {
     X(OnImpact)                 \
     X(OnActorLoad3D)            \
     X(OnActor3DUnload)          \
+    X(OnActorReady)             \
     X(OnActorPerkAdded)         \
     X(OnActorPerkRemoved)       \
     X(OnActorUpdate)            \

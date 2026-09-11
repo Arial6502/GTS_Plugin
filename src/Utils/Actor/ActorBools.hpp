@@ -7,6 +7,11 @@ namespace GTS {
 	bool IsHumanoid(Actor* giant);
 	bool CountAsGiantess(Actor* giant);
 	bool IsVisible(Actor* giant);
+
+	// The actor has been taken out of the world on purpose: disabled, deleted, or marked for deletion.
+	// Not the same question as having 3d, which an actor also loses on every cell change and which says
+	// nothing about whether they are coming back.
+	bool IsActorLost(Actor* a_Actor);
 	bool IsInvisible_Devourment(Actor* a_actor);
 	bool HasHeadTrackingTarget(Actor* giant);
 	bool KnockedDown(Actor* giant);

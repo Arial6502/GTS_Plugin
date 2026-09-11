@@ -1,3 +1,4 @@
+#include "Actions/Core/ActionRegistry.hpp"
 #include "Managers/Animation/Utils/AnimationUtils.hpp"
 #include "Managers/Animation/Utils/CooldownManager.hpp"
 #include "Managers/Animation/Utils/AttachPoint.hpp"
@@ -9,7 +10,6 @@
 #include "Managers/Animation/Controllers/HugController.hpp"
 
 #include "Managers/Animation/AnimationManager.hpp"
-#include "Managers/Animation/HugShrink.hpp"
 
 #include "Managers/Emotions/EmotionManager.hpp"
 #include "Managers/Perks/PerkHandler.hpp"
@@ -82,12 +82,7 @@ namespace GTS {
 			Attachment_SetTargetNode(giant, AttachToNode::None);
 			AnimationVars::Action::SetIsCleavageZOverrideEnabled(giant, false);
 
-			if (IsHostile(giant, tiny)) {
-				AnimationManager::StartAnim("Breasts_Idle_Unwilling", tiny);
-			}
-			else {
-				AnimationManager::StartAnim("Breasts_Idle_Willing", tiny);
-			}
+			tiny->NotifyAnimationGraph(IsHostile(giant, tiny) ? "GTSBEH_T_Storage_Enemy" : "GTSBEH_T_Storage_Ally");
 		}
 	}
 
@@ -122,97 +117,6 @@ namespace GTS {
 				animspeed = 1.0f; // 1.0 makes dll use GetAnimSpeed of tiny
 			}
 			// Fixes hug and boob attack states anim de-sync
-		}
-	}
-
-	void ForceFollowerAnimation(Actor* giant, FollowerAnimType Type) {
-		std::size_t numberOfPrey = 1000;
-
-		auto& Vore      =   VoreController::GetSingleton();
-		auto& ButtCrush = 	ButtCrushController::GetSingleton();
-		auto& Hugs      =	HugAnimationController::GetSingleton();
-		auto& Grabs     = 	GrabAnimationController::GetSingleton();
-		auto& Sandwich  =   ThighSandwichController::GetSingleton();
-
-		switch (Type) {
-			// xxx.AllowMessage(true/false) are used to allow info messages when Follower can't do something with player
-			// They're all false by default
-			case FollowerAnimType::ButtCrush: {
-				for (auto new_gts: FindTeammates()) {
-					if (IsTeammate(new_gts)) {
-						ButtCrush.AllowMessage(true);
-						for (auto new_tiny: ButtCrush.GetButtCrushTargets(new_gts, numberOfPrey)) { 
-							if (new_tiny->IsPlayerRef()) {
-								ButtCrush.StartButtCrush(new_gts, new_tiny);
-								ControlAnother(new_gts, false);
-							}
-						}
-					}
-				}
-				ButtCrush.AllowMessage(false);
-				break;	
-			}
-		 	case FollowerAnimType::Hugs: {
-				for (auto new_gts: FindTeammates()) {
-					if (IsTeammate(new_gts)) {
-						Hugs.AllowMessage(true);
-						for (auto new_tiny: Hugs.GetHugTargetsInFront(new_gts, numberOfPrey)) { 
-							if (new_tiny->IsPlayerRef()) {
-								Hugs.StartHug(new_gts, new_tiny);
-								ControlAnother(new_gts, false);
-							}
-						}
-					}
-				}
-				Hugs.AllowMessage(false);
-				break;
-			}
-		 	case FollowerAnimType::Grab: {
-				for (auto new_gts: FindTeammates()) {
-					if (IsTeammate(new_gts)) {
-						Grabs.AllowMessage(true);
-						std::vector<Actor*> FindTiny = Grabs.GetGrabTargetsInFront(new_gts, numberOfPrey);
-						for (auto new_tiny: FindTiny) { 
-							if (new_tiny->IsPlayerRef()) {
-								Grabs.StartGrab(new_gts, new_tiny);
-								ControlAnother(new_gts, false);
-							}
-						}
-					}
-				}
-				Grabs.AllowMessage(false);
-				break;	
-			}
-		 	case FollowerAnimType::Vore: {	
-				for (auto new_gts: FindTeammates()) {
-					if (IsTeammate(new_gts)) {
-						Vore.AllowMessage(true);
-						for (auto new_tiny: Vore.GetVoreTargetsInFront(new_gts, numberOfPrey)) { 
-							if (new_tiny->IsPlayerRef()) {
-								Vore.StartVore(new_gts, new_tiny);
-								ControlAnother(new_gts, false);
-							}
-						}
-					}
-				}
-				Vore.AllowMessage(false);
-				break;
-			} 
-		 	case FollowerAnimType::ThighSandwich: {
-				for (auto new_gts: FindTeammates()) {
-					if (IsTeammate(new_gts)) {
-						Sandwich.AllowMessage(true);
-						for (auto new_tiny: Sandwich.GetSandwichTargetsInFront(new_gts, numberOfPrey)) { 
-							if (new_tiny->IsPlayerRef()) {
-								Sandwich.StartSandwiching(new_gts, new_tiny);
-								ControlAnother(new_gts, false);
-							}
-						}
-					}
-				} 
-				Sandwich.AllowMessage(false);
-				break;
-			}
 		}
 	}
 
@@ -347,38 +251,6 @@ namespace GTS {
 	}
 
 	// Cancels all hug-related things
-	void AbortHugAnimation(Actor* giant, Actor* tiny, bool no_reset) {
-		bool Friendly = AnimationVars::Hug::IsHuggingTeammate(giant);
-
-		SetSneaking(giant, false, 0);
-
-		AdjustFacialExpression(giant, 0, 0.0f, CharEmotionType::Phenome);
-		AdjustFacialExpression(giant, 0, 0.0f, CharEmotionType::Modifier);
-		AdjustFacialExpression(giant, 1, 0.0f, CharEmotionType::Modifier);
-
-		AnimationManager::StartAnim("Huggies_Spare", giant); // Start "Release" animation on Giant
-		if (tiny) {
-			logger::info("Friendly: {}", Friendly);
-			if (Friendly && !AnimationVars::Crawl::IsCrawling(giant)) { // If friendly, we don't want to push/release actor
-				EnableCollisions(tiny);
-				SetBeingHeld(tiny, false);
-				Anims_FixAnimationDesync(giant, tiny, true); // reset anim speed override so .dll won't use it
-				AnimationManager::StartAnim("Huggies_Spare", tiny);
-				logger::info("Gentle Release");
-			} else {
-				EnableCollisions(tiny);
-				SetBeingHeld(tiny, false);
-				PushForward(giant, tiny, 300.0f);
-				Anims_FixAnimationDesync(giant, tiny, true); // reset anim speed override so .dll won't use it
-				logger::info("Rough release");
-			}
-			if (!no_reset) {
-				UpdateFriendlyHugs(giant, tiny, true); // set GTS_IsFollower (tiny) and GTS_HuggingTeammate (GTS) bools to false
-			}
-		}
-		HugShrink::Release(giant);
-	}
-
 	void Utils_UpdateHugBehaviors(Actor* giant, Actor* tiny) { // blend between two anims: send value to behaviors
         float tinySize = get_visual_scale(tiny);
         float giantSize = get_visual_scale(giant);
@@ -732,19 +604,36 @@ namespace GTS {
 
 	}
 
+	// The grind does not always kill, and a tiny that lives through it is still pinned in the state
+	// GTSBEH_T_Slam_Start put them in. Nothing sends them out of it: the graph declares
+	// GTSBEH_T_Slam_Finish as an event name but no transition uses it, so the default state is forced.
+	void ReleaseFromFingerGrind(Actor* tiny) {
+
+		SetBeingGrinded(tiny, false);
+
+		if (tiny->Is3DLoaded()) {
+			Actions::ActionRegistry::Notify(tiny, "IdleForceDefaultState", true);
+		}
+	}
+
 	void DoFingerGrind(Actor* giant, Actor* tiny) {
 		auto gianthandle = giant->CreateRefHandle();
 		auto tinyhandle = tiny->CreateRefHandle();
 
 		ShrinkUntil(giant, tiny, 10.0f, 0.18f, false);
-		
-		std::string name = std::format("FingerGrind_{}_{}", giant->formID, tiny->formID);
-		AnimationManager::StartAnim("Tiny_Finger_Impact_S", tiny);
-		auto FrameA = Time::FramesElapsed();
+
+		// Read before the tiny is pinned. Failing after the send would leave them in the slam state
+		// with no task running to take them out of it.
 		auto coordinates = AttachToObjectB_GetCoords(giant, tiny);
 		if (coordinates == NiPoint3(0,0,0)) {
+			SetBeingGrinded(tiny, false);
 			return;
 		}
+
+		std::string name = std::format("FingerGrind_{}_{}", giant->formID, tiny->formID);
+		tiny->NotifyAnimationGraph("GTSBEH_T_Slam_Start");
+		auto FrameA = Time::FramesElapsed();
+
 		TaskManager::Run(name, [=](auto& progressData) {
 			if (!gianthandle) {
 				return false;
@@ -761,14 +650,18 @@ namespace GTS {
 			}
 
 			AttachTo(giantref, tinyref, coordinates);
-			if (!AnimationVars::Action::IsFootGrinding(giantref)) {
-				SetBeingGrinded(tinyref, false);
-				return false;
-			}
+
+			// Checked before the grind state, so a corpse is not forced back into an idle.
 			if (tinyref->IsDead()) {
 				SetBeingGrinded(tinyref, false);
 				return false;
 			}
+
+			if (!AnimationVars::Action::IsFootGrinding(giantref)) {
+				ReleaseFromFingerGrind(tinyref);
+				return false;
+			}
+
 			return true;
 		});
 	}
@@ -829,13 +722,8 @@ namespace GTS {
 			bool HitDetected = CollisionDamage::HasCollided(giant, otherActor, world, Points, giantLocation, giantScale, SCALE_RATIO, maxDistance, maxCheckDistanceSq, sphereRadiusSq, toHavok);
 			if (HitDetected && !otherActor->IsDead()) {
 				SetBeingGrinded(otherActor, true);
-				if (Right) {
-					DoFingerGrind(giant, otherActor);
-					AnimationManager::StartAnim("GrindRight", giant);
-				} else {
-					DoFingerGrind(giant, otherActor);
-					AnimationManager::StartAnim("GrindLeft", giant);
-				}
+				DoFingerGrind(giant, otherActor);
+				Actions::ActionRegistry::Perform(giant, Right ? "Stomp.GrindR" : "Stomp.GrindL");
 			}
 		}
 	}
@@ -904,18 +792,18 @@ namespace GTS {
 										std::string_view action;
 										switch (Type) {
 											case FootActionType::Grind_Normal:
-												Right ? action = "GrindRight" : action = "GrindLeft";
-												AnimationManager::StartAnim(action, giant);
+												action = Right ? "Stomp.GrindR" : "Stomp.GrindL";
+												Actions::ActionRegistry::Perform(giant, action);
 												DoFootGrind(giant, tiny, Right);
 												break;
 											case FootActionType::Grind_UnderStomp: // Used for both standing and sneaking
-												Right ? action = "UnderGrindR" : action = "UnderGrindL";
-												AnimationManager::StartAnim(action, giant);
+												action = Right ? "Stomp.UnderGrindR" : "Stomp.UnderGrindL";
+												Actions::ActionRegistry::Perform(giant, action);
 												DoFootGrind(giant, tiny, Right);
 												break;
 											case FootActionType::Trample_NormalOrUnder:
-												Right ? action = "TrampleStartR" : action = "TrampleStartL";
-												AnimationManager::StartAnim(action, giant);
+												action = Right ? "Stomp.TrampleR" : "Stomp.TrampleL";
+												Actions::ActionRegistry::Perform(giant, action);
 												DoFootTrample(giant, tiny, Right);
 												break;
 										}
@@ -1791,7 +1679,7 @@ namespace GTS {
 	void UpdateCrawlAnimations(Actor* a_actor, bool a_state) {
 
 		if (a_actor) {
-			AnimationManager::StartAnim(a_state ? "CrawlON" : "CrawlOFF", a_actor);
+			Actions::ActionRegistry::Perform(a_actor, a_state ? "Crawl.On" : "Crawl.Off");
 		}
 	}
 }

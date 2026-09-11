@@ -72,6 +72,7 @@ namespace GTS {
 
 		static void DispatchActor3DLoad(RE::Actor* actor);
 		static void DispatchActor3DUnload(RE::Actor* actor);
+		static void DispatchActorReady(RE::Actor* actor);
 		static void DispatchActorAddPerk(const AddPerkEvent& evt);
 		static void DispatchActorRemovePerk(const RemovePerkEvent& evt);
 		static void DispatchActorAnimationEvent(RE::Actor* actor, const RE::BSFixedString& a_tag, const RE::BSFixedString& a_payload);

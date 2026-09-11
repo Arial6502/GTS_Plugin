@@ -1,13 +1,12 @@
 #include "Utils/Actions/InputFunctions.hpp"
 
-#include "Config/Config.hpp"
+#include "Actions/Core/Possession.hpp"
 
-#include "Utils/Actions/InputConditions.hpp"
+#include "Config/Config.hpp"
 
 #include "Managers/Animation/Utils/AnimationUtils.hpp"
 #include "Managers/Animation/AnimationManager.hpp"
 #include "Managers/Input/InputManager.hpp"
-#include "Managers/Animation/Controllers/VoreController.hpp"
 #include "Managers/Rumble.hpp"
 #include "Managers/HighHeel.hpp"
 #include "Managers/AttributeManager.hpp"
@@ -19,6 +18,52 @@
 using namespace GTS;
 
 namespace {
+
+	// Was gated on the Size Reserve perk and on the actor having persistent data. Left returning true
+	// when that check was commented out; kept as the hook for putting it back.
+	bool SizeReserveCondition() {
+		return true;
+	}
+
+	bool ShrinkOutburstCondition() {
+		auto target = PlayerCharacter::GetSingleton();
+		if (target) {
+			bool DarkArts = Runtime::HasPerk(target, Runtime::PERK.GTSPerkDarkArts);
+			if (!DarkArts) {
+				return false; // no perk, do nothing
+			}
+		}
+		return true;
+	}
+
+	bool ProtectSmallOnesCondition() {
+		auto target = PlayerCharacter::GetSingleton();
+
+		if (target && CanDoActionBasedOnQuestProgress(target, QuestAnimationType::kOthers)) {
+			return true;
+		}
+		return false;
+	}
+
+	bool TotalControlCondition() {
+		auto target = PlayerCharacter::GetSingleton();
+
+		if (!Runtime::HasPerk(target, Runtime::PERK.GTSPerkGrowthDesireAug)) {
+			return false;
+		}
+		return true;
+	}
+
+	bool StruggleCondition() {
+		auto player = PlayerCharacter::GetSingleton();
+		auto transient = Transient::GetActorData(player);
+		if (transient) {
+			const bool Grabbed = transient->BeingHeld;
+			const bool CanStruggle = (AnimationVars::General::IsBusy(player) && AnimationVars::Tiny::IsBeingHugged(player)) || Grabbed;
+			return !IsFreeCameraEnabled() && !transient->EscapingInteraction && CanStruggle;
+		}
+		return false;
+	}
 
 	constexpr float DURATION = 2.0f;
 	constexpr float StruggleCost = 10.0f;
@@ -392,29 +437,6 @@ namespace {
 
 	////////////////////////////////////////////////////////////////////
 
-	void RapidGrowthEvent(const ManagedInputEvent& data) {
-		auto player = PlayerCharacter::GetSingleton();
-			float target = get_target_scale(player);
-			float max_scale = get_max_scale(player);// * get_natural_scale(player);
-			if (target >= max_scale) {
-				NotifyWithSound(player, "You can't grow any further");
-				Rumbling::Once("CantGrow", player, 0.25f, 0.05f);
-				return;
-			}
-			AnimationManager::StartAnim("TriggerGrowth", player);
-	}
-
-	void RapidShrinkEvent(const ManagedInputEvent& data) {
-		auto player = PlayerCharacter::GetSingleton();
-			float target = get_target_scale(player);
-			if (target <= Minimum_Actor_Scale) {
-				NotifyWithSound(player, "You can't shrink any further");
-				Rumbling::Once("CantGrow", player, 0.25f, 0.05f);
-				return;
-			}
-			AnimationManager::StartAnim("TriggerShrink", player);
-	}
-
 	////////////////////////////////////////////////////////////////////
 
 	void SizeReserveEvent(const ManagedInputEvent& data) {
@@ -430,7 +452,7 @@ namespace {
 					if (duration >= 1.2f && Runtime::HasPerk(player, Runtime::PERK.GTSPerkSizeReserve)) {
 						bool ShouldPrevent = get_target_scale(player) >= 1.49f && TinyCalamityActive(player); // So we don't waste it on Calamity that shrinks player back
 						if (!ShouldPrevent) {
-							bool HandsBusy = Grab::GetHeldActor(player);
+							bool HandsBusy = Actions::Possession::Carried(player->formID);
 							if (!HandsBusy) {
 								float SizeCalculation = duration - 1.2f;
 								float gigantism = 1.0f + Ench_Aspect_GetPower(player);
@@ -472,6 +494,7 @@ namespace {
 		}
 	}
 
+	//TODO Move to console
 	void DebugReportEvent(const ManagedInputEvent& data) { // Report enemy scale into console
 		for (auto actor : find_actors()) {
 			if (!actor->IsPlayerRef()) {
@@ -535,40 +558,6 @@ namespace {
 		if (ProtectTimer.ShouldRunFrame()) {
 			Utils_ProtectTinies(SizeManager::BalancedMode());
 		}
-	}
-
-	void AnimSpeedUpEvent(const ManagedInputEvent& data) {
-		AnimationManager::AdjustAnimSpeed(0.045f); // Increase speed and power
-	}
-
-	void AnimSpeedDownEvent(const ManagedInputEvent& data) {
-		AnimationManager::AdjustAnimSpeed(-0.045f); // Decrease speed and power
-	}
-
-	void AnimMaxSpeedEvent(const ManagedInputEvent& data) {
-		AnimationManager::AdjustAnimSpeed(0.090f); // Strongest attack speed buff
-	}
-
-	void VoreInputEvent(const ManagedInputEvent& data) {
-		static Timer voreTimer = Timer(0.25);
-		auto pred = PlayerCharacter::GetSingleton();
-		if (AnimationVars::General::IsGTSBusy(pred)) {
-			return;
-		}
-
-		if (voreTimer.ShouldRunFrame()) {
-			auto& VoreManager = VoreController::GetSingleton();
-
-			std::vector<Actor*> preys = VoreManager.GetVoreTargetsInFront(pred, 1);
-			for (auto prey: preys) {
-				VoreManager.StartVore(pred, prey);
-			}
-		}
-	}
-
-	void VoreInputEvent_Follower(const ManagedInputEvent& data) {
-		Actor* player = PlayerCharacter::GetSingleton();
-		ForceFollowerAnimation(player, FollowerAnimType::Vore);
 	}
 
 	void StruggleInputEvent(const ManagedInputEvent& data) {
@@ -677,39 +666,40 @@ namespace GTS {
 
 	void InputFunctions::RegisterEvents() {
 
-		InputManager::RegisterInputEvent("SizeReserve", SizeReserveEvent, SizeReserveCondition);
-		InputManager::RegisterInputEvent("DisplaySizeReserve", DisplaySizeReserveEvent, SizeReserveCondition);
-		InputManager::RegisterInputEvent("DebugReport", DebugReportEvent);
-		InputManager::RegisterInputEvent("AnimSpeedUp", AnimSpeedUpEvent);
-		InputManager::RegisterInputEvent("AnimSpeedDown", AnimSpeedDownEvent);
-		InputManager::RegisterInputEvent("AnimMaxSpeed", AnimMaxSpeedEvent);
-		InputManager::RegisterInputEvent("RapidGrowth", RapidGrowthEvent, RappidGrowShrinkCondition);
-		InputManager::RegisterInputEvent("RapidShrink", RapidShrinkEvent, RappidGrowShrinkCondition);
-		InputManager::RegisterInputEvent("ShrinkOutburst", ShrinkOutburstEvent, ShrinkOutburstCondition);
-		InputManager::RegisterInputEvent("ProtectSmallOnes", ProtectSmallOnesEvent, ProtectSmallOnesCondition);
+		//Size Reserve
+		InputManager::RegisterInputEvent("Ability.SizeReserve.Grow", SizeReserveEvent, SizeReserveCondition);
+		InputManager::RegisterInputEvent("Ability.SizeReserve.ShowInfo", DisplaySizeReserveEvent, SizeReserveCondition);
 
-		InputManager::RegisterInputEvent("ManualGrow", TotalControlGrowEvent, TotalControlCondition);
-		InputManager::RegisterInputEvent("ManualShrink", TotalControlShrinkEvent, TotalControlCondition);
-		InputManager::RegisterInputEvent("ManualGrowOther", TotalControlGrowOtherEvent, TotalControlCondition);
-		InputManager::RegisterInputEvent("ManualShrinkOther", TotalControlShrinkOtherEvent, TotalControlCondition);
+		//Shrink Outburst
+		InputManager::RegisterInputEvent("Ability.ShrinkOutburst.Start", ShrinkOutburstEvent, ShrinkOutburstCondition);
 
-		InputManager::RegisterInputEvent("ManualGrowOverTime", TotalControlGrowPlayer_OverTime, TotalControlCondition);
-		InputManager::RegisterInputEvent("ManualShrinkOverTime", TotalControlShrinkPlayer_OverTime, TotalControlCondition);
-		InputManager::RegisterInputEvent("ManualGrowOtherOverTime", TotalControlEnlargeTeammate_OverTime, TotalControlCondition);
-		InputManager::RegisterInputEvent("ManualShrinkOtherOverTime", TotalControlShrinkTeammate_OverTime, TotalControlCondition);
 
-		InputManager::RegisterInputEvent("Vore", VoreInputEvent, VoreCondition);
-		InputManager::RegisterInputEvent("PlayerVore", VoreInputEvent_Follower, VoreCondition_Follower);
+		//Protect Small Ones
+		InputManager::RegisterInputEvent("Ability.ProtectSmallOnes.Start", ProtectSmallOnesEvent, ProtectSmallOnesCondition);
+		InputManager::RegisterInputEvent("Debug.ActorInfo.Show", DebugReportEvent);
 
-		InputManager::RegisterInputEvent("StruggleUp", StruggleInputEvent, StruggleCondition);
-		InputManager::RegisterInputEvent("StruggleDown", StruggleInputEvent, StruggleCondition);
-		InputManager::RegisterInputEvent("StruggleLeft", StruggleInputEvent, StruggleCondition);
-		InputManager::RegisterInputEvent("StruggleRight", StruggleInputEvent, StruggleCondition);
+		InputManager::RegisterInputEvent("Ability.Size.GrowManual", TotalControlGrowEvent, TotalControlCondition);
+		InputManager::RegisterInputEvent("Ability.Size.ShrinkManual", TotalControlShrinkEvent, TotalControlCondition);
+		InputManager::RegisterInputEvent("Ability.Size.GrowManual.Other", TotalControlGrowOtherEvent, TotalControlCondition);
+		InputManager::RegisterInputEvent("Ability.Size.ShrinkManual.Other", TotalControlShrinkOtherEvent, TotalControlCondition);
 
-		//Ported from papyrus
-		InputManager::RegisterInputEvent("TogglePlayerCrawl", ToggleCrawlImpl_Player);
-		InputManager::RegisterInputEvent("ToggleFollowerCrawl", ToggleCrawlImpl_Follower);
-		InputManager::RegisterInputEvent("ShowQuickStats", ShowQuickStats);
-		InputManager::RegisterInputEvent("OpenSkillTree", OpenSkillTree);
+		InputManager::RegisterInputEvent("Ability.Size.GrowManualOverTime", TotalControlGrowPlayer_OverTime, TotalControlCondition);
+		InputManager::RegisterInputEvent("Ability.Size.ShrinkManualOverTime", TotalControlShrinkPlayer_OverTime, TotalControlCondition);
+		InputManager::RegisterInputEvent("Ability.Size.GrowManualOverTime.Other", TotalControlEnlargeTeammate_OverTime, TotalControlCondition);
+		InputManager::RegisterInputEvent("Ability.Size.ShrinkManualOverTime.Other", TotalControlShrinkTeammate_OverTime, TotalControlCondition);
+
+
+		//All 4 run the same event
+		InputManager::RegisterInputEvent("Struggle.Up", StruggleInputEvent, StruggleCondition);
+		InputManager::RegisterInputEvent("Struggle.Down", StruggleInputEvent, StruggleCondition);
+		InputManager::RegisterInputEvent("Struggle.Left", StruggleInputEvent, StruggleCondition);
+		InputManager::RegisterInputEvent("Struggle.Right", StruggleInputEvent, StruggleCondition);
+
+		//Crawl toggle
+		InputManager::RegisterInputEvent("Movement.Crawl.TogglePlayer", ToggleCrawlImpl_Player);
+		InputManager::RegisterInputEvent("Movement.Crawl.ToggleFollower", ToggleCrawlImpl_Follower);
+
+		InputManager::RegisterInputEvent("UI.QuickStats.Show", ShowQuickStats);
+		InputManager::RegisterInputEvent("UI.SkillTree.Open", OpenSkillTree);
 	}
 }

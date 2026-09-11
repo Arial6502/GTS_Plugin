@@ -12,6 +12,11 @@ namespace Hooks {
 			{
 				GTS_PROFILE_ENTRYPOINT("EnginePresent::WndProcHandler");
 
+				//The only reliable notice that the user switched input language. lParam is the new HKL.
+				if (a_msg == WM_INPUTLANGCHANGE) {
+					GTS::SetActiveKeyboardLayout(reinterpret_cast<HKL>(a_lParam));
+				}
+
 				//On focus loss/gain
 				if (a_msg == WM_ACTIVATEAPP) {
 

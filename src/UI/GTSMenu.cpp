@@ -337,6 +337,19 @@ namespace GTS {
 		return WindowManager->CloseInputConsumers();
 	}
 
+	bool GTSMenu::CloseSettings() {
+
+		// Through the base pointer: SettingsWindow makes both of these private overrides.
+		ImWindow* window = WindowManager->wSettings;
+
+		if (!window || !window->WantsToDraw()) {
+			return false;
+		}
+
+		window->RequestClose();
+		return true;
+	}
+
 	void GTSMenu::OnSKSEDataLoaded() {
 
 		logger::info("Registering GTSMenu...");

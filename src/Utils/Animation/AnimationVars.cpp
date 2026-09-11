@@ -12,7 +12,7 @@ namespace GraphVars {
 	constexpr PSString _IsPandoraGenerated                 = "bIsPandoraGenerated";
 	constexpr PSString _IsNemesisGenerated                 = "bIsNemesisGenerated";
 	constexpr PSString _IsInJumpState                      = "bInJumpState";
-	constexpr PSString _IsSynched                          = "bIsSynced";
+	constexpr PSString _IsSynced                           = "bIsSynced";
 
 	//Ints
 	constexpr PSString _IsSneaking                         = "iIsInSneak";
@@ -153,11 +153,11 @@ namespace GraphVars {
 	//Bools
 	constexpr PSString _IsHandCrushing         = "GTS_IsHandCrushing";         // Enabled when we do the fist crush and hand sandwich in the HandState
 	constexpr PSString _CanAim                 = "GTS_CanAim";                 // A test to see if we can aim the flicks
+	constexpr PSString _DontExit               = "GTSBeh_DontExit";            // Graph owned, written by the BSIsActiveModifier of whatever action is playing. Every way out of the cleavage is conditioned on it being 0
 
 
 	//------------------ // UNKNOWN
 	//Bools
-	// constexpr PSString _Unk = "GTSBeh_DontExit";
 	// constexpr PSString _Unk = "GTS_CanCombo";
 	// constexpr PSString _Unk = "GTS_IsAbsorbing";
 	// constexpr PSString _Unk = "GTS_IsCasting";
@@ -202,7 +202,7 @@ namespace GTS::AnimationVars {
 		bool IsPandoraGenerated(RE::Actor* a_actor)     { return GetBool(a_actor, GraphVars::_IsPandoraGenerated); }
 		bool IsNemesisGenerated(RE::Actor* a_actor)     { return GetBool(a_actor, GraphVars::_IsNemesisGenerated); }
 		bool IsJumping(RE::Actor* a_actor)              { return GetBool(a_actor, GraphVars::_IsInJumpState); }
-		bool IsSynched(RE::Actor* a_actor)              { return GetBool(a_actor, GraphVars::_IsSynched); }
+		bool IsSynced(RE::Actor* a_actor)               { return GetBool(a_actor, GraphVars::_IsSynced); }
 
 		//Int
 		int CurrentDefaultState(RE::Actor* a_actor)     { return GetInt(a_actor, GraphVars::_CurrentDefaulltState); }
@@ -242,19 +242,19 @@ namespace GTS::AnimationVars {
 
 		//Float
 		float UnderStompBlend(RE::Actor* a_actor) { return GetFloat(a_actor, GraphVars::_StompBlend); }
-		float GetStompBlend_X(RE::Actor* a_actor) {return GetFloat(a_actor, GraphVars::_StompBlend_X);}
-		float GetStompBlend_Y(RE::Actor* a_actor) {return GetFloat(a_actor, GraphVars::_StompBlend_Y);}
+		float GetStompBlend_X(RE::Actor* a_actor) { return GetFloat(a_actor, GraphVars::_StompBlend_X);}
+		float GetStompBlend_Y(RE::Actor* a_actor) { return GetFloat(a_actor, GraphVars::_StompBlend_Y);}
 
 		//---- SETTERS
 		//Bool
-		bool SetAlternativeStompEnabled(RE::Actor* a_actor, bool a_value) { return SetBool(a_actor, GraphVars::_EnableAlternativeStomp, a_value); }
+		bool SetAlternativeStompEnabled(RE::Actor* a_actor, bool a_value)   { return SetBool(a_actor, GraphVars::_EnableAlternativeStomp, a_value); }
 		bool SetIsAlternativeGrindEnabled(RE::Actor* a_actor, bool a_value) { return SetBool(a_actor, GraphVars::_IsAlternativeGrind, a_value); }
-		bool SetIsTrampling(RE::Actor* a_actor, bool a_value)             { return SetBool(a_actor, GraphVars::_IsTrampling, a_value); }
+		bool SetIsTrampling(RE::Actor* a_actor, bool a_value)               { return SetBool(a_actor, GraphVars::_IsTrampling, a_value); }
 
 		//Float
-		bool SetUnderStompBlend_Legacy(RE::Actor* a_actor, float a_value) { return SetFloat(a_actor, GraphVars::_StompBlend, a_value); }
-		bool SetUnderStompBlend_X(RE::Actor* a_actor, float a_value) { return SetFloat(a_actor, GraphVars::_StompBlend_X, a_value); }
-		bool SetUnderStompBlend_Y(RE::Actor* a_actor, float a_value) { return SetFloat(a_actor, GraphVars::_StompBlend_Y, a_value); }
+		bool SetUnderStompBlend_Legacy(RE::Actor* a_actor, float a_value) { return SetFloat(a_actor, GraphVars::_StompBlend, a_value);}
+		bool SetUnderStompBlend_X(RE::Actor* a_actor, float a_value)      { return SetFloat(a_actor, GraphVars::_StompBlend_X, a_value); }
+		bool SetUnderStompBlend_Y(RE::Actor* a_actor, float a_value)      { return SetFloat(a_actor, GraphVars::_StompBlend_Y, a_value); }
 	}
 
 	namespace General {
@@ -345,6 +345,7 @@ namespace GTS::AnimationVars {
 		bool IsKicking(RE::Actor* a_actor)                  { return GetBool(a_actor, GraphVars::_IsKicking); }
 		bool IsInCleavageState(RE::Actor* a_actor)          { return GetBool(a_actor, GraphVars::_IsBoobing); }
 		bool IsCleavageZOverrideEnabled(RE::Actor* a_actor) { return GetBool(a_actor, GraphVars::_OverrideZ); }
+		bool DontExit(RE::Actor* a_actor)                   { return GetBool(a_actor, GraphVars::_DontExit); }
 		bool IsInGrabPlayState(RE::Actor* a_actor)          { return GetBool(a_actor, GraphVars::_IsInGrabPlayState); }
 		bool IsKissing(RE::Actor* a_actor)                  { return GetBool(a_actor, GraphVars::_IsKissing); }
 		bool IsGrabPlaying(RE::Actor* a_actor)              { return GetBool(a_actor, GraphVars::_IsPlaying); }

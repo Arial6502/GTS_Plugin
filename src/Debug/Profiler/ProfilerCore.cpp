@@ -29,7 +29,7 @@ namespace {
         std::mutex ThreadMutex;
         ProfilerThreadState* FreeList = nullptr;
 
-        std::string UnknownSite = "<unregistered>";
+        std::string UnknownSite = "[Unregistered]";
     };
 
     Registry& Reg() {

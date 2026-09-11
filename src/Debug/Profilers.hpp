@@ -64,7 +64,7 @@ namespace GTS {
         struct ViewData {
 
             std::string Name;
-            std::vector<std::array<float, kHistory>> History
+            std::vector<std::array<float, kHistory>> History;
             std::vector<std::uint8_t> Seeded;
             std::vector<std::uint32_t> LastSeen;
             std::array<std::vector<Row>, kSiteKindCount> Rows;
