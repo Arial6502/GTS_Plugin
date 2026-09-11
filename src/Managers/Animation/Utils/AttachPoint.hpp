@@ -41,6 +41,38 @@ namespace GTS {
 		return tiny->GetPosition();
 	}
 
+	inline void ShiftWorldTranslate(NiAVObject* a_Object, const NiPoint3& a_Delta) {
+
+
+		if (a_Object) {
+
+			a_Object->world.translate += a_Delta;
+
+			if (auto* node = a_Object->AsNode()) {
+				for (auto& child : node->GetChildren()) {
+					if (child) {
+						ShiftWorldTranslate(child.get(), a_Delta);
+					}
+				}
+			}
+		}
+	}
+
+	// Actor::SetPosition only writes the root's local translate, so an actor moved after culling is drawn
+	// a frame late. The world transforms are shifted by translation only, so SMP's writes survive.
+	inline void SetPositionNow(Actor* a_Actor, const NiPoint3& a_Point, bool a_UpdateController) {
+
+		NiAVObject* root = a_Actor->Get3D2();
+		const NiPoint3 before = root ? root->world.translate : NiPoint3();
+
+		a_Actor->SetPosition(a_Point, a_UpdateController);
+
+		if (root) {
+			const NiPoint3 after = root->parent ? root->parent->world * root->local.translate : root->local.translate;
+			ShiftWorldTranslate(root, after - before);
+		}
+	}
+
 	template<typename T, typename U>
 	bool AttachTo_NoForceRagdoll(T& anyGiant, U& anyTiny, NiPoint3 point) {
 		Actor* giant =  GetActorPtr(anyGiant);
@@ -56,7 +88,7 @@ namespace GTS {
 		if (charcont) {
 			charcont->SetLinearVelocityImpl({ 0.0f, 0.0f, 0.0f, 0.0f }); // Needed so Actors won't fall down.
 		}
-		tiny->SetPosition(point, true);
+		SetPositionNow(tiny, point, true);
 		return true;
 	}
 
@@ -72,7 +104,7 @@ namespace GTS {
 			return false;
 		}
 
-		tiny->SetPosition(point, true);
+		SetPositionNow(tiny, point, true);
 
 		ForceRagdoll(tiny, false);
 
@@ -294,54 +326,6 @@ namespace GTS {
 		return AttachTo(anyGiant, anyTiny, targetPoint);
 	}
 
-	// The chest's orientation from spine and clavicle bones. Used for the stored tiny's rotation.
-	struct ChestFrame {
-		NiPoint3 Origin;
-		NiPoint3 Right;
-		NiPoint3 Forward;
-		NiPoint3 Up;
-	};
-
-	inline bool GetChestFrame(Actor* a_Giant, ChestFrame& a_Out) {
-
-		auto* spine = find_node(a_Giant, "NPC Spine2 [Spn2]");
-		auto* clavL = find_node(a_Giant, "NPC L Clavicle [LClv]");
-		auto* clavR = find_node(a_Giant, "NPC R Clavicle [RClv]");
-
-		if (!spine || !clavL || !clavR) {
-			return false;
-		}
-
-		NiPoint3 right = clavR->world.translate - clavL->world.translate;
-		NiPoint3 up = (clavL->world.translate + clavR->world.translate) * 0.5f - spine->world.translate;
-
-		if (right.Unitize() == 0.0f || up.Unitize() == 0.0f) {
-			return false;
-		}
-
-		NiPoint3 forward = up.Cross(right);
-
-		if (forward.Unitize() == 0.0f) {
-			return false;
-		}
-
-		a_Out.Origin = spine->world.translate;
-		a_Out.Right = right;
-		a_Out.Forward = forward;
-		a_Out.Up = right.Cross(forward);
-		return true;
-	}
-
-	// From the shoulder line, so it stays defined when the chest faces the ground while crawling.
-	inline float ChestYaw(const ChestFrame& a_Frame) {
-		return std::atan2(-a_Frame.Right.y, a_Frame.Right.x);
-	}
-
-	// Positive leans forward, the same sign as data.angle.x.
-	inline float ChestPitch(const ChestFrame& a_Frame) {
-		return std::asin(std::clamp(-a_Frame.Forward.z, -1.0f, 1.0f));
-	}
-
 	template<typename T, typename U>
 	bool AttachToCleavage(T& anyGiant, U& anyTiny) {
 		Actor* giant = GetActorPtr(anyGiant);
@@ -454,9 +438,7 @@ namespace GTS {
 		if (tiny->IsPlayerRef() && IsFirstPerson()) {
 			// do nothing
 		} else {
-			if (ChestFrame chest; GetChestFrame(giant, chest)) {
-				tiny->data.angle.z = ChestYaw(chest);
-			}
+			tiny->data.angle.z = giant->data.angle.z;
 		}
 
 		clevagePos += globalOffset;

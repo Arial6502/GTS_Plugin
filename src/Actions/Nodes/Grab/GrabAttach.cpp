@@ -362,9 +362,26 @@ namespace GTS::Actions::Grabbing {
 				return false;
 			}
 
-			if (ChestFrame chest; GetChestFrame(giantPtr.get(), chest)) {
-				ApplyPitchRotation(tinyref, ChestPitch(chest));
+			auto* giantref = giantPtr.get();
+			auto* spine = find_node(giantref, "NPC Spine1 [Spn1]");
+			auto* neck = find_node(giantref, "NPC Neck [Neck]");
+
+			if (!spine || !neck) {
+				return false;
 			}
+
+			NiPoint3 up = neck->world.translate - spine->world.translate;
+
+			if (up.Unitize() == 0.0f) {
+				return true;
+			}
+
+			// The spine line against vertical, along the giant's heading: 0 standing, +90 degrees when
+			// crawling. Positive pitchAngle tilts the tiny forward.
+			const float yaw = giantref->data.angle.z;
+			const float forward = up.x * std::sin(yaw) + up.y * std::cos(yaw);
+
+			ApplyPitchRotation(tinyref, std::atan2(forward, up.z));
 
 			return true;
 		});
