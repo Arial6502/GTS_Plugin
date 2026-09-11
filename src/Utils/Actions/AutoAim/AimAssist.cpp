@@ -129,6 +129,32 @@ namespace Scan {
     }
 }
 
+namespace {
+
+    // Player only. With auto-aim off this is the whole understomp control: looking far enough up or
+    // down asks for the understomp, and how far past the threshold sets the blend. The Understomp
+    // Angle Bar widget shows the same value and hides itself while auto-aim is on.
+    bool CrosshairUnderstomp(Actor* giant) {
+
+        if (!giant->IsPlayerRef()) {
+            return true;
+        }
+
+        // -1 looking down, 1 looking up, so abs runs 1 -> 0 -> 1 for down -> level -> up.
+        const float absPitch = std::abs(GetCameraRotation().entry[2][1]);
+        constexpr float InvLookDownStartAngle = 0.9f;
+
+        if (absPitch <= InvLookDownStartAngle) {
+            return false;
+        }
+
+        const float intensity = std::clamp(Remap(absPitch, 1.0f, InvLookDownStartAngle, 0.0f, 1.0f), 0.0f, 1.0f);
+        SetStompBlendValues(giant, std::clamp(intensity * 1.2f, 0.0f, 1.0f), 0.0f, "Crosshair Understomp");
+
+        return true;
+    }
+}
+
 namespace GTS { 
     void RandomizeBlend(Actor* giant, bool left) {
         const float range_x = Config::AutoAim.fAimAssist_NoHitValueRandomRange;
@@ -166,6 +192,6 @@ namespace GTS {
         }
 
         const bool managedByConfig = Config::AutoAim.bPreventFarStomps && autoAim;
-        return managedByConfig ? true : RandomBool();
+        return managedByConfig ? true : CrosshairUnderstomp(giant);
     }
 }

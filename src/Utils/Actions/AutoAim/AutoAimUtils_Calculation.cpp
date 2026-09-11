@@ -12,6 +12,25 @@ namespace {
     constexpr float HALF_PI = 1.57079632679f;
 }
 
+namespace GTS::AutoAim {
+
+	namespace {
+		RE::FormID g_Preferred = 0;
+	}
+
+	PreferTarget::PreferTarget(RE::Actor* a_Actor) : m_Previous(g_Preferred) {
+		g_Preferred = a_Actor ? a_Actor->formID : 0;
+	}
+
+	PreferTarget::~PreferTarget() {
+		g_Preferred = m_Previous;
+	}
+
+	RE::FormID PreferTarget::Current() {
+		return g_Preferred;
+	}
+}
+
 namespace GTS {
 
     NiPoint3 GetPresetAimPosition(Actor* giant, bool left_foot, float side_offset, float forward_offset) {
@@ -68,7 +87,8 @@ namespace GTS {
                 continue;
 
             const bool dead = target->IsDead() || GetAV(target, ActorValue::kHealth) <= 0.0f;
-            const int tier = dead ? 1 : 0;
+            // Ahead of a live target, but only for an actor the zone checks above already let through.
+            const int tier = (target->formID == AutoAim::PreferTarget::Current()) ? -1 : (dead ? 1 : 0);
 
             // Distance from origin of rectangle
             float score = forward * forward + right * right;
@@ -117,7 +137,8 @@ namespace GTS {
             }
 
             const bool dead = target->IsDead() || GetAV(target, ActorValue::kHealth) <= 0.0f;
-            const int tier = dead ? 1 : 0;
+            // Ahead of a live target, but only for an actor the zone checks above already let through.
+            const int tier = (target->formID == AutoAim::PreferTarget::Current()) ? -1 : (dead ? 1 : 0);
             const float deadPenalty = dead ? Config::AutoAim.fAimAssist_DeadPenalty : 1.0f;
 
             NiPoint3 targetPos = target->GetPosition();
@@ -205,7 +226,8 @@ namespace GTS {
             }
 
             const bool dead = target->IsDead() || GetAV(target, ActorValue::kHealth) <= 0.0f;
-            const int tier = dead ? 1 : 0;
+            // Ahead of a live target, but only for an actor the zone checks above already let through.
+            const int tier = (target->formID == AutoAim::PreferTarget::Current()) ? -1 : (dead ? 1 : 0);
             const float DeadPenalty = dead ? Config::AutoAim.fAimAssist_DeadPenalty : 1.0f;
 
             NiPoint3 targetPos = target->GetPosition();

@@ -6,13 +6,15 @@ using namespace GTS;
 
 namespace {
 
-	float Animation_GetSpeedCorrection(Actor* actor) { // Fixes Hug animation de-sync by copying Gts anim speed to Tiny
+	// Fixes paired animation de-sync by copying the giant's anim speed onto the tiny. Both
+	// directions: the giant is slower than normal at size, and faster while its key is held.
+	float Animation_GetSpeedCorrection(Actor* actor) {
 		auto transient = Transient::GetActorData(actor);
 		if (transient) {
-			if (transient->HugAnimationSpeed < 1.0f) {
+			if (transient->HugAnimationSpeed != 1.0f) {
 				return transient->HugAnimationSpeed;
 			}
-		} 
+		}
 		return AnimationManager::GetAnimSpeed(actor);
 	}
 }

@@ -192,51 +192,66 @@
   ],
   "buildPresets": [
     {
+      "name": "build-base",
+      "hidden": true,
+      "environment": {
+        "NINJA_STATUS": "[%f/%t %e s, %r active] "
+      }
+    },
+    {
       "name": "build-debug",
       "displayName": "Build AE/SE (Debug)",
       "configurePreset": "config-debug",
+      "inherits": "build-base",
       "description": "Compile a debug build."
     },
     {
       "name": "build-release",
       "displayName": "Build AE/SE (Release)",
       "configurePreset": "config-release",
+      "inherits": "build-base",
       "description": "Compile an optimized release build (SSE4.2)."
     },
     {
       "name": "build-release-avx",
       "displayName": "Build AE/SE (Release AVX)",
       "configurePreset": "config-release-avx",
+      "inherits": "build-base",
       "description": "Compile an optimized release build (AVX)."
     },
     {
       "name": "build-release-avx2",
       "displayName": "Build AE/SE (Release AVX2)",
       "configurePreset": "config-release-avx2",
+      "inherits": "build-base",
       "description": "Compile an optimized release build (AVX2)."
     },
     {
       "name": "build-release-avx512",
       "displayName": "Build AE/SE (Release AVX512)",
       "configurePreset": "config-release-avx512",
+      "inherits": "build-base",
       "description": "Compile an optimized release build (AVX512)."
     },
     {
       "name": "build-debug-profiler",
       "displayName": "Build AE/SE (Debug Profiler)",
       "configurePreset": "config-debug-profiler",
+      "inherits": "build-base",
       "description": "Compile a debug build with the performance profiler enabled."
     },
     {
       "name": "build-release-profiler",
       "displayName": "Build AE/SE (Release Profiler)",
       "configurePreset": "config-release-profiler",
+      "inherits": "build-base",
       "description": "Compile an optimized release build with the performance profiler enabled."
     },
     {
       "name": "build-release-disabled",
       "displayName": "Build AE/SE (Release Plugin Disabled)",
       "configurePreset": "config-release-disabled",
+      "inherits": "build-base",
       "description": "Compile an optimized release build with the plugin disabled, serialization only."
     }
   ]

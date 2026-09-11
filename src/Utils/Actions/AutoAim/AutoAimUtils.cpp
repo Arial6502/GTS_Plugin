@@ -434,7 +434,7 @@ namespace GTS {
             AnimationVars::Stomp::SetUnderStompBlend_Legacy(giant, x); // Old one stays for compatibility reasons
             AnimationVars::Stomp::SetUnderStompBlend_X(giant, x); // We added new behavior variables, needs new Behaviors in order to work
             AnimationVars::Stomp::SetUnderStompBlend_Y(giant, y); // We added new behavior variables, needs new Behaviors in order to work
-            logger::info("Applying final blend: X: {}, Y: {}", x, y);
-            Cprint("Applying final blend: X: {}, Y: {}, Source: {}", x, y, source);
+            logger::debug("Applying final blend: X: {}, Y: {}", x, y);
+            //Cprint("Applying final blend: X: {}, Y: {}, Source: {}", x, y, source);
         }
     }

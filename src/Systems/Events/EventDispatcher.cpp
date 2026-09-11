@@ -388,9 +388,25 @@ namespace GTS {
 	// BEFORE the teardown, so listeners still see a valid actor and valid 3d and can
 	// release anything they cached from it.
 	void EventDispatcher::DispatchActor3DUnload(Actor* actor) {
+
 		ForEachSubscriber<EventId::OnActor3DUnload>([actor](EventListener* listener) {
 			GTS_PROFILE_LISTENER(listener, OnActor3DUnload);
 			listener->OnActor3DUnload(actor);
+		});
+	}
+
+	// Fired one frame after the game built an actor's character controller, so 3d, AIProcess
+	// and havok are all live. The hook only dispatches on the first setup for a given 3d, using
+	// the game's own loadedData flag, so repeat controller builds do not repeat the event.
+	void EventDispatcher::DispatchActorReady(Actor* actor) {
+
+		if (!actor) {
+			return;
+		}
+
+		ForEachSubscriber<EventId::OnActorReady>([actor](EventListener* listener) {
+			GTS_PROFILE_LISTENER(listener, OnActorReady);
+			listener->OnActorReady(actor);
 		});
 	}
 

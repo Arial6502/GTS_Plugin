@@ -51,7 +51,7 @@ namespace GTS {
 		virtual void OnPluginReset() override;
 		virtual void OnGameActorReset(Actor* actor) override;
 		std::vector<Actor*> GetSandwichTargetsInFront(Actor* pred, std::size_t numberOfPrey);
-		static void StartSandwiching(Actor* pred, Actor* prey, bool dochecks = true);
+		static bool StartSandwiching(Actor* pred, Actor* prey, bool dochecks = true);
 		bool CanSandwich(Actor* pred, Actor* prey) const;
 		SandwichingData& GetSandwichingData(Actor* giant);
 		std::unordered_map<FormID, SandwichingData> data;

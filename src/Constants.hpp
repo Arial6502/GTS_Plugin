@@ -133,15 +133,15 @@ namespace GTS {
     ///////////////Thigh Sandwich: Second Branch
     constexpr float Damage_ThighSandwich_Butt_Light = 1.25f;
     constexpr float Damage_ThighSandwich_Butt_Heavy = 1.75f;
-    constexpr float Damage_ThighSandwich_Butt_Grind = 0.008f;
+    constexpr float Damage_ThighSandwich_Butt_Grind = 0.0048f;
     ///////////////
 
     constexpr float Damage_ThighSandwich_FallDownImpact = 12.6f; // When falling down with Foot from rune
-    constexpr float Damage_ThighSandwich_DOT = 0.003f;
+    constexpr float Damage_ThighSandwich_DOT = 0.0018f;
 
     ////////////////Thigh Crush
     constexpr float Damage_ThighCrush_Stand_Up = 8.0f;
-    constexpr float Damage_ThighCrush_Butt_DOT = 0.003f;
+    constexpr float Damage_ThighCrush_Thigh_DOT = 0.003f;
     constexpr float Damage_ThighCrush_Legs_Idle = 0.0012f;
     constexpr float Damage_ThighCrush_CrossLegs_Out = 2.6f;
     constexpr float Damage_ThighCrush_CrossLegs_In = 3.2f;
@@ -249,7 +249,6 @@ namespace GTS {
     constexpr float Radius_ButtCrush_Sit = 15.4f;
 
     /////////Butt Crush
-
     constexpr float Radius_ButtCrush_Impact = 20.0f;
     constexpr float Radius_ButtCrush_HandImpact = 8.0f;
     constexpr float Radius_ButtCrush_FootImpact = 7.2f;
@@ -258,26 +257,21 @@ namespace GTS {
     constexpr float Radius_ThighSandwich_FootFallDown = 8.6f;
 
     /////////Thigh Crush
-    constexpr float Radius_ThighCrush_Butt_DOT = 12.2f;
+    constexpr float Radius_ThighCrush_Thigh_DOT = 12.2f;
     constexpr float Radius_ThighCrush_ButtCrush_Drop = 11.8f;
     constexpr float Radius_ThighCrush_Idle = 7.2f;
-
-
     constexpr float Radius_ThighCrush_Spread_In = 9.0f;
     constexpr float Radius_ThighCrush_Spread_Out = 8.5f;
-
     constexpr float Radius_ThighCrush_ButtImpact = 16.0f;
     constexpr float Radius_ThighCrush_Stand_Up = 6.2f;
     
     ////////Breast Crush
-
     constexpr float Radius_BreastCrush_BodyImpact = 10.0f;
     constexpr float Radius_BreastCrush_BreastImpact = 13.2f;
     constexpr float Radius_BreastCrush_BodyDOT = 10.0f;
     constexpr float Radius_BreastCrush_BreastDOT = 10.0f; 
 
     ///////Proning
-
     constexpr float Radius_Proning_BodyDOT = 10.0f;
 
     ////////Crawling

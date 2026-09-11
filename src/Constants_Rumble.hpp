@@ -1,4 +1,3 @@
-#include "Constants.hpp"
 #pragma once
 
 namespace GTS {

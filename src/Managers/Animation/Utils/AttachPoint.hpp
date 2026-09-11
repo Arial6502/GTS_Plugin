@@ -294,6 +294,54 @@ namespace GTS {
 		return AttachTo(anyGiant, anyTiny, targetPoint);
 	}
 
+	// The chest's orientation from spine and clavicle bones. Used for the stored tiny's rotation.
+	struct ChestFrame {
+		NiPoint3 Origin;
+		NiPoint3 Right;
+		NiPoint3 Forward;
+		NiPoint3 Up;
+	};
+
+	inline bool GetChestFrame(Actor* a_Giant, ChestFrame& a_Out) {
+
+		auto* spine = find_node(a_Giant, "NPC Spine2 [Spn2]");
+		auto* clavL = find_node(a_Giant, "NPC L Clavicle [LClv]");
+		auto* clavR = find_node(a_Giant, "NPC R Clavicle [RClv]");
+
+		if (!spine || !clavL || !clavR) {
+			return false;
+		}
+
+		NiPoint3 right = clavR->world.translate - clavL->world.translate;
+		NiPoint3 up = (clavL->world.translate + clavR->world.translate) * 0.5f - spine->world.translate;
+
+		if (right.Unitize() == 0.0f || up.Unitize() == 0.0f) {
+			return false;
+		}
+
+		NiPoint3 forward = up.Cross(right);
+
+		if (forward.Unitize() == 0.0f) {
+			return false;
+		}
+
+		a_Out.Origin = spine->world.translate;
+		a_Out.Right = right;
+		a_Out.Forward = forward;
+		a_Out.Up = right.Cross(forward);
+		return true;
+	}
+
+	// From the shoulder line, so it stays defined when the chest faces the ground while crawling.
+	inline float ChestYaw(const ChestFrame& a_Frame) {
+		return std::atan2(-a_Frame.Right.y, a_Frame.Right.x);
+	}
+
+	// Positive leans forward, the same sign as data.angle.x.
+	inline float ChestPitch(const ChestFrame& a_Frame) {
+		return std::asin(std::clamp(-a_Frame.Forward.z, -1.0f, 1.0f));
+	}
+
 	template<typename T, typename U>
 	bool AttachToCleavage(T& anyGiant, U& anyTiny) {
 		Actor* giant = GetActorPtr(anyGiant);
@@ -406,7 +454,9 @@ namespace GTS {
 		if (tiny->IsPlayerRef() && IsFirstPerson()) {
 			// do nothing
 		} else {
-			tiny->data.angle.z = giant->data.angle.z;
+			if (ChestFrame chest; GetChestFrame(giant, chest)) {
+				tiny->data.angle.z = ChestYaw(chest);
+			}
 		}
 
 		clevagePos += globalOffset;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Managers/Collision/DynamicCollisionUtils.hpp"
+
 namespace GTS {
 	
 	class DynamicCollisionController {
@@ -25,7 +27,12 @@ namespace GTS {
 			float controllerActorHeight = 0.0f;
 			float controllerActorScale = 0.0f;
 			bool hasVertecesShape = false;
-			float maxSlope = 0.0f;
+			CharControllerKind controllerKind = CharControllerKind::Unknown;
+			float maxSlopeDegrees = 0.0f;
+			float stepHeight = 0.0f;
+			float stepReach = 0.0f;
+			float proxyMaxSolverSpeed = 0.0f;
+			float rigidBodyMaxSlopeCosine = 0.0f;
 		};
 
 		ActorHandle m_actor;                                                     // Handle to the actor this controller manages
@@ -35,6 +42,7 @@ namespace GTS {
 		ActorState::ActorState1 m_lastActorState1                   = {};        // Last known actorstate
 		float m_lastVisualScale                                     = 0.0f;      // Last known visual scale, Initialized as 0 to force update on first run
 		float m_currentVisualScale                                  = 1.0f;      // Current visual scale
+		bool m_traversalApplied                                     = false;     // Whether the traversal fields currently hold our values instead of the originals
 
 		void AdjustBoneDrivenHuman() const;
 		void AdjustScale() const;
@@ -42,7 +50,9 @@ namespace GTS {
 		std::vector<NiAVObject*> FindBones(const std::vector<std::string_view>& a_names) const;
 		float GetDistanceBetweenBones(const std::pair<std::string_view, std::string_view>& a_names) const;
 		static void ScaleCapsule(const CapsuleData& a_baseCapsule, hkpCapsuleShape* a_outCapsule, float a_scaleFactor);
-		static void UpdateControllerScaleAndSlope(bhkCharacterController* a_controller, const ShapeData& a_origData, float a_currentScale);
+		static void UpdateControllerScale(bhkCharacterController* a_controller, const ShapeData& a_origData, float a_currentScale);
+		void UpdateTraversal(bhkCharacterController* a_controller, float a_currentScale);
+		void RestoreTraversal(bhkCharacterController* a_controller);
 	};
 
 }

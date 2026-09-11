@@ -141,7 +141,17 @@ namespace GTS {
 								}
 							}
 
-							m_originalData.maxSlope = GetControllerMaxSlope(controller);
+							m_originalData.controllerKind = GetControllerKind(controller);
+							m_originalData.maxSlopeDegrees = GetControllerMaxSlope(controller);
+							m_originalData.stepHeight = GetControllerStepHeight(controller);
+							m_originalData.stepReach = GetControllerStepReach(controller);
+
+							if (const hkpCharacterRigidBody* rigidBody = GetControllerRigidBody(controller, m_originalData.controllerKind)) {
+								m_originalData.rigidBodyMaxSlopeCosine = rigidBody->m_maxSlopeCosine;
+							}
+							else if (const hkpCharacterProxy* proxy = GetControllerProxy(controller, m_originalData.controllerKind)) {
+								m_originalData.proxyMaxSolverSpeed = proxy->maxCharacterSpeedForSolver;
+							}
 
 							hkpConvexVerticesShape* convexShape = nullptr;
 							std::vector<hkpCapsuleShape*> capsuleShapes = {};
@@ -247,9 +257,8 @@ namespace GTS {
 
 															// Install the cloned shape into the Havok character
 															character->SetShape(clonedShape);
-
-															// Replace controller wrapper entry
-															RigidBodyController->shapes[shapeIdx]->DecRefCount();
+															//Apparently causes a double free. DCA does this too though...
+															//RigidBodyController->shapes[shapeIdx]->DecRefCount();
 															RigidBodyController->shapes[shapeIdx] = m_uniqueShape;
 
 														}
@@ -298,8 +307,8 @@ namespace GTS {
 														// Install the cloned shape into the Havok character
 														phantom->SetShape(clonedShape);
 
-														// Replace controller wrapper entry
-														ProxyController->shapes[shapeIdx]->DecRefCount();
+														//Apparently causes a double free. DCA does this too though...
+														//ProxyController->shapes[shapeIdx]->DecRefCount();
 														ProxyController->shapes[shapeIdx] = m_uniqueShape;
 
 													}
@@ -339,8 +348,9 @@ namespace GTS {
 
 									AdjustBoneDrivenHuman(); // Clamped inside function
 									if (Target->IsPlayerRef()) {
-										UpdateControllerScaleAndSlope(controller, m_originalData, m_currentVisualScale);
+										UpdateControllerScale(controller, m_originalData, m_currentVisualScale);
 									}
+									UpdateTraversal(controller, m_currentVisualScale);
 									m_lastVisualScale = 0.0f; // Set it to 0 to force an update if followers are switched to simple scaling
 
 									if (Config::Collision.bDrawDebugShapes) {
@@ -361,9 +371,12 @@ namespace GTS {
 							if (ShouldUpdate) {
 								AdjustScale(); // It's clamped by Config::Collision.fMSimpleDrivenColliderMaxScale anyway
 								if (Target->IsPlayerRef()) {
-									UpdateControllerScaleAndSlope(controller, m_originalData, m_currentVisualScale);
+									UpdateControllerScale(controller, m_originalData, m_currentVisualScale);
 								}
 							}
+
+							UpdateTraversal(controller, m_currentVisualScale);
+
 							if (Config::Collision.bDrawDebugShapes) {
 								DrawCollisionShapes(Target, false);
 							}
@@ -464,7 +477,7 @@ namespace GTS {
 							// Set new shape
 							{
 								BSWriteLockGuard lock(world->worldLock);
-								SetNewVerticesShape(controller, modifiedVerts);
+								SetNewVerticesShape(controller, modifiedVerts, GetScaledConvexRadius(m_currentVisualScale));
 								if (auto tranData = Transient::GetActorData(actor)) {
 									tranData->cachedConvexVerticesShape = modifiedVerts;
 								}
@@ -477,14 +490,12 @@ namespace GTS {
 								if (!m_uniqueShape.get()) return;
 								std::vector<hkpCapsuleShape*> CurrentCapsules{};
 
-								{
-									BSReadLockGuard lock(world->worldLock);
-									if (!GetCapsulesFromShape(m_uniqueShape.get(), CurrentCapsules)) return; //Should always be 1.
-									if (CurrentCapsules.size() != m_originalData.capsules.size())  return;
-								}
 
 								{
 									BSWriteLockGuard lock(world->worldLock);
+									if (!GetCapsulesFromShape(m_uniqueShape.get(), CurrentCapsules)) return; //Should always be 1.
+									if (CurrentCapsules.size() != m_originalData.capsules.size())  return;
+
 									for (size_t i = 0; i < CurrentCapsules.size(); ++i) {
 										ScaleCapsule(m_originalData.capsules[i], CurrentCapsules[i], clampedScale);
 									}
@@ -576,7 +587,7 @@ namespace GTS {
 								// Set new shape
 								{
 									BSWriteLockGuard lock(world->worldLock);
-									SetNewVerticesShape(controller, modifiedVerts);
+									SetNewVerticesShape(controller, modifiedVerts, GetScaledConvexRadius(m_currentVisualScale));
 									if (auto tranData = Transient::GetActorData(actor)) {
 										tranData->cachedConvexVerticesShape = modifiedVerts;
 									}
@@ -592,13 +603,10 @@ namespace GTS {
 								CurrentCapsules.reserve(6); //Some actors have up to 6 capsules
 
 								{
-									BSReadLockGuard lock(world->worldLock);
+									BSWriteLockGuard lock(world->worldLock);
 									if (!GetCapsulesFromShape(m_uniqueShape.get(), CurrentCapsules)) return; //Should always be 1.
 									if (CurrentCapsules.size() != m_originalData.capsules.size())  return;
-								}
 
-								{
-									BSWriteLockGuard lock(world->worldLock);
 									for (size_t i = 0; i < CurrentCapsules.size(); ++i) {
 										ScaleCapsule(m_originalData.capsules[i], CurrentCapsules[i], fClampedScale);
 									}
@@ -685,14 +693,76 @@ namespace GTS {
 		a_outCapsule->vertexB.quad = b1;
 	}
 
-	void DynamicCollisionController::UpdateControllerScaleAndSlope(bhkCharacterController* a_controller, const ShapeData& a_origData, float a_currentScale) {
-		constexpr float maxSlopeAtScale = 5.0f;
-		const float normalizedScale = std::clamp((a_currentScale - 1.0f) / maxSlopeAtScale, 0.0f, 1.0f);
-		const float newSlope = std::lerp(a_origData.maxSlope, 89.0f, normalizedScale);
-
+	void DynamicCollisionController::UpdateControllerScale(bhkCharacterController* a_controller, const ShapeData& a_origData, float a_currentScale) {
 		a_controller->actorHeight = a_origData.controllerActorHeight * a_currentScale;
 		a_controller->scale = a_currentScale;
-		SetControllerMaxSlope(a_controller, newSlope);
+	}
+
+	void DynamicCollisionController::UpdateTraversal(bhkCharacterController* a_controller, float a_currentScale) {
+
+		if (!a_controller) {
+			return;
+		}
+
+		if (!Config::Collision.bScaleTraversal) {
+			RestoreTraversal(a_controller);
+			return;
+		}
+
+		const float scale = std::clamp(a_currentScale, 1.0f, std::max(1.0f, Config::Collision.fTraversalMaxScale));
+		const float ramp = std::max(1e-4f, Config::Collision.fTraversalSlopeRampScale);
+		const float normalizedScale = std::clamp((scale - 1.0f) / ramp, 0.0f, 1.0f);
+		const float targetDegrees = std::clamp(Config::Collision.fTraversalMaxSlopeDegrees, 1.0f, 89.0f);
+		const float degrees = std::lerp(m_originalData.maxSlopeDegrees, targetDegrees, normalizedScale);
+		const float radians = degrees * (std::numbers::pi_v<float> / 180.0f);
+		const float stepHeight = m_originalData.stepHeight * std::lerp(1.0f, scale, std::clamp(Config::Collision.fTraversalStepScaling, 0.0f, 1.0f));
+
+		{
+			SetControllerMaxSlope(a_controller, degrees);
+			SetControllerStepHeight(a_controller, stepHeight);
+
+			// The game derives reach from the slope once in the controller ctor, so a changed
+			// slope leaves it stale unless we rewrite it too.
+			SetControllerStepReach(a_controller, stepHeight / std::tan(radians));
+		}
+
+		if (hkpCharacterRigidBody* rigidBody = GetControllerRigidBody(a_controller, m_originalData.controllerKind)) {
+			// bhkCharacterController::maxSlope only reaches the proxy path. On the rigid body the
+			// limit Bethesda left at havok's default 60 degrees is this one.
+			rigidBody->m_maxSlopeCosine = std::cos(radians);
+		}
+		else if (hkpCharacterProxy* proxy = GetControllerProxy(a_controller, m_originalData.controllerKind)) {
+			// keepDistance is left alone on purpose. It is the gap the proxy holds from every
+			// surface, so scaling it lifts the character off the ground by that much.
+
+			// Above this the simplex solver stops solving planes together and lets the character
+			// penetrate instead. A giant's normal walking speed clears the stock 10 on its own.
+			proxy->maxCharacterSpeedForSolver = m_originalData.proxyMaxSolverSpeed * scale;
+		}
+
+		m_traversalApplied = true;
+	}
+
+	void DynamicCollisionController::RestoreTraversal(bhkCharacterController* a_controller) {
+
+		if (!m_traversalApplied || !a_controller) {
+			return;
+		}
+
+		{
+			SetControllerMaxSlope(a_controller, m_originalData.maxSlopeDegrees);
+			SetControllerStepHeight(a_controller, m_originalData.stepHeight);
+			SetControllerStepReach(a_controller, m_originalData.stepReach);
+		}
+
+		if (hkpCharacterRigidBody* rigidBody = GetControllerRigidBody(a_controller, m_originalData.controllerKind)) {
+			rigidBody->m_maxSlopeCosine = m_originalData.rigidBodyMaxSlopeCosine;
+		}
+		else if (hkpCharacterProxy* proxy = GetControllerProxy(a_controller, m_originalData.controllerKind)) {
+			proxy->maxCharacterSpeedForSolver = m_originalData.proxyMaxSolverSpeed;
+		}
+
+		m_traversalApplied = false;
 	}
 
 }

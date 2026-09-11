@@ -2,18 +2,9 @@
 
 namespace GTS {
 
-	enum class FollowerAnimType {
-		ThighSandwich,
-		ButtCrush,
-		Grab,
-		Hugs,
-		Vore,
-	};
-
 	void Task_ApplyAbsorbCooldown(Actor* giant);
 	void RestoreBreastAttachmentState(Actor* giant, Actor* tiny);
 	void Anims_FixAnimationDesync(Actor* giant, Actor* tiny, bool reset);
-	void ForceFollowerAnimation(Actor* giant, FollowerAnimType Type);
 	void Vore_AttachToRightHandTask(Actor* giant, Actor* tiny);
 
 	void UpdateFriendlyHugs(Actor* giant, Actor* tiny, bool force);
@@ -22,7 +13,6 @@ namespace GTS {
 
 	void HugCrushOther(Actor* giant, Actor* tiny);
 
-	void AbortHugAnimation(Actor* giant, Actor* tiny, bool no_reset = false);
 	void Utils_UpdateHugBehaviors(Actor* giant, Actor* tiny);
 	void Utils_UpdateHighHeelBlend(Actor* giant, bool reset);
 	void Task_HighHeel_SyncVoreAnim(Actor* giant);

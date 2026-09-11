@@ -309,6 +309,7 @@ namespace Hooks {
 		stl::write_vfunc_unique<Set3D, 1>(VTABLE_Character[0]);
 		stl::write_vfunc_unique<Set3D, 2>(VTABLE_PlayerCharacter[0]);
 
+
 		logger::info("Installing AIProcess MovementSpeed Clamp Detours...");
 
 		//Movementspeed Clamp hooks

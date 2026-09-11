@@ -3,17 +3,71 @@
 
 namespace {
 
-	constexpr RE::hkpConvexVerticesShape::BuildConfig BuildConfig
-	{
-		.createConnectivity = false,
-		.shrinkByConvexRadius = false,
-		.useOptimizedShrinking = true,
-		.convexRadius = 0.05f,
-		.maxVertices = 0,
-		.maxRelativeShrink = 0.00f,
-		.maxShrinkingVerticesDisplacement = 0.00f,
-		.maxCosAngleForBevelPlanes = -0.1f,
-	};
+	// Step height and step reach sit inside the blobs clib calls unk308 and unk310. Verified
+	// identical on 1.5.97 and 1.6.1170.
+	constexpr std::ptrdiff_t StepHeightOffset = 0x30C;
+	constexpr std::ptrdiff_t StepReachOffset = 0x310;
+
+	float* ControllerFloatAt(RE::bhkCharacterController* a_controller, std::ptrdiff_t a_offset) {
+		return reinterpret_cast<float*>(reinterpret_cast<uintptr_t>(a_controller) + a_offset);
+	}
+
+	// hkConvexShapeDefaultRadius. Havok rounds a convex hull by this, so it is the fillet on every
+	// edge including the bottom rim, and it is what lets a shape ride over small obstacles instead
+	// of catching on them.
+	constexpr float DefaultConvexRadius = 0.05f;
+
+	RE::hkpConvexVerticesShape::BuildConfig MakeBuildConfig(float a_convexRadius) {
+		return {
+			.createConnectivity = false,
+			.shrinkByConvexRadius = false,
+			.useOptimizedShrinking = true,
+			.convexRadius = a_convexRadius,
+			.maxVertices = 0,
+			.maxRelativeShrink = 0.00f,
+			.maxShrinkingVerticesDisplacement = 0.00f,
+			.maxCosAngleForBevelPlanes = -0.1f,
+		};
+	}
+
+	// The hull is expanded outward by the convex radius, so pull the vertices in by whatever was
+	// added on top of the default to keep the collider the size the caller asked for.
+	void ShrinkForConvexRadius(std::vector<RE::hkVector4>& a_verts, float a_convexRadius) {
+
+		const float inset = a_convexRadius - DefaultConvexRadius;
+
+		if (inset <= 0.0f || a_verts.empty()) {
+			return;
+		}
+
+		float lowest = FLT_MAX;
+		float highest = -FLT_MAX;
+
+		for (const RE::hkVector4& vertex : a_verts) {
+			lowest = std::min(lowest, vertex.quad.m128_f32[2]);
+			highest = std::max(highest, vertex.quad.m128_f32[2]);
+		}
+
+		if (highest - lowest <= inset * 4.0f) {
+			return;
+		}
+
+		for (RE::hkVector4& vertex : a_verts) {
+
+			float& x = vertex.quad.m128_f32[0];
+			float& y = vertex.quad.m128_f32[1];
+			float& z = vertex.quad.m128_f32[2];
+
+			const float width = std::sqrt(x * x + y * y);
+			if (width > inset) {
+				const float factor = (width - inset) / width;
+				x *= factor;
+				y *= factor;
+			}
+
+			z = std::clamp(z, lowest + inset, highest - inset);
+		}
+	}
 
 	void ReadShape(const RE::hkpShape* a_shape, std::vector<RE::hkpCapsuleShape*>& a_outCapsules) {
 		if (!a_shape) {
@@ -160,23 +214,59 @@ namespace GTS {
 		return { a_vector.quad.m128_f32[0], a_vector.quad.m128_f32[1], a_vector.quad.m128_f32[2] };
 	}
 
-	// Beth doesn't use the maxslopeCosine from havok,
-	// It instead is handled by the bhkCharacterController as an inverted radian value.
-	// maxSlope = (pi/2) - radians
-	// maxSlope is also wrong in clib, it has it listed as a uint32_t instead of a float
-	// The default "uint32" value is 1060018034 which makes no sense for an int angle.
-	// When that int value is intepreted as a float it produces the value 0.6819984 which ends up being a radian of ~39 degrees (0.6819984 (180/pi) = 39.07 degrees)
-	// The value is also inverted in regards to the slope calc, so the actual formula for the max slope for the controller in the vanilla game is (pi/2) - 0.6819984 = 0.8887982 (~50.92 degrees)
+	CharControllerKind GetControllerKind(bhkCharacterController* a_controller) {
+		if (!a_controller) {
+			return CharControllerKind::Unknown;
+		}
+		if (skyrim_cast<bhkCharProxyController*>(a_controller)) {
+			return CharControllerKind::Proxy;
+		}
+		if (skyrim_cast<bhkCharRigidBodyController*>(a_controller)) {
+			return CharControllerKind::RigidBody;
+		}
+		return CharControllerKind::Unknown;
+	}
+
+	hkpCharacterProxy* GetControllerProxy(bhkCharacterController* a_controller, CharControllerKind a_kind) {
+		if (!a_controller || a_kind != CharControllerKind::Proxy) {
+			return nullptr;
+		}
+		return static_cast<hkpCharacterProxy*>(static_cast<bhkCharProxyController*>(a_controller)->proxy.referencedObject.get());
+	}
+
+	hkpCharacterRigidBody* GetControllerRigidBody(bhkCharacterController* a_controller, CharControllerKind a_kind) {
+		if (!a_controller || a_kind != CharControllerKind::RigidBody) {
+			return nullptr;
+		}
+		return static_cast<hkpCharacterRigidBody*>(static_cast<bhkCharRigidBodyController*>(a_controller)->characterRigidBody.referencedObject.get());
+	}
+
+	// The havok proxy's own maxSlope is left at pi/2, which disables its slope feature. Bethesda
+	// runs their own in bhkCharProxyController::ProcessConstraintsCallback against this field,
+	// which holds cos(angle) and is built from a hardcoded 47 degrees. clib types it as a uint32_t.
 	float GetControllerMaxSlope(bhkCharacterController* a_controller) {
-		const float radians = std::bit_cast<float>(a_controller->maxSlope);
-		const float maxSlopeRadians = (std::numbers::pi / 2.0f) - radians;
-		return maxSlopeRadians * 180.0f / std::numbers::pi;
+		const float cosine = std::clamp(std::bit_cast<float>(a_controller->maxSlope), -1.0f, 1.0f);
+		return std::acos(cosine) * (180.0f / std::numbers::pi_v<float>);
 	}
 
 	void SetControllerMaxSlope(bhkCharacterController* a_controller, float a_degrees) {
-		const float maxSlopeRadians = a_degrees * std::numbers::pi / 180.0f;
-		const float invertedRadians = (std::numbers::pi / 2.0f) - maxSlopeRadians;
-		a_controller->maxSlope = std::bit_cast<uint32_t>(invertedRadians);
+		a_controller->maxSlope = std::bit_cast<uint32_t>(std::cos(a_degrees * (std::numbers::pi_v<float> / 180.0f)));
+	}
+
+	float GetControllerStepHeight(bhkCharacterController* a_controller) {
+		return *ControllerFloatAt(a_controller, StepHeightOffset);
+	}
+
+	void SetControllerStepHeight(bhkCharacterController* a_controller, float a_havokUnits) {
+		*ControllerFloatAt(a_controller, StepHeightOffset) = a_havokUnits;
+	}
+
+	float GetControllerStepReach(bhkCharacterController* a_controller) {
+		return *ControllerFloatAt(a_controller, StepReachOffset);
+	}
+
+	void SetControllerStepReach(bhkCharacterController* a_controller, float a_havokUnits) {
+		*ControllerFloatAt(a_controller, StepReachOffset) = a_havokUnits;
 	}
 
 	__m128 ScaleRingWidth(__m128 a_inHk4, float a_scale, float a_zHeight) {
@@ -216,32 +306,67 @@ namespace GTS {
 		return a_boneDriven ? Config::Collision.fBoneDrivenWidthMultBase : Config::Collision.fSimpleDrivenWidthMultBase;
 	}
 
-	void SetNewVerticesShape(bhkCharacterController* a_controller, std::vector<hkVector4>& a_modVerts) {
+	// The game builds every character hull with hkConvexShapeDefaultRadius no matter how large the
+	// actor is, which leaves a big actor with a proportionally razor sharp bottom rim that catches
+	// on terrain a small one would ride over.
+	float GetScaledConvexRadius(float a_scale) {
+		const float scaling = std::clamp(Config::Collision.fConvexRadiusScaling, 0.0f, 1.0f);
+		const float scale = std::clamp(a_scale, 1.0f, std::max(1.0f, Config::Collision.fMSimpleDrivenColliderMaxScale));
+		return DefaultConvexRadius * std::lerp(1.0f, scale, scaling);
+	}
+
+	void SetNewVerticesShape(bhkCharacterController* a_controller, std::vector<hkVector4>& a_modVerts, float a_convexRadius) {
 
 		hkpListShape* ListShape = nullptr;
 		hkpCharacterProxy* CharProxy = nullptr;
 		hkpConvexVerticesShape* ConvexShape = nullptr;
 		hkpCharacterRigidBody* CharRigidBody = nullptr;
 
+		const auto resolveShapes = [&](const hkpShape* a_rootShape) {
+
+			if (!a_rootShape) {
+				return;
+			}
+
+			ListShape = skyrim_cast<hkpListShape*>(const_cast<hkpShape*>(a_rootShape));
+
+			if (!ListShape) {
+				ConvexShape = skyrim_cast<hkpConvexVerticesShape*>(const_cast<hkpShape*>(a_rootShape));
+				return;
+			}
+
+			if (ListShape->childInfo.empty()) {
+				ListShape = nullptr;
+				return;
+			}
+
+			ConvexShape = skyrim_cast<hkpConvexVerticesShape*>(const_cast<hkpShape*>(ListShape->childInfo[0].shape));
+		};
+
 		if (bhkCharProxyController* proxyController = skyrim_cast<bhkCharProxyController*>(a_controller)) {
 			CharProxy = static_cast<hkpCharacterProxy*>(proxyController->proxy.referencedObject.get());
-			if (CharProxy) {
-				ListShape = skyrim_cast<hkpListShape*>(const_cast<hkpShape*>(CharProxy->shapePhantom->collidable.shape));
-				ConvexShape = skyrim_cast<hkpConvexVerticesShape*>(const_cast<hkpShape*>(ListShape ? ListShape->childInfo[0].shape : CharProxy->shapePhantom->collidable.shape));
+			if (CharProxy && CharProxy->shapePhantom) {
+				resolveShapes(CharProxy->shapePhantom->collidable.shape);
 			}
 		}
 		else if (bhkCharRigidBodyController* rigidBodyController = skyrim_cast<bhkCharRigidBodyController*>(a_controller)) {
 			CharRigidBody = static_cast<hkpCharacterRigidBody*>(rigidBodyController->characterRigidBody.referencedObject.get());
-			if (CharRigidBody) {
-				ListShape = skyrim_cast<hkpListShape*>(const_cast<hkpShape*>(CharRigidBody->m_character->collidable.shape));
-				ConvexShape = skyrim_cast<hkpConvexVerticesShape*>(const_cast<hkpShape*>(ListShape ? ListShape->childInfo[0].shape : CharRigidBody->m_character->collidable.shape));
+			if (CharRigidBody && CharRigidBody->m_character) {
+				resolveShapes(CharRigidBody->m_character->collidable.shape);
 			}
 		}
+
+		// Bail before allocating the replacement, otherwise a failed resolve leaks it.
+		if (!ConvexShape) {
+			return;
+		}
+
+		ShrinkForConvexRadius(a_modVerts, a_convexRadius);
 
 		const hkStridedVertices StridedVerts(a_modVerts.data(), static_cast<int>(a_modVerts.size()));
 
 		hkpConvexVerticesShape* NewShape = static_cast<hkpConvexVerticesShape*>(hkMemoryRouter::hkHeapAlloc(sizeof(hkpConvexVerticesShape)));
-		NewShape->ctor(StridedVerts, BuildConfig);  // sets refcount to 1
+		NewShape->ctor(StridedVerts, MakeBuildConfig(a_convexRadius));  // sets refcount to 1
 
 		// it's actually a hkCharControllerShape not just a hkpConvexVerticesShape
 		reinterpret_cast<std::uintptr_t*>(NewShape)[0] = VTABLE_hkCharControllerShape[0].address();
@@ -266,6 +391,68 @@ namespace GTS {
 			}
 			NewShape->RemoveReference();
 		}
+	}
+
+	bool GetControllerExtent(Actor* a_actor, NiPoint3& a_outPosition, float& a_outHalfHeight) {
+
+		if (!a_actor) {
+			return false;
+		}
+
+		auto* controller = a_actor->GetCharController();
+		if (!controller) {
+			return false;
+		}
+
+		static const float* gWorldScaleInverse = reinterpret_cast<float*>(RE::Offset::Havok::WorldScaleInverse.address());
+
+		{
+			hkVector4 hkPosition{};
+			controller->GetPosition(hkPosition, false);
+			a_outPosition = hkVec4ToNiPoint(hkPosition) * *gWorldScaleInverse;
+		}
+
+		hkpConvexVerticesShape* convexShape = nullptr;
+		std::vector<hkpCapsuleShape*> capsules = {};
+
+		if (!GetShapes(controller, convexShape, capsules)) {
+			return false;
+		}
+
+		//Shape coordinates are Havok units in controller local space, so both bounds are converted
+		//the same way the collision manager converts its vertices.
+		float lowest = std::numeric_limits<float>::max();
+		float highest = std::numeric_limits<float>::lowest();
+
+		if (convexShape) {
+			if (auto* transient = Transient::GetActorData(a_actor)) {
+				for (const hkVector4& vertex : transient->cachedConvexVerticesShape) {
+					const float z = vertex.quad.m128_f32[2];
+					lowest = std::min(lowest, z);
+					highest = std::max(highest, z);
+				}
+			}
+		}
+
+		for (const hkpCapsuleShape* capsule : capsules) {
+
+			if (!capsule) {
+				continue;
+			}
+
+			const float a = capsule->vertexA.quad.m128_f32[2];
+			const float b = capsule->vertexB.quad.m128_f32[2];
+
+			lowest = std::min(lowest, std::min(a, b) - capsule->radius);
+			highest = std::max(highest, std::max(a, b) + capsule->radius);
+		}
+
+		if (highest <= lowest) {
+			return false;
+		}
+
+		a_outHalfHeight = (highest - lowest) * 0.5f * *gWorldScaleInverse;
+		return true;
 	}
 
 	bool GetShapes(bhkCharacterController* a_charController, hkpConvexVerticesShape*& a_outConvexShape, std::vector<hkpCapsuleShape*>& a_OutCollisionShapes) {

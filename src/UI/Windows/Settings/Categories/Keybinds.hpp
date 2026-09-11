@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "UI/Core/ImCategory.hpp"
@@ -6,34 +5,44 @@
 
 namespace GTS {
 
-
     class CategoryKeybinds final : public ImCategory {
         public:
         CategoryKeybinds();
+
         void Draw() override;
 
         private:
+        struct Group {
+            BindGroup Id = BindGroup::kOther;
+            std::vector<InputBind*> Starts;
+            std::vector<InputBind*> During;
+
+            [[nodiscard]] std::size_t Count() const { return Starts.size() + During.size(); }
+        };
+
+        void RefreshModifierKeys();
+        void RebuildGroups();
         void DrawOptions();
-        void DrawContent();
+        void DrawGroupList(float a_width);
+        void DrawBinds();
+        void DrawBindList(std::string_view a_heading, const std::vector<InputBind*>& a_binds);
         static void SetWindowBusy(bool a_busy);
-        bool DrawInputEvent(BaseEventData_t& Event, const std::string& a_name, const char* a_description, float columnNameWidth);
+        bool DrawInputEvent(InputBind& Event, const std::string& a_name, const char* a_description);
+
+        [[nodiscard]] const InputDef* NodeDefFor(const std::string& a_name) const;
+
+        // Keys of the target switch modifier, refreshed with the groups. A bind covering all of
+        // them keeps its plain meaning and cannot be turned on the player, which is worth saying.
+        std::vector<std::string> ModifierKeys;
+        [[nodiscard]] bool ShadowsModifier(const InputBind& a_Bind) const;
 
         std::string SearchRes;
-        absl::flat_hash_map<std::string, bool> HeaderStateMap = {};
-        std::vector<std::string> TempKeys = {};
+        std::vector<Group> Groups;
+        BindGroup Selected = BindGroup::kCrush;
 
-        int Div = 2;
         int RebindIndex = 0;
         int CurEventIndex = UINT16_MAX;
-        const int HeaderFlags =  ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX ;
-        float Width = 0.0f;
-        bool singleColumn = true;
-
-        inline static absl::flat_hash_map<std::string, size_t> categoryMap = {};
-        inline static absl::flat_hash_map<std::string, bool> hiddenMap = {};
-        inline static absl::flat_hash_map<std::string, const char*> uiNameMap = {};
-        inline static absl::flat_hash_map<std::string, const char*> uiDescriptionMap = {};
-
+        float KeyColumnWidth = 0.0f;
+        bool m_groupsBuilt = false;
     };
-
 }

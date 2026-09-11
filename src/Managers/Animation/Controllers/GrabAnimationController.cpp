@@ -1,9 +1,9 @@
+#include "Actions/Nodes/Grab/GrabCommon.hpp"
 #include "Managers/Animation/Controllers/GrabAnimationController.hpp"
 
 #include "Managers/Animation/Utils/AnimationUtils.hpp"
 
 #include "Managers/Animation/AnimationManager.hpp"
-#include "Managers/Animation/Grab.hpp"
 
 #include "Managers/GTSSizeManager.hpp"
 
@@ -23,24 +23,25 @@ namespace {
 	}
 
 	void DelayedGrabTask(Actor* pred, Actor* prey) { // Needed to fix tinies becoming immune to size stuff if animation wasnt started
-		Grab::GrabActor(pred, prey);
+		if (!Actions::Grabbing::Grab(pred, prey)) {
+			return;
+		}
 
 		std::string taskname = std::format("GrabCheck_{}_{}", pred->formID, prey->formID);
 		ActorHandle giantHandle = pred->CreateRefHandle();
-		ActorHandle tinyHandle = pred->CreateRefHandle();
 
 		TaskManager::RunOnce(taskname, [=](auto& update){
-			if (!giantHandle) {
-				return;
-			}
-			if (!tinyHandle) {
+
+			auto giantPtr = giantHandle.get();
+
+			if (!giantPtr) {
 				return;
 			}
 
-			auto giant = giantHandle.get().get();
-			auto tiny = tinyHandle.get().get();
+			auto* giant = giantPtr.get();
+
 			if (!AnimationVars::General::IsGTSBusy(giant)) { // Means anim isn't applied so we cancel everything
-				Grab::CancelGrab(giant, tiny);
+				Actions::Grabbing::Abort(giant);
 			}
 		});
 	}
@@ -180,10 +181,10 @@ namespace GTS {
 		}
 	}
 
-	void GrabAnimationController::StartGrab(Actor* pred, Actor* prey) {
+	bool GrabAnimationController::StartGrab(Actor* pred, Actor* prey) {
 		auto& grabbing = GrabAnimationController::GetSingleton();
 		if (!grabbing.CanGrab(pred, prey)) {
-			return;
+			return false;
 		}
 
 		float shrinkrate = 0.18f;
@@ -193,12 +194,12 @@ namespace GTS {
 		}
 
 		if (TinyCalamity_ShouldShrinkFirst(pred, prey, Action_Grab, 10.2f, 0.18f, 0.13f)) {
-			return;
+			return false;
 		}
 	
 		DelayedGrabTask(pred, prey);
 		Utils_UpdateHighHeelBlend(pred, false);
-		AnimationManager::StartAnim("GrabSomeone", pred);
+		return true;
 	}
 
 	void GrabAnimationController::AllowMessage(bool allow) {

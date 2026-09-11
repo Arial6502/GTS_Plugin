@@ -2,6 +2,7 @@
 #include "Config/Config.hpp"
 #include "Managers/HighHeel.hpp"
 #include "Managers/Animation/AnimationManager.hpp"
+#include "Actions/Core/ActionRegistry.hpp"
 
 using namespace GTS;
 
@@ -83,17 +84,17 @@ namespace {
 					std::vector<Actor*> ValidTargetsInFront = ThighCrushAI_FilterList(ActorRef, find_actors());
 
 					if (StaminaTooLow) {
-						AnimationManager::StartAnim("ThighLoopExit", ActorRef);
+						Actions::ActionRegistry::Perform(ActorRef, "ThighCrush.Exit");
 						return true;
 					}
 					if (ValidTargetsInFront.empty()) {
-						AnimationManager::StartAnim("ThighLoopExit", ActorRef);
+						Actions::ActionRegistry::Perform(ActorRef, "ThighCrush.Exit");
 						return true;
 					}
 
 					//Only Heavy is used
 					if (RandomBool(ThighSettings.fProbabilityHeavy)) {
-						AnimationManager::StartAnim("ThighLoopAttack", ActorRef);
+						Actions::ActionRegistry::Perform(ActorRef, "ThighCrush.Attack");
 					}
 				}
 			}
@@ -182,7 +183,7 @@ namespace GTS {
 			return;
 		}
 
-		AnimationManager::StartAnim("ThighLoopEnter", a_Performer);
+		Actions::ActionRegistry::Perform(a_Performer, "ThighCrush.Enter");
 
 		StartThighCrushTask(a_Performer);
 	}

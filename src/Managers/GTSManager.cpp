@@ -1,3 +1,4 @@
+#include "Actions/Core/Possession.hpp"
 #include "Managers/GtsManager.hpp"
 
 #include "Managers/Animation/Utils/CrawlUtils.hpp"
@@ -7,7 +8,6 @@
 #include "Managers/Audio/PitchShifter.hpp"
 #include "Managers/RipClothManager.hpp"
 #include "Managers/MaxSizeManager.hpp"
-#include "Managers/Animation/Grab.hpp"
 
 #include "Magic/Effects/Common.hpp"
 #include "Scale/DynamicScale.hpp"
@@ -80,7 +80,7 @@ namespace {
 
 		Actor* target = GetPlayerOrControlled();
 		if (!target->IsPlayerRef()) {
-			auto grabbed = Grab::GetHeldActor(target);
+			auto grabbed = Actions::Possession::Carried(target->formID);
 			if (grabbed && grabbed->IsPlayerRef()) {
 				return;
 			}

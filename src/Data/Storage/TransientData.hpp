@@ -130,9 +130,13 @@ namespace GTS {
 
 		NiPoint3 FootTramplePOS = {0.0f, 0.0f, 0.0f};
 
-		Actor* IsInControl = nullptr;
+		// The follower the player is currently driving. A handle, not a pointer, because it is held
+		// across frames and the actor can unload while the action runs.
+		ActorHandle IsInControl = {};
 
-		TESObjectREFR* DisableColissionWith = nullptr;
+		// A handle for the same reason IsInControl is: the hold outlives the other actor's 3d, so
+		// the pointer could name whatever the game put at that address next.
+		ActorHandle DisableColissionWith = {};
 		TESObjectREFR* ThrowOffender = nullptr;
 
 		AttachToNode AttachmentNode = AttachToNode::None;
@@ -143,7 +147,6 @@ namespace GTS {
 		Timer BlockMovementTimer = Timer(0);
 		Timer DelayedShrinkTimer = Timer(10);
 
-		std::vector<Actor*> shrinkies;
 		std::vector<Actor*> toSandwich;
 
 		//FootwearInformation FootwearInfo;

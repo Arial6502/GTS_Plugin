@@ -80,9 +80,10 @@ namespace GTS {
 			}
 			
 
-			{
+			//The game recycles controller allocations, so an entry may still be present for a destroyed controller at this address.
+			if (RE::bhkCharacterController* controller = a_actor->GetCharController()) {
 				WriteLock lock(MapLock);
-				ControllerMap.try_emplace(a_actor->GetCharController(), std::make_shared<DynamicCollisionController>(a_actor->GetHandle(), hasPreExistingCollisionShape));
+				ControllerMap.insert_or_assign(controller, std::make_shared<DynamicCollisionController>(a_actor->GetHandle(), hasPreExistingCollisionShape));
 			}
 		}
 	}

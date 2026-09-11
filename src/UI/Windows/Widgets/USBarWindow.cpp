@@ -4,7 +4,6 @@
 #include "Config/Config.hpp"
 
 #include "Utils/Actions/AutoAim/AimAssist.hpp"
-#include "Managers/Animation/Stomp_Under.hpp"
 #include "Managers/Cameras/CamUtil.hpp"
 
 #include "UI/Core/ImFontManager.hpp"

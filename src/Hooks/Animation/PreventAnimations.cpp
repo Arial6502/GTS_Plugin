@@ -1,8 +1,7 @@
+#include "Actions/Core/Possession.hpp"
 #include "Hooks/Animation/PreventAnimations.hpp"
 
 #include "Config/Config.hpp"
-
-#include "Managers/Animation/Grab.hpp"
 #include "Hooks/Util/HookUtil.hpp"
 
 using namespace GTS;
@@ -168,7 +167,7 @@ namespace {
 			case NonMountedDraw:
 			case DrawMagic:
 			case DefaultDrawWeapon: {
-				if (!performer->IsPlayerRef() && Grab::GetHeldActor(performer) != nullptr) {
+				if (!performer->IsPlayerRef() && Actions::Possession::Carried(performer->formID) != nullptr) {
 					return true;
 				}
 				break;

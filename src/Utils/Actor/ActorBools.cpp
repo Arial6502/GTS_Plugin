@@ -48,6 +48,15 @@ namespace GTS {
 	}
 
 
+	bool IsActorLost(Actor* a_Actor) {
+
+		if (!a_Actor) {
+			return true;
+		}
+
+		return a_Actor->IsDisabled() || a_Actor->IsDeleted() || a_Actor->IsMarkedForDeletion();
+	}
+
 	bool IsInvisible_Devourment(Actor* a_actor) {
 
         if(!IsDevourmentEnabled()){

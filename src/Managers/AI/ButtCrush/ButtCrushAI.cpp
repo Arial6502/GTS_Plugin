@@ -1,8 +1,10 @@
 
+#include "Actions/Core/Possession.hpp"
 #include "Managers/AI/ButtCrush/ButtCrushAI.hpp"
 #include "Config/Config.hpp"
 #include "Managers/Animation/AnimationManager.hpp"
-#include "Managers/Animation/Grab.hpp"
+#include "Actions/Core/ActionRegistry.hpp"
+#include "Actions/Nodes/Crush/CrushCommon.hpp"
 #include "Managers/Animation/Controllers/ButtCrushController.hpp"
 #include "Managers/Animation/Utils/CooldownManager.hpp"
 #include "Utils/Actions/ButtCrushUtils.hpp"
@@ -88,15 +90,15 @@ namespace {
 			if (!AnimationVars::Growth::IsChangingSize(ActorRef)){
 				//If we dont have the perk or for some reason the action needs to be canceled just play the attack anim immediatly
 				if (!Runtime::HasPerkTeam(ActorRef, Runtime::PERK.GTSPerkButtCrushAug2) || !AnimationVars::ButtCrush::IsButtCrushing(ActorRef)) {
-					AnimationManager::StartAnim("ButtCrush_Attack", ActorRef);
+					Actions::ActionRegistry::Perform(ActorRef, "Crush.Attack");
 				}
 				else if (CanGrow && RandomBool(Config::AI.ButtCrush.fGrowProb)) {
 					ApplyActionCooldown(ActorRef, CooldownSource::Misc_AiGrowth);
-					AnimationManager::StartAnim("ButtCrush_Growth", ActorRef);
+					Actions::ActionRegistry::Perform(ActorRef, "Crush.Grow");
 				}
 				// Can't grow any further or random bool tells us to stop
 				else if (!CanGrow || RandomBool(Config::AI.ButtCrush.fCrushProb)) {
-					AnimationManager::StartAnim("ButtCrush_Attack", ActorRef);
+					Actions::ActionRegistry::Perform(ActorRef, "Crush.Attack");
 				}
 			}
 
@@ -122,7 +124,7 @@ namespace GTS {
 		}
 
 		//Don't do action if we're holding an actor
-		if (Grab::GetHeldActor(a_Performer)) {
+		if (Actions::Possession::Carried(a_Performer->formID)) {
 			return {};
 		}
 
@@ -196,7 +198,7 @@ namespace GTS {
 			ButtCrushAI_StartLogicTask(A_Performer);
 		}
 		else {
-			AnimationManager::StartAnim("ButtCrush_StartFast", A_Performer);
+			Actions::ActionRegistry::Perform(A_Performer, Actions::Crush::EntryAction(A_Performer, "EnterQuick"));
 		}
     }
 }

@@ -6,7 +6,7 @@
 
 #include "Managers/AI/AIfunctions.hpp"
 #include "Managers/Animation/AnimationManager.hpp"
-#include "Managers/Animation/TinyCalamity_Shrink.hpp"
+#include "Actions/Nodes/Calamity/CalamityCommon.hpp"
 #include "Managers/Animation/Utils/AnimationUtils.hpp"
 #include "Managers/Size_Killmoves/SizeKillMove.hpp"
 #include "Managers/Size_Killmoves/SizeKillMove_Calamity.hpp"
@@ -943,8 +943,7 @@ namespace GTS {
 			if (preyscale > targetScale) { // Apply ONLY if target is bigger than requirement
 
 				if (animation) {
-					Animation_TinyCalamity::AddToData(giant, tiny, expected);
-					AnimationManager::StartAnim("Calamity_ShrinkOther", giant); 
+					Actions::Calamity::Shrink(giant, tiny, expected);
 					StartCalamityKillmove(giant, tiny, find_node(giant, "NPC R Hand [RHnd]"), DamageSource::Overkill, 10000.0f, 0.05f, false, true);
 					StaggerActor(giant, tiny, 0.25f);
 					return;

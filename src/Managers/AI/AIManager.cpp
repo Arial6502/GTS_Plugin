@@ -12,8 +12,7 @@
 #include "Managers/AI/Thigh/ThighSandwichAI.hpp"
 #include "Managers/AI/StompKick/StompKickSwipeAI.hpp"
 #include "Managers/Animation/Utils/CooldownManager.hpp"
-#include "Managers/Animation/Grab.hpp"
-#include "Managers/Animation/HugShrink.hpp"
+#include "Actions/Core/Possession.hpp"
 #include "Managers/Animation/Controllers/VoreController.hpp"
 
 using namespace GTS;
@@ -68,7 +67,7 @@ namespace {
 
 			const bool HasHP = GetAV(a_Actor, ActorValue::kHealth) > 0;
 			const bool IsInNormalState = a_Actor->AsActorState()->GetSitSleepState() == SIT_SLEEP_STATE::kNormal;
-			const bool IsHoldingSomeone = Grab::GetHeldActor(a_Actor) != nullptr || AnimationVars::Action::IsInCleavageState(a_Actor);
+			const bool IsHoldingSomeone = Actions::Possession::Carried(a_Actor->formID) != nullptr || AnimationVars::Action::IsInCleavageState(a_Actor);
 			const bool IsInCombat = (a_Actor->IsInCombat()) || (a_Actor->GetActorRuntimeData().currentCombatTarget.get().get() != nullptr);
 
 			const bool IsPlayer = a_Actor->IsPlayerRef() && Config::Advanced.bPlayerAI;
@@ -129,7 +128,7 @@ namespace {
 				return false;
 			}
 
-			if (HugShrink::GetSingleton().IsTinyInDataList(a_Prey)) {
+			if (Actions::Possession::IsHeldIn(a_Prey->formID, Actions::PossessionSlot::kArms)) {
 				return false;
 			}
 

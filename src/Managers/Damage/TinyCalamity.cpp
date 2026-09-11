@@ -7,7 +7,7 @@
 #include "Managers/Animation/Utils/TurnTowards.hpp"
 #include "Managers/Animation/Utils/CooldownManager.hpp"
 #include "Managers/Animation/Utils/AnimationUtils.hpp"
-#include "Managers/Animation/TinyCalamity_Shrink.hpp"
+#include "Actions/Nodes/Calamity/CalamityCommon.hpp"
 #include "Managers/Animation/AnimationManager.hpp"
 #include "Managers/Perks/PerkHandler.hpp"
 #include "Managers/AttributeManager.hpp"
@@ -161,10 +161,7 @@ namespace GTS {
                                 return false;
                             }
                             ApplyActionCooldown(giant, CooldownSource::Misc_TinyCalamity_WrathfulCalamity);
-                            Animation_TinyCalamity::AddToData(giant, tiny, 1.0f);
-
-                            AnimationManager::StartAnim("InstaKill_Start_Tiny", tiny);
-                            AnimationManager::StartAnim("InstaKill_Start_GTS", giant);
+                            Actions::Calamity::Erase(giant, tiny);
 
                             DisarmActor(giant);
                             DisarmActor(tiny);

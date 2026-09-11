@@ -1,4 +1,5 @@
 #include "Managers/AI/Thigh/ThighSandwichAI.hpp"
+#include "Actions/Core/ActionRegistry.hpp"
 #include "Config/Config.hpp"
 #include "Managers/Animation/AnimationManager.hpp"
 #include "Managers/Animation/Controllers/ThighSandwichController.hpp"
@@ -44,15 +45,10 @@ namespace {
 		return false;
 	}
 
-	void PerformAnimations(RE::Actor* a_performer, std::string_view owner_anim, std::string_view receiver_anim = "") {
-		auto& sandwichdata = ThighSandwichController::GetSingleton().GetSandwichingData(a_performer);
-		AnimationManager::StartAnim(owner_anim, a_performer);
-
-		for (Actor* tiny : sandwichdata.GetActors()) {
-			if (tiny && receiver_anim.size() > 1) {
-				AnimationManager::StartAnim(receiver_anim, tiny);
-			}
-		}
+	// Through the registry, so the AI gets the same guards, cooldowns and paired sends the player
+	// does. The node sends each tiny its half, which is why no receiver name is passed any more.
+	void Perform(RE::Actor* a_Performer, std::string_view a_Action) {
+		Actions::ActionRegistry::Perform(a_Performer, a_Action);
 	}
 
 }
@@ -173,32 +169,32 @@ namespace GTS {
 
 				case 0: //Light Attack
 				{
-					PerformAnimations(a_Performer, "Sandwich_LightAttack", "Sandwich_LightAttack_T");
+					Perform(a_Performer, "Sandwich.Butt.Light");
 				} return;
 
 				case 1: //Heavy Attack
 				{
-					PerformAnimations(a_Performer, "Sandwich_HeavyAttack", "Sandwich_HeavyAttack_T");
+					Perform(a_Performer, "Sandwich.Butt.Heavy");
 				} return;
 
 				case 2: //Grow
 				{
-					PerformAnimations(a_Performer, "Sandwich_Grow", "Sandwich_Grow_T");
+					Perform(a_Performer, "Sandwich.Butt.Grow");
 				} return;
 
 				case 3: //Grind Start
 				{
-					PerformAnimations(a_Performer, "Sandwich_GrindStart", "Sandwich_GrindStart_T");
+					Perform(a_Performer, "Sandwich.Butt.GrindStart");
 				} return;
 
 				case 4: //UB
 				{
-					PerformAnimations(a_Performer, "Sandwich_UB", "Sandwich_UB_T");
+					Perform(a_Performer, "Sandwich.Butt.Unbirth");
 				} return;
 
 				case 5: //Stop Butt
 				{
-					PerformAnimations(a_Performer, "Sandwich_ButtStop", "Sandwich_ButtStop_T");
+					Perform(a_Performer, "Sandwich.Butt.Stop");
 				} return;
 
 				default: 
@@ -220,18 +216,17 @@ namespace GTS {
 
 					case 0: 
 					{
-						AnimationManager::StartAnim("ThighAttack", a_Performer);
+						Perform(a_Performer, "Sandwich.Attack");
 					} return;
 					case 1: 
 					{
-						AnimationManager::StartAnim("ThighAttack_Heavy", a_Performer);
+						Perform(a_Performer, "Sandwich.AttackHeavy");
 					} return;
 					case 2: 
 					{
-						auto& sandwichdata = ThighSandwichController::GetSingleton().GetSandwichingData(a_Performer);
-						if (!sandwichdata.GetActors().empty()) {
-							PerformAnimations(a_Performer, "Sandwich_ButtStart", "Sandwich_ButtStart_T");
-						}
+						// The node refuses this with an empty sandwich, so the check that used to be
+						// here is not repeated.
+						Perform(a_Performer, "Sandwich.Butt.Start");
 					} return;
 					default: 
 					{
@@ -240,7 +235,7 @@ namespace GTS {
 				}
 			}
 			else {
-				AnimationManager::StartAnim("ThighExit", a_Performer);
+				Perform(a_Performer, "Sandwich.Exit");
 			}
 		}
 	}

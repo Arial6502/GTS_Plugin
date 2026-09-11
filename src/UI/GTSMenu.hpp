@@ -54,6 +54,10 @@ namespace GTS {
 		static void AlterTimeScale(bool a_enable);
 		static bool CloseInputConsumers();
 
+		// Closes the settings window if it is the one showing. What the menu's own keybind calls when
+		// it is pressed with the menu already open, since the game never sees that press.
+		static bool CloseSettings();
+
 		void Present();
 
 		private:

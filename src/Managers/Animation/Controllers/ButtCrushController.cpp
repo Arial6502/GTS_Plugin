@@ -2,9 +2,12 @@
 #include "Managers/Animation/Utils/CooldownManager.hpp"
 #include "Managers/Animation/Utils/AttachPoint.hpp"
 #include "Managers/Animation/AnimationManager.hpp"
-#include "Managers/Animation/BoobCrush.hpp"
+#include "Actions/Core/ActionRegistry.hpp"
+#include "Actions/Core/Possession.hpp"
+#include "Actions/Nodes/Crush/CrushCommon.hpp"
 #include "Managers/GTSSizeManager.hpp"
 #include "Managers/Rumble.hpp"
+#include "Actions/Core/ActionCleanup.hpp"
 #include "Managers/HighHeel.hpp"
 #include "Utils/Actions/ButtCrushUtils.hpp"
 
@@ -20,9 +23,10 @@ namespace {
 		std::string name = std::format("ButtCrush_{}", tiny->formID);
 		SetBeingEaten(tiny, true);
 
-		if (AnimationVars::Crawl::IsCrawling(giant)) {
-			AnimationBoobCrush::GetSingleton().AttachActor(giant, tiny);
-		}
+		// The node owns the binding now, and the slot decides which node picks the tiny up.
+		Actions::Possession::Take(giant->formID,
+			AnimationVars::Crawl::IsCrawling(giant) ? Actions::PossessionSlot::kBreasts : Actions::PossessionSlot::kButt,
+			tiny->GetHandle());
 
 		auto gianthandle = giant->CreateRefHandle();
 		auto tinyhandle = tiny->CreateRefHandle();
@@ -67,7 +71,7 @@ namespace {
 			ApplyActionCooldown(giantref, CooldownSource::Action_ButtCrush); // Set butt crush on the cooldown
 
 			if (stamina <= 2.0f && !AnimationVars::Growth::IsChangingSize(giantref)) {
-				AnimationManager::StartAnim("ButtCrush_Attack", giantref); // Try to Abort it
+				Actions::ActionRegistry::Perform(giantref, "Crush.Attack");
 			}
 
 			if (GetAV(giantref, ActorValue::kHealth) <= 1.0f || giantref->IsDead()) {
@@ -83,7 +87,6 @@ namespace {
 				Runtime::PlaySoundAtNode_FallOff(Runtime::SNDR.GTSSoundTinyCalamity_Impact, giantref, 1.0f, "NPC COM [COM ]", 0.10f * get_visual_scale(giantref));
 				Rumbling::Once("ButtCrushDeath", giantref, 128.0f, 0.25f, "NPC Root [Root]", 0.0f);
 
-				AnimationBoobCrush::GetSingleton().OnPluginReset();
 
 				return false;
 			}
@@ -94,19 +97,16 @@ namespace {
 				coords.z -= HH;
 			} 
 			if (!AnimationVars::ButtCrush::IsButtCrushing(giantref)) {
-				AnimationBoobCrush::GetSingleton().OnPluginReset();
 				SetBeingEaten(tinyref, false);
 				EnableCollisions(tinyref);
 				return false;
 			}
 			if (!AttachTo_NoForceRagdoll(giantref, tinyref, coords)) {
-				AnimationBoobCrush::GetSingleton().OnPluginReset();
 				SetBeingEaten(tinyref, false);
 				EnableCollisions(tinyref);
 				return false;
 			}
 			if (tinyref->IsDead()) {
-				AnimationBoobCrush::GetSingleton().OnPluginReset();
 				SetBeingEaten(tinyref, false);
 				EnableCollisions(tinyref);
 				return false;
@@ -280,20 +280,22 @@ namespace GTS {
 		}
 	}
 
-	void ButtCrushController::StartButtCrush(Actor* pred, Actor* prey, const bool dochecks) {
+	bool ButtCrushController::StartButtCrush(Actor* pred, Actor* prey, const bool dochecks) {
 		auto& buttcrush = ButtCrushController::GetSingleton();
 
 		if (dochecks) {
 			if (!buttcrush.CanButtCrush(pred, prey)) {
-				return;
+				return false;
 			}
 		}
 
 		if (CanDoButtCrush(pred, false) && !IsBeingHeld(pred, prey)) {
 			if (TinyCalamity_ShouldShrinkFirst(pred, prey, Action_ButtCrush, 3.4f, 0.25f, 0.25f)) {
-				return;
+				return false;
 			}
-			prey->NotifyAnimationGraph("GTS_EnterFear");
+			// Before the grab. Once the tiny is held, collision free and on AnimObjectB, its graph has
+			// no state left that takes the fear transition, so this is the moment that works.
+			Actions::Cleanup::Scare(prey);
 			DisableCollisions(prey, pred);
 
 			float WasteStamina = 60.0f * GetButtCrushCost(pred, false);
@@ -314,11 +316,12 @@ namespace GTS {
 				DamageAV(giantref, ActorValue::kStamina, WasteStamina);
 			});
 
-			AnimationManager::StartAnim("ButtCrush_Start", pred);
+			Actions::ActionRegistry::Perform(pred, Actions::Crush::EntryAction(pred, "Enter"));
+			return true;
 		}
-		else {
-			ButtCrush_OnCooldownMessage(pred);
-		}
+
+		ButtCrush_OnCooldownMessage(pred);
+		return false;
 	}
 
 	void ButtCrushController::AllowMessage(bool allow) {

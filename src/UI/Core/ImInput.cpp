@@ -1,7 +1,72 @@
 #include "UI/Core/ImInput.hpp"
 #include "UI/GTSMenu.hpp"
+#include "Utils/Input/InputKey.hpp"
+#include "Config/Keybinds.hpp"
+
+namespace {
+	// Matches what the keybind row can render without wrapping.
+	constexpr std::size_t MAX_CAPTURED_KEYS = 5;
+}
 
 namespace GTS {
+
+	void ImInput::BeginKeyCapture() {
+		m_capturing = true;
+		m_captureCancelled = false;
+		m_rebindConfirmHovered = false;
+		m_capturedKeys.clear();
+	}
+
+	void ImInput::EndKeyCapture() {
+		m_capturing = false;
+		m_rebindConfirmHovered = false;
+		m_captureCancelled = false;
+		m_capturedKeys.clear();
+	}
+
+	bool ImInput::IsCapturingKeys() {
+		return m_capturing;
+	}
+
+	bool ImInput::KeyCaptureCancelled() {
+		return m_captureCancelled;
+	}
+
+	const std::vector<InputKey>& ImInput::CapturedKeys() {
+		return m_capturedKeys;
+	}
+
+	void ImInput::TrackHeld(const KeyEvent& a_event) {
+
+		if (a_event.m_device != RE::INPUT_DEVICE::kKeyboard && a_event.m_device != RE::INPUT_DEVICE::kMouse) {
+			return;
+		}
+
+		const InputKey key{ a_event.m_device, a_event.m_keyCode };
+
+		if (a_event.IsPressed()) {
+			m_heldKeys.emplace(key);
+		}
+		else {
+			m_heldKeys.erase(key);
+		}
+	}
+
+	// The keys the settings menu is bound to, all held at once. Read from the bind rather than a
+	// remembered combination, so rebinding the menu key takes effect straight away.
+	bool ImInput::SettingsComboPressed() {
+
+		const auto it = std::ranges::find(Keybinds::InputEvents, "UI.Settings.Open", &InputBind::Name);
+
+		if (it == Keybinds::InputEvents.end() || it->Disabled || it->Keys.empty()) {
+			return false;
+		}
+
+		return std::ranges::all_of(it->Keys, [](const std::string& a_Name) {
+			const auto key = InputKeyFromName(a_Name);
+			return key && m_heldKeys.contains(*key);
+		});
+	}
 
 	void ImInput::UnstickKeys() {
 
@@ -25,6 +90,7 @@ namespace GTS {
 
 		for (auto& event : m_keyEventQueue) {
 
+			TrackHeld(event);
 
 			if (event.m_eventType == RE::INPUT_EVENT_TYPE::kChar) {
 				io.AddInputCharacter(event.m_keyCode);
@@ -32,22 +98,94 @@ namespace GTS {
 			}
 
 			if (event.m_device == RE::INPUT_DEVICE::kMouse) {
-				
+
+				// The wheel is not a button and has no name to store, so it is never a binding.
 				if (event.m_keyCode > 7) {
 					io.AddMouseWheelEvent(0, event.m_value * (event.m_keyCode == 8 ? 1 : -1));
+					continue;
 				}
-				else {
-					event.m_keyCode = std::min<uint32_t>(event.m_keyCode, 5);
-					io.AddMouseButtonEvent(event.m_keyCode, event.IsPressed());
+
+				event.m_keyCode = std::min<uint32_t>(event.m_keyCode, 5);
+
+				// Every button can be bound, including left. It only reaches the UI while capturing
+				// when the cursor is over the button that confirms the rebind, which is the one click
+				// that has to keep working. Anywhere else it is swallowed, or binding a button would
+				// also press whatever sits under the cursor.
+				const bool confirming = event.m_keyCode == 0 && m_rebindConfirmHovered;
+
+				if (m_capturing && !confirming) {
+
+					if (event.IsPressed() && m_capturedKeys.size() < MAX_CAPTURED_KEYS) {
+
+						const InputKey pressed{ event.m_device, event.m_keyCode };
+
+						if (std::ranges::find(m_capturedKeys, pressed) == m_capturedKeys.end()) {
+							m_capturedKeys.push_back(pressed);
+						}
+					}
+
+					continue;
 				}
+
+				io.AddMouseButtonEvent(event.m_keyCode, event.IsPressed());
+				continue;
 			}
 
 			if (event.m_device == RE::INPUT_DEVICE::kKeyboard) {
+
+				if (m_capturing) {
+
+					if (event.IsPressed()) {
+
+						// DIK_ESCAPE. Compared before any layout mapping, so it is the physical key
+						// in the top left whatever the layout calls it.
+						if (event.m_keyCode == DIK_ESCAPE) {
+							m_captureCancelled = true;
+							m_swallowEscapeUp = true;
+						}
+						else if (m_capturedKeys.size() < MAX_CAPTURED_KEYS) {
+
+							const InputKey pressed{ event.m_device, event.m_keyCode };
+
+							if (std::ranges::find(m_capturedKeys, pressed) == m_capturedKeys.end()) {
+								m_capturedKeys.push_back(pressed);
+							}
+						}
+					}
+
+					continue;
+				}
 
 				uint32_t key = DIKToVK(event.m_keyCode);
 
 				if (key == event.m_keyCode) {
 					key = MapVirtualKeyEx(event.m_keyCode, MAPVK_VSC_TO_VK_EX, GetKeyboardLayout(0));
+				}
+
+				// The press cancelled a rebind and never reached anything. Capture has ended by now,
+				// so without this the release falls through and closes the menu, and ImGui would see
+				// a release it was never told about.
+				if (key == VK_ESCAPE && !event.IsPressed() && m_swallowEscapeUp) {
+					m_swallowEscapeUp = false;
+					continue;
+				}
+
+				// The menu swallows game input while it is up, so its own keybind never reaches
+				// InputManager and only ever opened it. Matched on the press edge, or holding the
+				// combination would close it again the moment it opened.
+				if (event.IsPressed()) {
+
+					const bool combo = SettingsComboPressed();
+
+					if (combo && !m_settingsComboHeld && GTSMenu::CloseSettings()) {
+						m_settingsComboHeld = true;
+						continue;
+					}
+
+					m_settingsComboHeld = combo;
+				}
+				else {
+					m_settingsComboHeld = m_settingsComboHeld && SettingsComboPressed();
 				}
 
 				io.AddKeyEvent(VirtualKeyToImGuiKey(key), event.IsPressed());
