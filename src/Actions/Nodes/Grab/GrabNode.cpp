@@ -817,6 +817,7 @@ namespace {
 			SetBetweenBreasts(tiny, false);
 			a_Ctx.SendTo(tiny, "GTSBEH_T_Remove");
 			Anims_FixAnimationDesync(giant, tiny, true);
+			Grabbing::Frighten(giant, tiny);
 		}
 	}
 
@@ -834,8 +835,10 @@ namespace {
 
 		Grabbing::HandEmptied(giant);
 
+		// Everyone is ragdolled on release, not only the hostile ones LetGo pushes.
 		if (auto* tiny = Held(a_Ctx)) {
-			Grabbing::LetGo(giant, tiny, true);
+			Grabbing::LetGo(giant, tiny, false);
+			PushActorAway(giant, tiny, 1.0f);
 		}
 
 		a_Ctx.RequestExit();

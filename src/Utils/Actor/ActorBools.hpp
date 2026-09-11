@@ -26,6 +26,8 @@ namespace GTS {
 	bool WasReanimated(Actor* actor);
 	bool IsFlying(Actor* actor);
 	bool IsHostile(Actor* giant, Actor* tiny);
+	// The tiny carries the BFF keyword that matches the giant: PlayerBFF for the player, FollowerBFF for a teammate.
+	bool IsBFF(Actor* giant, Actor* tiny);
 	bool IsEssential(Actor* giant, Actor* actor);
 	bool ShouldHeadTrackCalamityVictim(Actor* actor);
 	bool ShouldHeadTrackBreastVictim(Actor* actor);

@@ -276,8 +276,11 @@ namespace GTS {
 
 	void SetBetweenBreasts(Actor* actor, bool enable) {
 		auto transient = Transient::GetActorData(actor);
-		if (transient) {
+		if (transient && transient->BetweenBreasts != enable) {
 			transient->BetweenBreasts = enable;
+			// Spine head tracking twists the tiny out of the storage pose. The SetGraphVariableBool hook
+			// keeps it off while the flag is set, and turning it back on goes through that hook too.
+			AnimationVars::Other::SetSpineRotationEnabled(actor, !enable);
 		}
 	}
 

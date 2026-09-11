@@ -4,6 +4,7 @@
 #include "Managers/AI/AIFunctions.hpp"
 
 #include "API/Devourment.hpp"
+#include "Actions/Core/ActionCleanup.hpp"
 #include "Actions/Core/ActionRegistry.hpp"
 #include "Actions/Core/Possession.hpp"
 
@@ -235,6 +236,21 @@ namespace GTS::Actions::Grabbing {
 		SetBeingHeld(a_Tiny, true);
 		DisableCollisions(a_Tiny, a_Giant);
 		StartCarry(a_Giant, a_Tiny, a_Settle);
+		Frighten(a_Giant, a_Tiny);
+	}
+
+	void Frighten(RE::Actor* a_Giant, RE::Actor* a_Tiny) {
+
+		if (!a_Giant || !a_Tiny || a_Tiny->IsPlayerRef() || a_Tiny->IsDead() || IsTeammate(a_Tiny) || IsBFF(a_Giant, a_Tiny)) {
+			return;
+		}
+
+		// Keyed on the pair, so taking the tiny back out of the breasts gives the same answer.
+		if (a_Tiny->IsInCombat() && StableRoll(a_Giant, a_Tiny) >= FearInCombatChance) {
+			return;
+		}
+
+		Cleanup::Scare(a_Tiny);
 	}
 
 	void BeginBreastHold(RE::Actor* a_Giant, RE::Actor* a_Tiny) {

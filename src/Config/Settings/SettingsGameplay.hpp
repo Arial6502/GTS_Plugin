@@ -91,6 +91,7 @@ struct GameplayActionSettings_t {
     
     //Cleavage Settings
     float fGrabPlayVoreOffset_Z = 0.0f;
+    bool bBlockCleavageActivation = true;
 
     //Morph Toggles
     bool bEnlargeBreastsOnAbsorption = false;

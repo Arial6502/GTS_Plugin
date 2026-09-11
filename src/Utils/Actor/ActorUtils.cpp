@@ -515,8 +515,7 @@ namespace GTS {
 			return;
 		}
 
-		if (a_tiny->HasKeywordString("GTSKeyword_PlayerBFF") && a_giant->IsPlayerRef() || 
-			a_tiny->HasKeywordString("GTSKeyword_FollowerBFF") && IsTeammate(a_giant)) {
+		if (IsBFF(a_giant, a_tiny)) {
 			return;
 		}
 
