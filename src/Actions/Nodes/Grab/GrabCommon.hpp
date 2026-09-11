@@ -35,6 +35,13 @@ namespace GTS::Actions::Grabbing {
 	// animation is going to fire that annotation.
 	void BeginHold(RE::Actor* a_Giant, RE::Actor* a_Tiny, float a_Settle = 0.0f);
 
+	// Share of tinies already in combat that are frightened while held. Everyone out of combat is.
+	constexpr float FearInCombatChance = 0.25f;
+
+	// Plays the fear idle on a tiny held in the hand, unless they are the player, a teammate or the
+	// giant's BFF. Releasing them sends GTS_ExitFear.
+	void Frighten(RE::Actor* a_Giant, RE::Actor* a_Tiny);
+
 	// The same for a tiny stored in the breasts: the pose, the flag and the pitch task.
 	void BeginBreastHold(RE::Actor* a_Giant, RE::Actor* a_Tiny);
 

@@ -213,7 +213,11 @@ namespace GTS {
                 PSString T1 = "Modify the placement of actors during cleavage actions.\n"
                               "Up/Down | Forward/Back";
 
+                PSString T2 = "Stop the player from activating an actor held between the breasts.\n"
+                              "This blocks talking to them, pickpocketing and other activations.";
+
                 ImGuiEx::SliderF2("Placement Offset", &Config::Gameplay.ActionSettings.f2CleavageOffset.at(0), -15.0f, 15.0f, T1, "%.2f");
+                ImGuiEx::CheckBox("Block Activating Held Actors", &Config::Gameplay.ActionSettings.bBlockCleavageActivation, T2);
                 ImGui::Spacing();
             }
         }

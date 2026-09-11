@@ -213,6 +213,14 @@ namespace GTS {
 		return (!giant || !tiny) ? false : tiny->IsHostileToActor(giant);
 	}
 
+	bool IsBFF(Actor* giant, Actor* tiny) {
+		if (!giant || !tiny) {
+			return false;
+		}
+		return (giant->IsPlayerRef() && tiny->HasKeywordString("GTSKeyword_PlayerBFF")) ||
+			(IsTeammate(giant) && tiny->HasKeywordString("GTSKeyword_FollowerBFF"));
+	}
+
 	bool IsEssential(Actor* giant, Actor* actor) {
 
 		if (!giant || !actor) return false;

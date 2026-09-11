@@ -7,6 +7,12 @@ namespace {
         
 	int ptrOffset = REL::Module::get().version().compare(SKSE::RUNTIME_SSE_1_6_629) == std::strong_ordering::less ? -0xB8 : -0xC0;
 
+	bool BlocksSpineTracking(Actor* a_Actor) {
+		return AnimationVars::Crawl::IsCrawling(a_Actor) || AnimationVars::Prone::IsProne(a_Actor) ||
+			AnimationVars::Crawl::IsHandStomping(a_Actor) || AnimationVars::Crawl::IsHandStompingStrong(a_Actor) ||
+			IsBetweenBreasts(a_Actor);
+	}
+
 	void Headtracking_ManageSpineToggle(Actor* actor) {
 		if (actor && actor->Is3DLoaded()) {
 			// Player is handled inside HeadTracking.cpp -> SetGraphVariableBool Hook
@@ -25,13 +31,7 @@ namespace {
 				double timepassed = Finish - Start;
 				if (timepassed > 0.10) {
 					auto giant = giantHandle.get().get();
-
-					bool Disable = !(AnimationVars::Crawl::IsCrawling(giant) || AnimationVars::Prone::IsProne(giant) ||
-						AnimationVars::Crawl::IsHandStomping(actor) || 
-						AnimationVars::Crawl::IsHandStompingStrong(actor));
-
-					AnimationVars::Other::SetSpineRotationEnabled(giant, Disable);
-					//log::info("Setting {} for {}", Disable, giant->GetDisplayFullName());
+					AnimationVars::Other::SetSpineRotationEnabled(giant, !BlocksSpineTracking(giant));
 					return false;
 				}
 				return true;
@@ -57,15 +57,8 @@ namespace Hooks {
 				if (a_variableName == "bHeadTrackSpine") {
 					// Done through hook since TDM seems to adjust it constantly
 					auto actor = skyrim_cast<Actor*>(a_graph);
-					if (actor) {
-
-						bool ShouldDisable = (AnimationVars::Crawl::IsCrawling(actor) || AnimationVars::Prone::IsProne(actor) ||
-							AnimationVars::Crawl::IsHandStomping(actor) || 
-							AnimationVars::Crawl::IsHandStompingStrong(actor));
-
-						if (ShouldDisable) {
-							result = false;
-						}
+					if (actor && BlocksSpineTracking(actor)) {
+						result = false;
 					}
 				}
 			}

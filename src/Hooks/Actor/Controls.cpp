@@ -1,6 +1,7 @@
 #include "Managers/Size_Killmoves/KillMoveHelper.hpp"
 #include "Managers/Size_Killmoves/SizeKillMove.hpp"
 #include "Actions/Core/ActionRegistry.hpp"
+#include "Config/Config.hpp"
 #include "Hooks/Actor/Controls.hpp"
 #include "Managers/Animation/AnimationManager.hpp"
 #include "Hooks/Util/HookUtil.hpp"
@@ -26,6 +27,23 @@ namespace {
 		}
 
 		return !Actions::ActionRegistry::HandleVanillaInput(player, a_Event->userEvent.c_str());
+	}
+
+	bool ActivatesCleavageTiny(RE::IDEvent* a_Event) {
+
+		if (!a_Event || !Config::Gameplay.ActionSettings.bBlockCleavageActivation) {
+			return false;
+		}
+
+		if (a_Event->userEvent != RE::UserEvents::GetSingleton()->activate) {
+			return false;
+		}
+
+		auto* pick = RE::CrosshairPickData::GetSingleton();
+		auto target = pick ? pick->target.get() : nullptr;
+		auto* actor = target ? target->As<RE::Actor>() : nullptr;
+
+		return actor && IsBetweenBreasts(actor);
 	}
 
 	bool CanMove() {
@@ -79,7 +97,7 @@ namespace Hooks {
 					}
 
 					auto EvtID = a_event->AsIDEvent();
-					if (!AllowVanillaInput(EvtID)) {
+					if (!AllowVanillaInput(EvtID) || ActivatesCleavageTiny(EvtID)) {
 						return false;
 					}
 				}
