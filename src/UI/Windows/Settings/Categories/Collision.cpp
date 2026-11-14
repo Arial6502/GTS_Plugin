@@ -150,5 +150,27 @@ namespace GTS {
 				ImGui::Spacing();
 			}
 		}
+
+		ImUtil_Unique
+		{
+
+			PSString THelp = "Stomps, kicks, hand swipes and thigh crushes test a sphere at each foot or hand bone\n"
+							 "against the target's collision shape. That shape is a box around the character's collider,\n"
+							 "which is narrower than the body it stands for, so a hit that looked clean can read as a miss.";
+
+			PSString THit = "How far the target's collision box is grown before the hit test.\n\n"
+							"1.00x is the collider's own size. Raise it if stomps and kicks pass through targets that\n"
+							"clearly should have been hit, lower it if they connect from too far away.\n"
+							"Turn on Draw Debug Shapes above to see the box that is actually tested.";
+
+			if (ImGui::CollapsingHeader("Size Damage Hit Detection", ImUtil::HeaderFlagsDefaultOpen)) {
+
+				ImGuiEx::HelpText("What is this", THelp);
+
+				ImGuiEx::SliderF("Hit Box Scale", &Config::Collision.fSizeDamageShapeScale, 1.0f, 3.0f, THit, "%.2fx");
+
+				ImGui::Spacing();
+			}
+		}
 	}
 }

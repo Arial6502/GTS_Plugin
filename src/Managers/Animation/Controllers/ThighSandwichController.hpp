@@ -53,6 +53,11 @@ namespace GTS {
 		std::vector<Actor*> GetSandwichTargetsInFront(Actor* pred, std::size_t numberOfPrey);
 		static bool StartSandwiching(Actor* pred, Actor* prey, bool dochecks = true);
 		bool CanSandwich(Actor* pred, Actor* prey) const;
+
+		// CanSandwich split in two, without its messages.
+		[[nodiscard]] static float Reach(Actor* pred);
+		[[nodiscard]] static bool Qualifies(Actor* pred, Actor* prey);
+
 		SandwichingData& GetSandwichingData(Actor* giant);
 		std::unordered_map<FormID, SandwichingData> data;
 		void AllowMessage(bool allow);

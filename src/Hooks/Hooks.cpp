@@ -25,6 +25,7 @@
 #include "Hooks/Havok/Havok.hpp"
 #include "Hooks/Havok/hkbBehaviorGraph.hpp"
 #include "Hooks/Havok/Pushback.hpp"
+#include "Hooks/Movement/MovementGoal.hpp"
 #include "Hooks/Papyrus/PushAway.hpp"
 #include "Hooks/Papyrus/VM.hpp"
 #include "Hooks/Projectile/Projectiles.hpp"
@@ -70,6 +71,9 @@ namespace Hooks {
 		Hook_Havok::Install();
 		Hook_hkbBehaviorGraph::Install();
 		Hook_PushBack::Install();
+
+		//Movement
+		Hook_MovementGoal::Install();
 
 		//Papyrus
 		Hook_VM::Install();

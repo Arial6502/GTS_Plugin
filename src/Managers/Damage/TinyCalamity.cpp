@@ -130,6 +130,68 @@ namespace {
 }
 
 namespace GTS {
+    // Kept next to WrathfulCalamity on purpose: the threshold here has to match the one below, which
+    // cannot be shared because that one is interleaved with the player's explanations of the answer.
+    bool TinyCalamity_CanErase(Actor* giant, Actor* tiny) {
+
+        if (!giant || !tiny || giant->IsSneaking()) {
+            return false;
+        }
+
+        if (!Runtime::HasPerkTeam(giant, Runtime::PERK.GTSPerkTinyCalamityRage) || !TinyCalamityActive(giant)) {
+            return false;
+        }
+
+        if (!(IsHuman(tiny) || IsHumanoid(tiny)) || !IsHostile(giant, tiny)) {
+            return false;
+        }
+
+        if (IsBeingHeld(giant, tiny) || IsRagdolled(tiny)) {
+            return false;
+        }
+
+        float threshold = 0.25f + std::clamp(GetGtsSkillLevel(giant) - 70.0f, 0.0f, 0.30f);
+
+        const float gts_hp = GetMaxAV(giant, ActorValue::kHealth);
+        const float tiny_hp = GetMaxAV(tiny, ActorValue::kHealth);
+        const float min_cap = SizeManager::BalancedMode() ? 0.5f : 1.0f;
+
+        threshold *= std::clamp(gts_hp / tiny_hp, min_cap, giant->IsPlayerRef() ? 2.0f : 4.0f);
+
+        return GetHealthPercentage(tiny) <= threshold;
+    }
+
+    // One word, so there is a single variation to speak.
+    bool TinyCalamity_Shout(Actor* giant) {
+
+        if (!giant) {
+            return false;
+        }
+
+        RE::SpellItem* spell = Runtime::GetSpell(Runtime::SPEL.GTSSpellTinyCalamity);
+
+        // The shout itself carries the same spell on its only variation, so it stands in if the direct
+        // lookup ever fails.
+        if (!spell) {
+            if (RE::TESShout* shout = Runtime::GetShout(Runtime::SHOU.GTSShoutTinyCalamity)) {
+                spell = shout->variations[RE::TESShout::VariationIDs::kOne].spell;
+            }
+        }
+
+        if (!spell) {
+            return false;
+        }
+
+        RE::MagicCaster* caster = giant->GetMagicCaster(RE::MagicSystem::CastingSource::kInstant);
+
+        if (!caster) {
+            return false;
+        }
+
+        caster->CastSpellImmediate(spell, false, giant, 1.0f, false, 0.0f, giant);
+        return true;
+    }
+
     bool TinyCalamity_WrathfulCalamity(Actor* giant, std::vector<Actor*> preys) {
         if (preys.empty()) {
             return false;

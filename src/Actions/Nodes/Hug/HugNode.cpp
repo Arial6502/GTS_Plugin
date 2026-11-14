@@ -804,8 +804,7 @@ namespace {
 			return false;
 		}
 
-		const bool drained = get_scale_difference(giant, tiny, SizeType::VisualScale, false, true) >= GetHugShrinkThreshold(giant)
-			|| get_visual_scale(tiny) <= Minimum_Actor_Scale;
+		const bool drained = HugNode::Drained(giant, tiny);
 
 		if (!drained) {
 			return true;
@@ -1094,6 +1093,17 @@ namespace GTS::Actions {
 	std::span<const std::string_view> HugNode::ExitSignals() const { return ::ExitSignals; }
 	std::string_view HugNode::AbortSignal() const { return BEH_ABORT; }
 	std::span<const PossessionSlot> HugNode::RequiredSlots() const { return ::RequiredSlots; }
+
+	bool HugNode::Drained(RE::Actor* a_Giant, RE::Actor* a_Tiny) {
+
+		if (!a_Giant || !a_Tiny) {
+			return false;
+		}
+
+		return get_scale_difference(a_Giant, a_Tiny, SizeType::VisualScale, false, true) >= GetHugShrinkThreshold(a_Giant)
+			|| get_visual_scale(a_Tiny) <= Minimum_Actor_Scale;
+	}
+
 	std::span<const EntryDef> HugNode::Entries() const { return ::Entries; }
 	std::span<const ActionDef> HugNode::Actions() const { return ::Actions; }
 	std::span<const AnnotationDef> HugNode::Annotations() const { return ::Annotations; }

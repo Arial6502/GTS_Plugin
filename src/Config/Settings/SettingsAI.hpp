@@ -38,11 +38,28 @@ TOML_SERIALIZABLE(AIStatelessAction_t);
 struct AIStatefullAction_t {
     bool bEnableAction      = true;
     float fProbability      = 50.0f;
-    float fProbabilityLight = 50.0f;
     float fProbabilityHeavy = 50.0f;
+    float fIdleProb         = 100.0f;
     float fInterval         = 2.0f;
 };
 TOML_SERIALIZABLE(AIStatefullAction_t);
+
+// How the AI walks to a target. Distances are in reaches, not units, so they scale with the actor.
+struct AIMovement_t {
+    float fApproachTimeout  = 12.0f;
+    float fApproachStall    = 3.0f;
+    float fRetargetInterval = 1.0f;
+    float fSneakChance      = 15.0f;
+    float fCrawlChance      = 10.0f;
+
+    // Pacing and targeting. These were fixed internal values.
+    float fRunBeyond        = 4.0f;
+    float fJogBeyond        = 1.5f;
+    float fStanceAt         = 20.0f;   // percent of the walk still left
+    float fStanceFloor      = 2.0f;
+    float fSwitchRatio      = 70.0f;   // percent of the current distance
+};
+TOML_SERIALIZABLE(AIMovement_t);
 
 // Complex action: Hug
 struct AIHugAction_t {
@@ -60,6 +77,8 @@ struct AIHugAction_t {
     float fShrinkProb         = 100.0f;
     float fFriendlyShrinkProb = 15.0f;
     float fKillProb           = 30.0f;
+    float fReleaseProb        = 0.0f;
+    float fIdleProb           = 100.0f;
 
     // Timing
     float fInterval = 1.5f;
@@ -71,6 +90,11 @@ struct AIStompAction_t {
     float fProbability                = 33.0f;
     float fUnderstompGrindProbability = 40.0f;
     float fStompGrindProbability      = 40.0f;
+
+    // Which stomp gets picked when one is started.
+    float fLightProb   = 10.0f;
+    float fStrongProb  = 10.0f;
+    float fTrampleProb = 10.0f;
 };
 TOML_SERIALIZABLE(AIStompAction_t);
 
@@ -80,15 +104,27 @@ struct AIButtAction_t {
     float fProbability = 50.0f;
 
     // Different probabilities for variations of the action
-    float fFastProb          = 50.0f;
     float fButtCrushTypeProb = 50.0f;
     float fGrowProb          = 35.0f;
     float fCrushProb         = 35.0f;
+    float fIdleProb          = 100.0f;
 
     // Timing and limit
     float fInterval = 2.0f;
 };
 TOML_SERIALIZABLE(AIButtAction_t);
+
+// Kicks and swipes: one roll to act, then a weighted pick between the five.
+struct AIKickAction_t {
+    bool bEnableAction    = true;
+    float fProbability    = 25.0f;
+    float fKickLightProb  = 10.0f;
+    float fKickHeavyProb  = 10.0f;
+    float fKickLowProb    = 10.0f;
+    float fSwipeLightProb = 10.0f;
+    float fSwipeHeavyProb = 10.0f;
+};
+TOML_SERIALIZABLE(AIKickAction_t);
 
 // Complex action: Grab
 struct AIGrabAction_t {
@@ -100,15 +136,23 @@ struct AIGrabAction_t {
     float fVoreProb    = 50.0f;
     float fCrushProb   = 50.0f;
     float fReleaseProb = 0.0f;
+    float fUnstoreProb = 25.0f;
+
+    // Holding someone is a step towards grab-play or the cleavage, not somewhere to sit, so there is
+    // no weight on doing nothing while a tiny is in hand.
+    float fIdleProb    = 0.0f;
 
     // Cleavage (multiple stages) probabilities
     float fCleavageProb          = 65.0f;
-    float fCleavageAttackProb    = 35.0f;
+    float fCleavageAttackProb    = 17.5f;
+    float fCleavageHeavyProb     = 17.5f;
     float fCleavageAbsorbProb    = 35.0f;
     float fCleavageVoreProb      = 35.0f;
     float fCleavageSuffocateProb = 35.0f;
+    float fCleavageSufoStopProb  = 5.0f;
     float fCleavageStopProb      = 0.0f;
     float fStrangleChance        = 35.0f;
+    float fCleavageDotStopProb   = 3.33f;
 
     // Cleavage (multiple stages) probabilities
     float fGrabPlayStartProb      = 65.0f;
@@ -147,6 +191,8 @@ struct AIThighSandwichAction_t {
     float fButtGrindStop = 5.0f;
     float fButtVoreProb = 10.f;
     float fButtExitProb = 5.f;
+    float fExitProb     = 5.0f;
+    float fIdleProb     = 100.0f;
 
     // Timing
     float fInterval = 1.5f;
@@ -164,10 +210,23 @@ struct SettingsAI_t {
     bool bEnableActionAI = true;
     float fMasterTimer   = 3.0f;
 
+    // Chance that a think picks anything at all. One roll per think, before the weighted pick.
+    float fActChance     = 50.0f;
+
+    AIMovement_t Movement = {};
+
     // Stateless Actions
     AIStatelessAction_t WrathfulCalamity  = { .bEnableAction = true, .fProbability = 100.0f };
+
+    // Speaking the shout that turns Tiny Calamity on. Only useful in combat and only while small.
+    AIStatelessAction_t TinyCalamity      = { .bEnableAction = true, .fProbability = 50.0f };
     AIStatelessAction_t Vore      = { .bEnableAction = true, .fProbability = 33.0f };
-    AIStatelessAction_t KickSwipe = { .bEnableAction = true, .fProbability = 25.0f };
+
+    // Self actions, gated by the nodes' own checks on max and min scale.
+    AIStatelessAction_t Growth    = { .bEnableAction = true, .fProbability = 10.0f };
+    AIStatelessAction_t Shrink    = { .bEnableAction = true, .fProbability = 10.0f };
+
+    AIKickAction_t KickSwipe = {};
 
     // Statefull Actions
     AIStatefullAction_t ThighCrush    = { .bEnableAction = true, .fProbability = 15.0f, .fInterval = 1.0f };
@@ -187,6 +246,9 @@ struct SettingsAI_t {
     bool bHostileOnly          = true;
     bool bDisableAttacks       = true;
     bool bAlwaysDisableAttacks = false;
+
+    // Size difference at which regular attacks start being held back.
+    float fSuppressSizeThreshold = 2.5f;
     bool bSlowMovementDown     = true;
     bool bSlowRotationDown     = true;
     bool bRecordBoneSpeedData  = false;

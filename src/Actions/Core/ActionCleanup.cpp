@@ -11,6 +11,10 @@ namespace GTS::Actions::Cleanup {
 			return;
 		}
 
+		// An idle change does not stop a concentration spell, so someone cowering keeps streaming
+		// Flames at whoever frightened them. No magicka back: they were interrupted, not cancelled.
+		a_Tiny->InterruptCast(false);
+
 		//Can't scare NPC's in combat otherwise.
 		ActionRegistry::Notify(a_Tiny, "IdleForceDefaultState", true);
 

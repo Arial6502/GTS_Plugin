@@ -12,6 +12,7 @@
 #include "Utils/SurvivalMode.hpp"
 #include "Utils/Actions/VoreUtils.hpp"
 #include "Utils/Looting.hpp"
+#include "Utils/Actions/TargetShape.hpp"
 
 #include "Utils/DeathReport.hpp"
 
@@ -19,8 +20,6 @@ using namespace GTS;
 
 namespace {
 	constexpr float MINIMUM_VORE_DISTANCE = 95.0f;
-	constexpr float VORE_ANGLE = 75;
-	constexpr float PI = std::numbers::pi_v<float>;
 
 	// The GTS side of consuming one prey. Takes both actors directly so it can also run from a
 	// deferred task, after VoreData has already dropped them.
@@ -218,66 +217,13 @@ namespace GTS {
 			return {};
 		}
 
-		auto charController = pred->GetCharController();
-		if (!charController) {
+		if (!pred->GetCharController()) {
 			return {};
 		}
 
-		NiPoint3 predPos = pred->GetPosition();
-
 		auto preys = find_actors();
-
-		// Sort prey by distance
-		std::ranges::sort(preys,[predPos](const Actor* preyA, const Actor* preyB) -> bool{
-			float distanceToA = (preyA->GetPosition() - predPos).Length();
-			float distanceToB = (preyB->GetPosition() - predPos).Length();
-			return distanceToA < distanceToB;
-		});
-
-		// Filter out invalid targets
-		std::erase_if(preys,[pred, this](auto prey)
-		{
-			return !this->CanVore(pred, prey);
-		});
-
-		// Filter out actors not in front
-		auto actorAngle = pred->data.angle.z;
-		RE::NiPoint3 forwardVector{ 0.f, 1.f, 0.f };
-		RE::NiPoint3 actorForward = RotateAngleAxis(forwardVector, -actorAngle, { 0.f, 0.f, 1.f });
-
-		NiPoint3 predDir = actorForward;
-		predDir = predDir / predDir.Length();
-		std::erase_if(preys,[predPos, predDir](auto prey)
-		{
-			NiPoint3 preyDir = prey->GetPosition() - predPos;
-			if (preyDir.Length() <= 1e-4) {
-				return false;
-			}
-			preyDir = preyDir / preyDir.Length();
-			float cosTheta = predDir.Dot(preyDir);
-			return cosTheta <= 0; // 180 degress
-		});
-
-		// Filter out actors not in a truncated cone
-		// \      x   /
-		//  \  x     /
-		//   \______/  <- Truncated cone
-		//   | pred |  <- Based on width of pred
-		//   |______|
-		float predWidth = 70 * get_visual_scale(pred);
-		float shiftAmount = fabs((predWidth / 2.0f) / tan(VORE_ANGLE/2.0f));
-
-		NiPoint3 coneStart = predPos - predDir * shiftAmount;
-		std::erase_if(preys,[coneStart, predWidth, predDir](auto prey)
-		{
-			NiPoint3 preyDir = prey->GetPosition() - coneStart;
-			if (preyDir.Length() <= predWidth*0.4f) {
-				return false;
-			}
-			preyDir = preyDir / preyDir.Length();
-			float cosTheta = predDir.Dot(preyDir);
-			return cosTheta <= cos(VORE_ANGLE*PI/180.0f);
-		});
+		std::erase_if(preys, [pred, this](Actor* prey) { return !this->CanVore(pred, prey); });
+		preys = TargetShape::InFront(pred, std::move(preys), TargetShape::Vore);
 
 		if (numberOfPrey == 1 && !WrathfulCalamity) {
 			return GetMaxActionableTinyCount(pred, preys);
@@ -318,20 +264,14 @@ namespace GTS {
 			}
 		}
 
-		float MINIMUM_VORE_SCALE = Action_Vore;
-		float MINIMUM_DISTANCE = MINIMUM_VORE_DISTANCE;
-
-		if (TinyCalamityActive(pred)) {
-			MINIMUM_DISTANCE *= 1.75f;
+		if (!TargetShape::InReach(pred, prey, Reach(pred))) {
+			return false;
 		}
 
-		float pred_scale = get_visual_scale(pred);
-		float sizedifference = get_scale_difference(pred, prey, SizeType::VisualScale, true, false);
-		float prey_distance = (pred->GetPosition() - prey->GetPosition()).Length();
+		const float MINIMUM_VORE_SCALE = Action_Vore;
+		const float sizedifference = get_scale_difference(pred, prey, SizeType::VisualScale, true, false);
 
-		
-
-		if (prey_distance <= (MINIMUM_DISTANCE * pred_scale) && sizedifference < MINIMUM_VORE_SCALE) {
+		if (sizedifference < MINIMUM_VORE_SCALE) {
 			if (IsInsect(prey, true) || IsBlacklisted(prey) || IsUndead(prey, true)) {
 				std::string message = fmt::format("{} has no desire to eat {}", pred->GetDisplayFullName(), prey->GetDisplayFullName());
 				NotifyWithSound(pred, message);
@@ -348,21 +288,41 @@ namespace GTS {
 			return false;
 		}
 
-		if (prey_distance <= (MINIMUM_DISTANCE * pred_scale) && sizedifference > MINIMUM_VORE_SCALE) {
-			if (IsFlying(prey)) {
-				return false; // Disallow to vore flying dragons
-			}
-			if ((!prey->IsPlayerRef() && !CanPerformActionOn(pred, prey, false))) {
-				Notify("{} is important and shouldn't be eaten.", prey->GetDisplayFullName());
-				return false;
-			}
-			else {
-				return true;
-			}
+		if (!(sizedifference > MINIMUM_VORE_SCALE) || IsFlying(prey)) {
+			return false; // Disallow to vore flying dragons
 		}
-		else {
+
+		if (!prey->IsPlayerRef() && !CanPerformActionOn(pred, prey, false)) {
+			Notify("{} is important and shouldn't be eaten.", prey->GetDisplayFullName());
 			return false;
 		}
+
+		return true;
+	}
+
+	float VoreController::Reach(Actor* pred) {
+		return MINIMUM_VORE_DISTANCE * (TinyCalamityActive(pred) ? 1.75f : 1.0f) * get_visual_scale(pred);
+	}
+
+	bool VoreController::Qualifies(Actor* pred, Actor* prey) {
+
+		if (pred == prey || prey->IsDead() || IsBeingHeld(pred, prey)) {
+			return false;
+		}
+
+		if (!CanDoActionBasedOnQuestProgress(pred, QuestAnimationType::kVore)) {
+			return false;
+		}
+
+		if (auto* transient = Transient::GetActorData(prey); transient && !transient->CanBeVored) {
+			return false;
+		}
+
+		if (!(get_scale_difference(pred, prey, SizeType::VisualScale, true, false) > Action_Vore) || IsFlying(prey)) {
+			return false;
+		}
+
+		return prey->IsPlayerRef() || CanPerformActionOn(pred, prey, false);
 	}
 
 	void VoreController::OnPluginReset() {

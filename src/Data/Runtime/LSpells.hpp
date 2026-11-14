@@ -16,6 +16,8 @@ namespace RuntimeData {
 		Entry(GTSSpellRestoreSize,           GTSP, 0x005368);
 		Entry(GTSSpellRestoreSizeOther,      GTSP, 0x00536B);
 		Entry(GTSSpellShrink,                GTSP, 0x00284F);
+		Entry(GTSSpellTinyCalamity,          GTSP, 0x1A2566); //The shout's single word
+
 		Entry(GTSSpellShrinkAlly,            GTSP, 0x0058D0);
 		Entry(GTSSpellShrinkAllyAdept,       GTSP, 0x452F0D);
 		Entry(GTSSpellShrinkAllyExpert,      GTSP, 0x452F0F);

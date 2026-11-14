@@ -496,39 +496,15 @@ namespace GTS::Actions {
 
 					const ActionContext ctx(a_Actor, a_Actor->formID, state, snapshot);
 
-					{
-						const Slot& owner = m_Slots[IndexOf(state.Current)];
-						const std::size_t index = static_cast<std::size_t>(&def - node->Actions().data());
+					result = CheckAction(a_Actor, state, *node, def, snapshot, false, now);
 
-						if (index < owner.ActionAsserts.size() && !owner.ActionAsserts[index].Empty()
-							&& snapshot.Matches(owner.ActionAsserts[index])) {
-							result = RequestResult::kAlreadyRunning;
-							continue;
-						}
-					}
-
-					if (def.Cooldown > 0.0f) {
-						const auto key = std::pair{a_Actor->formID, def.Action.data()};
-						if (auto it = m_Cooldowns.find(key); it != m_Cooldowns.end() && (now - it->second) < def.Cooldown) {
-							result = RequestResult::kOnCooldown;
-							continue;
-						}
-					}
-
-					if (def.Guard && !def.Guard(ctx)) {
-						result = RequestResult::kGuardFailed;
+					if (result != RequestResult::kAccepted) {
 						continue;
 					}
 
 					if (def.Verify) {
 
 						const auto key = std::pair{a_Actor->formID, def.Action.data()};
-						auto it = m_Refused.find(key);
-
-						if (it != m_Refused.end() && (now - it->second) < VerifyGrace) {
-							result = RequestResult::kVerifyFailed;
-							continue;
-						}
 
 						if (!def.Verify(ctx)) {
 							m_Refused[key] = now;
@@ -634,25 +610,15 @@ namespace GTS::Actions {
 
 					const EntryContext ctx(a_Actor, snapshot);
 
-					if (std::ranges::any_of(def.BlockedBy, [&](PossessionSlot a_Slot) { return ctx.Occupied(a_Slot); })) {
-						result = RequestResult::kGuardFailed;
-						continue;
-					}
+					result = CheckEntry(a_Actor, *slot.Node, def, snapshot, false, now);
 
-					if (!slot.Node->CanEnter(ctx) || (def.Guard && !def.Guard(ctx))) {
-						result = RequestResult::kGuardFailed;
+					if (result != RequestResult::kAccepted) {
 						continue;
 					}
 
 					if (def.Verify) {
 
 						const auto key = std::pair{a_Actor->formID, def.Action.data()};
-						auto it = m_Refused.find(key);
-
-						if (it != m_Refused.end() && (now - it->second) < VerifyGrace) {
-							result = RequestResult::kVerifyFailed;
-							continue;
-						}
 
 						if (!def.Verify(ctx)) {
 							m_Refused[key] = now;
@@ -695,6 +661,136 @@ namespace GTS::Actions {
 
 		++m_Counters.Refusals;
 		Log(std::format("REFUSED|{:08X}|{}|{}|believed={}", a_Actor->formID, a_Action, RequestResultName(result), Describe(a_Actor->formID, state)));
+		return result;
+	}
+
+	RequestResult ActionRegistry::CheckAction(RE::Actor* a_Actor, ActorAction& a_State, const IActionNode& a_Node, const ActionDef& a_Def, const GraphSnapshot& a_Snapshot, bool a_Probing, double a_Now) {
+
+		const Slot& owner = m_Slots[IndexOf(a_State.Current)];
+		const std::size_t index = static_cast<std::size_t>(&a_Def - a_Node.Actions().data());
+
+		if (index < owner.ActionAsserts.size() && !owner.ActionAsserts[index].Empty() && a_Snapshot.Matches(owner.ActionAsserts[index])) {
+			return RequestResult::kAlreadyRunning;
+		}
+
+		const auto key = std::pair{a_Actor->formID, a_Def.Action.data()};
+
+		if (a_Def.Cooldown > 0.0f) {
+			if (auto it = m_Cooldowns.find(key); it != m_Cooldowns.end() && (a_Now - it->second) < a_Def.Cooldown) {
+				return RequestResult::kOnCooldown;
+			}
+		}
+
+		const ActionContext ctx(a_Actor, a_Actor->formID, a_State, a_Snapshot, a_Probing);
+
+		if (a_Def.Guard && !a_Def.Guard(ctx)) {
+			return RequestResult::kGuardFailed;
+		}
+
+		if (a_Def.Verify) {
+			if (auto it = m_Refused.find(key); it != m_Refused.end() && (a_Now - it->second) < VerifyGrace) {
+				return RequestResult::kVerifyFailed;
+			}
+		}
+
+		return RequestResult::kAccepted;
+	}
+
+	RequestResult ActionRegistry::CheckEntry(RE::Actor* a_Actor, const IActionNode& a_Node, const EntryDef& a_Def, const GraphSnapshot& a_Snapshot, bool a_Probing, double a_Now) {
+
+		const EntryContext ctx(a_Actor, a_Snapshot, a_Probing);
+
+		if (std::ranges::any_of(a_Def.BlockedBy, [&](PossessionSlot a_Slot) { return ctx.Occupied(a_Slot); })) {
+			return RequestResult::kGuardFailed;
+		}
+
+		if (!a_Node.CanEnter(ctx) || (a_Def.Guard && !a_Def.Guard(ctx))) {
+			return RequestResult::kGuardFailed;
+		}
+
+		if (a_Def.Verify) {
+			const auto key = std::pair{a_Actor->formID, a_Def.Action.data()};
+			if (auto it = m_Refused.find(key); it != m_Refused.end() && (a_Now - it->second) < VerifyGrace) {
+				return RequestResult::kVerifyFailed;
+			}
+		}
+
+		return RequestResult::kAccepted;
+	}
+
+	// Perform's checks without Verify, Resolve, Notify or OnTaken, which can claim cooldowns and show
+	// messages. The context is probing, because StartOn binds the slot a deferred CanEnter asks about.
+	RequestResult ActionRegistry::Probe(RE::Actor* a_Actor, std::string_view a_Action) {
+
+		std::lock_guard lock(ActionLock);
+
+		if (!a_Actor || a_Action.empty()) {
+			return RequestResult::kUnknownAction;
+		}
+
+		const ActorAction* found = StateOf(a_Actor);
+		ActorAction state = found ? *found : ActorAction{};
+
+		if (state.Waiting()) {
+			return RequestResult::kAlreadyPending;
+		}
+
+		const GraphSnapshot snapshot = GraphVars::Read(a_Actor);
+		const double now = Time::WorldTimeElapsed();
+		const bool transitioning = AnimationVars::General::IsTransitioning(a_Actor);
+		RequestResult result = RequestResult::kUnknownAction;
+
+		if (state.Active()) {
+
+			auto* node = Find(state.Current);
+
+			if (!node) {
+				return result;
+			}
+
+			for (const auto& def : node->Actions()) {
+
+				if (def.Action != a_Action) {
+					continue;
+				}
+
+				result = CheckAction(a_Actor, state, *node, def, snapshot, true, now);
+
+				if (result == RequestResult::kAccepted) {
+					return transitioning && !def.Behaviour.empty() ? RequestResult::kGraphRefused : result;
+				}
+			}
+
+			if (result != RequestResult::kUnknownAction) {
+				return result;
+			}
+
+			if (auto* wanted = EntryOwner(a_Action); !wanted || !node->Permits(wanted->Id(), a_Actor->formID)) {
+				return ClaimsAction(a_Action) ? RequestResult::kNotCurrent : RequestResult::kUnknownAction;
+			}
+		}
+
+		for (const auto& slot : m_Slots) {
+
+			if (!slot.Node) {
+				continue;
+			}
+
+			for (const auto& def : slot.Node->Entries()) {
+
+				if (def.Action != a_Action) {
+					continue;
+				}
+
+				result = CheckEntry(a_Actor, *slot.Node, def, snapshot, true, now);
+
+				if (result == RequestResult::kAccepted) {
+					const bool notifies = def.Resolve || !def.Behaviour.empty();
+					return transitioning && notifies ? RequestResult::kGraphRefused : result;
+				}
+			}
+		}
+
 		return result;
 	}
 
@@ -1873,12 +1969,25 @@ namespace GTS::Actions {
 		ConsoleManager::RegisterCommand({
 			.Name = "action",
 			.Desc = "Inspect the action node registry",
-			.Usage = "<status|watch|stop> [player|target|formid]",
+			.Usage = "<status|watch|stop> [player|target|formid] | probe <action> [player|target|formid]",
 			.MinArgs = 1,
-			.MaxArgs = 2,
+			.MaxArgs = 3,
 			.Callback = [](const ConsoleArgs& a_Args) {
 
 				const std::string action = a_Args.Lower(0);
+
+				if (action == "probe" && a_Args.Count() >= 2) {
+
+					RE::Actor* target = a_Args.ResolveActor(2);
+
+					if (!target) {
+						Cprint("No actor resolved.");
+						return;
+					}
+
+					Cprint("{} on {}: {}", a_Args.Raw(1), target->GetDisplayFullName(), RequestResultName(Probe(target, a_Args.Raw(1))));
+					return;
+				}
 
 				if (action == "watch") {
 

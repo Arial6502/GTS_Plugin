@@ -42,10 +42,10 @@ namespace GTS {
 
 				if (otherActor == actor) continue;
 
-				if (auto shapeData = GetControllerShapeData(otherActor, toHavok)) {
+				if (auto shapeData = GetControllerShapeData(otherActor)) {
 					DebugDraw::TrackedScope scope{ DebugDraw::TrackKey("CollisionDamage.Shape", otherActor->formID) };
 					BSReadLockGuard lock(world->worldLock);
-					DebugDrawShape(otherActor, shapeData->shape, shapeData->transform, shapeData->angleZ, 1.0f / toHavok, 0);
+					DebugDrawShape(shapeData->shape, shapeData->transform, Config::Collision.fSizeDamageShapeScale, 1.0f / toHavok, 0);
 				}
 			}
 		}
@@ -60,14 +60,14 @@ namespace GTS {
 		// Scale ratio cull
 		float tinyScale = get_visual_scale(otherActor) * GetSizeFromBoundingBox(otherActor);
 		if (giantScale / tinyScale <= SCALE_RATIO) return false;
-		if (auto shapeData = GetControllerShapeData(otherActor, toHavok)) {
+		if (auto shapeData = GetControllerShapeData(otherActor)) {
+			const float shapeScale = Config::Collision.fSizeDamageShapeScale;
 			BSReadLockGuard lock(world->worldLock);
 			for (const NiPoint3& footPt : CoordsToCheck) {
 				hkVector4 center;
 				center.quad = _mm_mul_ps(_mm_set_ps(0.0f, footPt.z, footPt.y, footPt.x), _mm_set1_ps(toHavok));
-				if (SphereOverlapsShape(otherActor, shapeData->shape, center, sphereRadiusSq, shapeData->transform, shapeData->angleZ)) {
+				if (SphereOverlapsShape(shapeData->shape, center, sphereRadiusSq, shapeData->transform, shapeScale)) {
 					return true;
-					break;
 				}
 			}
 		} else {

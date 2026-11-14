@@ -209,6 +209,8 @@ namespace GTS {
 		SNDR.Resolve();
 		MGEF.Resolve();
 		SPEL.Resolve();
+		SHOU.Resolve();
+		WOOP.Resolve();
 		PERK.Resolve();
 		EXPL.Resolve();
 		GLOB.Resolve();
@@ -259,6 +261,30 @@ namespace GTS {
 	}
 
 	SpellItem* Runtime::GetSpell(const RuntimeData::RuntimeEntry<RE::SpellItem>& a_entry) {
+		if (a_entry.Value) {
+			return a_entry.Value;
+		}
+		return nullptr;
+	}
+
+	// ---- Shout
+	TESShout* Runtime::GetShout(const std::string_view& a_tag) {
+		return GetFormByTagName<TESShout>(SHOU, a_tag);
+	}
+
+	TESShout* Runtime::GetShout(const RuntimeData::RuntimeEntry<RE::TESShout>& a_entry) {
+		if (a_entry.Value) {
+			return a_entry.Value;
+		}
+		return nullptr;
+	}
+
+	// ---- Word of power
+	TESWordOfPower* Runtime::GetWordOfPower(const std::string_view& a_tag) {
+		return GetFormByTagName<TESWordOfPower>(WOOP, a_tag);
+	}
+
+	TESWordOfPower* Runtime::GetWordOfPower(const RuntimeData::RuntimeEntry<RE::TESWordOfPower>& a_entry) {
 		if (a_entry.Value) {
 			return a_entry.Value;
 		}

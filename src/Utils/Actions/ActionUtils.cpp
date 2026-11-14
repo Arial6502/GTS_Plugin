@@ -314,6 +314,11 @@ namespace GTS {
 			return;
 		}
 
+		// The AI owns the stance while it is driving the actor, so the setting does not fight it.
+		if (const TransientActorData* transient = Transient::GetActorData(actor); transient && transient->AIStance) {
+			return;
+		}
+
 		bool CrawlState = (actor->IsPlayerRef()) ? Persistent::EnableCrawlPlayer.value : Persistent::EnableCrawlFollower.value;
 
 		//SetCrawlAnimation Returns true if the state has changed

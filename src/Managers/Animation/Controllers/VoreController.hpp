@@ -65,6 +65,10 @@ namespace GTS {
 		// Check if they can vore based on size difference and reach distance
 		bool CanVore(Actor* pred, Actor* prey) const;
 
+		// CanVore split in two, without its messages.
+		[[nodiscard]] static float Reach(Actor* pred);
+		[[nodiscard]] static bool Qualifies(Actor* pred, Actor* prey);
+
 		// Do the vore
 		bool StartVore(Actor* pred, Actor* prey);
 

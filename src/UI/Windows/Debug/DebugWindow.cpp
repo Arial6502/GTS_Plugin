@@ -1,4 +1,5 @@
 ﻿#include "Debug/AnimDebug/AnimationDebugger.hpp"
+#include "Debug/AIDebug/AIDebugger.hpp"
 #include "UI/Windows/Debug/DebugWindow.hpp"
 #include "UI/Controls/Button.hpp"
 #include "UI/Controls/CheckBox.hpp"
@@ -143,6 +144,16 @@ namespace GTS {
 					bool ShowEvents = AnimationDebugger::EventsEnabled();
 					if (ImGuiEx::CheckBox("Show Animation Events", &ShowEvents, "Every trigger and annotation, not only the ones a manager claims")) {
 						AnimationDebugger::SetEventsEnabled(ShowEvents);
+					}
+
+					bool ShowBrains = AIDebugger::BrainsEnabled();
+					if (ImGuiEx::CheckBox("Show AI Brains", &ShowBrains, "What every AI driven actor is planning, walking to and doing")) {
+						AIDebugger::SetBrainsEnabled(ShowBrains);
+					}
+
+					bool ShowAIEvents = AIDebugger::EventsEnabled();
+					if (ImGuiEx::CheckBox("Show AI Events", &ShowAIEvents, "Every decision the AI makes: plans, phases, starts, sub-actions and bails")) {
+						AIDebugger::SetEventsEnabled(ShowAIEvents);
 					}
 				}
 
@@ -403,6 +414,7 @@ namespace GTS {
 	void DebugWindow::DebugDraw() {
 
 		AnimationDebugger::Draw();
+		AIDebugger::Draw();
 
 		if (m_showDemoWindow) {
 			ImGui::ShowDemoWindow(&m_showDemoWindow);
@@ -422,6 +434,7 @@ namespace GTS {
 
 	bool DebugWindow::IsDebugging() {
 		return AnimationDebugger::AnyEnabled() ||
+			   AIDebugger::AnyEnabled()      ||
 			   m_showStackWindow       ||
 			   m_showMetricsWindow     ||
             #ifdef GTS_PROFILER_ENABLED

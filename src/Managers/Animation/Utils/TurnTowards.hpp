@@ -10,15 +10,13 @@ namespace GTS {
 			return false;
 		}
 
-		auto tinyPos = tiny->GetPosition();
+		const NiPoint3 direction = point - tiny->GetPosition();
 
-		NiPoint3 forwards = NiPoint3(0, 1, 0);
-		NiPoint3 direction = point - tinyPos;
-		direction.z = 0;
-		direction = direction / direction.Length();
-		float newAngle = acos(forwards.Dot(direction));
+		if (direction.x == 0.0f && direction.y == 0.0f) {
+			return false;
+		}
 
-		tiny->data.angle.z = newAngle;
+		tiny->data.angle.z = std::atan2(direction.x, direction.y);
 
 		return true;
 	}

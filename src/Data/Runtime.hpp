@@ -11,6 +11,8 @@ namespace GTS {
 		static inline RuntimeData::SoundDescriptors SNDR;
 		static inline RuntimeData::MagicEffects MGEF;
 		static inline RuntimeData::Spells SPEL;
+		static inline RuntimeData::Shouts SHOU;
+		static inline RuntimeData::WordsOfPower WOOP;
 		static inline RuntimeData::Perks PERK;
 		static inline RuntimeData::Explosions EXPL;
 		static inline RuntimeData::Globals GLOB;
@@ -29,6 +31,10 @@ namespace GTS {
 		static EffectSetting* GetMagicEffect(const RuntimeData::RuntimeEntry<EffectSetting>& a_entry);
 		static SpellItem* GetSpell(const std::string_view& a_tag);
 		static SpellItem* GetSpell(const RuntimeData::RuntimeEntry<SpellItem>& a_entry);
+		static TESShout* GetShout(const std::string_view& a_tag);
+		static TESShout* GetShout(const RuntimeData::RuntimeEntry<TESShout>& a_entry);
+		static TESWordOfPower* GetWordOfPower(const std::string_view& a_tag);
+		static TESWordOfPower* GetWordOfPower(const RuntimeData::RuntimeEntry<TESWordOfPower>& a_entry);
 		static BGSPerk* GetPerk(const std::string_view& a_tag);
 		static BGSPerk* GetPerk(const RuntimeData::RuntimeEntry<BGSPerk>& a_entry);
 		static BGSExplosion* GetExplosion(const std::string_view& a_tag);

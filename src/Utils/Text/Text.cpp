@@ -2,7 +2,28 @@
 
 namespace GTS {
 
+	namespace {
+		thread_local bool g_Quiet = false;
+	}
+
+	QuietFailures::QuietFailures() {
+		g_Quiet = true;
+	}
+
+	QuietFailures::~QuietFailures() {
+		g_Quiet = false;
+	}
+
+	bool QuietFailures::Active() {
+		return g_Quiet;
+	}
+
 	void NotifyWithSound(Actor* actor, std::string_view message) {
+
+		if (QuietFailures::Active()) {
+			return;
+		}
+
 		if (actor->IsPlayerRef()|| IsTeammate(actor)) {
 			static Timer Cooldown = Timer(1.2);
 			if (Cooldown.ShouldRun()) {

@@ -2,6 +2,8 @@
 #include "Hooks/Hooks.hpp"
 #include "Papyrus/Papyrus.hpp"
 #include "Systems/Events/EventRegistry.hpp"
+
+#include "Utils/Plugin/InitUtils.hpp"
 #include "Utils/Plugin/Logger.hpp"
 
 namespace {
@@ -21,6 +23,10 @@ SKSEPluginLoad(const SKSE::LoadInterface* a_skse) {
 	{
 		REL::Module::reset(); //Clib Init bug workaround.
 		Init(a_skse);
+	}
+
+	{
+		GTS::InitUtils::VersionCheck();
 	}
 
 	//DLL Init

@@ -52,6 +52,8 @@ struct SettingsCollision_t {
 	float fDynamicColliderMaxUpdateScale = 20.0f;
 	float fConvexRadiusScaling = 1.0f;
 
+	float fSizeDamageShapeScale = 1.25f;
+
 	bool bScaleTraversal = true;
 	float fTraversalStepScaling = 1.0f;
 	float fTraversalMaxSlopeDegrees = 70.0f;

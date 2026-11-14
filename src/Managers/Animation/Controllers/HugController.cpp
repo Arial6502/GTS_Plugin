@@ -9,20 +9,28 @@
 #include "Actions/Core/Possession.hpp"
 
 #include "Managers/GTSSizeManager.hpp"
+#include "Utils/Actions/TargetShape.hpp"
 
 using namespace GTS;
 
 namespace {
 
 	constexpr float MINIMUM_HUG_DISTANCE = 110.0f;
-	constexpr float GRAB_ANGLE = 70.0f;
-	constexpr float PI = std::numbers::pi_v<float>;;
 
 	bool DisallowHugs(Actor* actor) {
 		bool jumping = AnimationVars::Other::IsJumping(actor);
 		bool ragdolled = IsRagdolled(actor);
 		bool busy = AnimationVars::General::IsGTSBusy(actor);
 		return jumping || ragdolled || busy;
+	}
+
+	bool Blocked(Actor* pred, Actor* prey) {
+		return pred == prey || prey->IsDead() || AnimationVars::General::IsTransitioning(pred) || IsBeingHeld(pred, prey)
+			|| DisallowHugs(pred) || DisallowHugs(prey) || pred->AsActorState()->GetSitSleepState() == SIT_SLEEP_STATE::kIsSitting;
+	}
+
+	float MinimumScale(Actor* pred) {
+		return Action_Hug * (TinyCalamityActive(pred) ? 0.80f : 1.0f);
 	}
 
 	void CantHugPlayerMessage(Actor* giant, Actor* tiny, float sizedifference, bool allow) {
@@ -61,21 +69,23 @@ namespace {
 		ActorHandle giantHandle = giant->CreateRefHandle();
 		ActorHandle tinyHandle = tiny->CreateRefHandle();
 		TaskManager::RunOnce(taskname, [=](auto& update){
-			if (!tinyHandle) {
-				return;
-			}
-			if (!giantHandle) {
+
+			auto predPtr = giantHandle.get();
+			auto preyPtr = tinyHandle.get();
+
+			if (!predPtr || !preyPtr) {
 				return;
 			}
 
-			auto pred = giantHandle.get().get();
-			auto prey = tinyHandle.get().get();
-			
-			Actions::Possession::Take(pred->formID, Actions::PossessionSlot::kArms, prey->GetHandle());
+			auto pred = predPtr.get();
+			auto prey = preyPtr.get();
 
 			// The node drives both halves from here: the slot is what tells it who its partner is.
 			Actions::Possession::Take(pred->formID, Actions::PossessionSlot::kArms, prey->GetHandle());
-			Actions::ActionRegistry::Perform(pred, "Hug.Enter");
+
+			if (Actions::ActionRegistry::Perform(pred, "Hug.Enter") != Actions::RequestResult::kAccepted) {
+				Actions::Possession::Release(pred->formID, Actions::PossessionSlot::kArms);
+			}
 		});
 	}
 }
@@ -97,78 +107,15 @@ namespace GTS {
 
 
 	std::vector<Actor*> HugAnimationController::GetHugTargetsInFront(Actor* pred, std::size_t numberOfPrey) {
-		// Get vore target for actor
-		auto& sizemanager = SizeManager::GetSingleton();
-		if (AnimationVars::General::IsGTSBusy(pred)) {
-			return {};
-		}
-		if (!pred) {
-			return {};
-		}
-		auto charController = pred->GetCharController();
-		if (!charController) {
-			return {};
-		}
 
-		NiPoint3 predPos = pred->GetPosition();
+		if (!pred || AnimationVars::General::IsGTSBusy(pred) || !pred->GetCharController()) {
+			return {};
+		}
 
 		auto preys = find_actors();
+		std::erase_if(preys, [pred, this](Actor* prey) { return !this->CanHug(pred, prey); });
+		preys = TargetShape::InFront(pred, std::move(preys), TargetShape::Hug);
 
-		// Sort prey by distance
-		sort(preys.begin(), preys.end(),
-		     [predPos](const Actor* preyA, const Actor* preyB) -> bool
-		{
-			float distanceToA = (preyA->GetPosition() - predPos).Length();
-			float distanceToB = (preyB->GetPosition() - predPos).Length();
-			return distanceToA < distanceToB;
-		});
-
-		// Filter out invalid targets
-		preys.erase(std::remove_if(preys.begin(), preys.end(),[pred, this](auto prey)
-		{
-			return !this->CanHug(pred, prey);
-		}), preys.end());
-
-		// Filter out actors not in front
-		auto actorAngle = pred->data.angle.z;
-		RE::NiPoint3 forwardVector{ 0.f, 1.f, 0.f };
-		RE::NiPoint3 actorForward = RotateAngleAxis(forwardVector, -actorAngle, { 0.f, 0.f, 1.f });
-
-		NiPoint3 predDir = actorForward;
-		predDir = predDir / predDir.Length();
-		preys.erase(std::remove_if(preys.begin(), preys.end(),[predPos, predDir](auto prey)
-		{
-			NiPoint3 preyDir = prey->GetPosition() - predPos;
-			if (preyDir.Length() <= 1e-4) {
-				return false;
-			}
-			preyDir = preyDir / preyDir.Length();
-			float cosTheta = predDir.Dot(preyDir);
-			return cosTheta <= 0; // 180 degress
-		}), preys.end());
-
-		// Filter out actors not in a truncated cone
-		// \      x   /
-		//  \  x     /
-		//   \______/  <- Truncated cone
-		//   | pred |  <- Based on width of pred
-		//   |______|
-		float predWidth = 70 * get_visual_scale(pred);
-		float shiftAmount = fabs((predWidth / 2.0f) / tan(GRAB_ANGLE/2.0f));
-
-		NiPoint3 coneStart = predPos - predDir * shiftAmount;
-		preys.erase(std::remove_if(preys.begin(), preys.end(),[coneStart, predWidth, predDir](auto prey)
-		{
-			NiPoint3 preyDir = prey->GetPosition() - coneStart;
-			if (preyDir.Length() <= predWidth*0.4f) {
-				return false;
-			}
-			preyDir = preyDir / preyDir.Length();
-			float cosTheta = predDir.Dot(preyDir);
-			return cosTheta <= cos(GRAB_ANGLE*PI/180.0f);
-		}), preys.end());
-
-		// Reduce vector size
 		if (preys.size() > numberOfPrey) {
 			preys.resize(numberOfPrey);
 		}
@@ -176,75 +123,74 @@ namespace GTS {
 		return preys;
 	}
 
-	bool HugAnimationController::CanHug(Actor* pred, Actor* prey) {
-		if (pred == prey) {
-			return false;
-		}
+	float HugAnimationController::Reach(Actor* pred) {
 
-		if (prey->IsDead()) {
-			return false;
-		}
-		if (AnimationVars::General::IsTransitioning(pred) || IsBeingHeld(pred, prey)) {
-			return false;
-		}
-		if (DisallowHugs(pred) || DisallowHugs(prey)) {
-			return false;
-		}
-
-		if (pred->AsActorState()->GetSitSleepState() == SIT_SLEEP_STATE::kIsSitting) { // disallow doing it when using furniture
-			return false;	
-		}
-
-		float pred_scale = get_visual_scale(pred);
-		// No need to check for BB scale in this case
-
-		float sizedifference = get_scale_difference(pred, prey, SizeType::VisualScale, false, true);
-		
-
-		float MINIMUM_DISTANCE = MINIMUM_HUG_DISTANCE;
-		float MINIMUM_HUG_SCALE = Action_Hug;
+		float distance = MINIMUM_HUG_DISTANCE;
 
 		if (pred->IsSneaking()) {
-			if (AnimationVars::Crawl::IsCrawling(pred)) {
-				MINIMUM_DISTANCE *= 2.35f;
-			} else {
-				MINIMUM_DISTANCE *= 1.6f;
-			}
-		}
-	
-		if (TinyCalamityActive(pred)) {
-			MINIMUM_HUG_SCALE *= 0.80f;
+			distance *= AnimationVars::Crawl::IsCrawling(pred) ? 2.35f : 1.6f;
 		}
 
-		float prey_distance = (pred->GetPosition() - prey->GetPosition()).Length();
+		return distance * get_visual_scale(pred);
+	}
 
-		if (prey_distance <= (MINIMUM_DISTANCE * pred_scale)) {
-			if (sizedifference > MINIMUM_HUG_SCALE) {
-				if ((!prey->IsPlayerRef() && !CanPerformActionOn(pred, prey, true))) {
-					return false;
-				}
-				if (!IsHuman(prey)) { // Allow hugs with humanoids only
-					if (pred->IsPlayerRef()) {
-						std::string message = std::format("You have no desire to hug {}", prey->GetDisplayFullName());
-						NotifyWithSound(pred, message); // Just no. We don't have Creature Anims.
-						shake_camera(pred, 0.45f, 0.30f);
-					}
-					return false;
-				}
-				return ShouldAllowWhenTooLarge(pred, prey, sizedifference, this->allow_message);
-			} else {
-				if (pred->IsPlayerRef()) {
-					std::string message = std::format("{} is too big to be hugged: x{:.2f}/{:.2f}", prey->GetDisplayFullName(), sizedifference, MINIMUM_HUG_SCALE);
-					shake_camera(pred, 0.45f, 0.30f);
-					NotifyWithSound(pred, message);
-				} else if (prey->IsPlayerRef() && IsTeammate(pred)) {
-					CantHugPlayerMessage(pred, prey, sizedifference, this->allow_message);
-				}
-				return false;
+	bool HugAnimationController::Qualifies(Actor* pred, Actor* prey) {
+
+		if (Blocked(pred, prey)) {
+			return false;
+		}
+
+		const float sizedifference = get_scale_difference(pred, prey, SizeType::VisualScale, false, true);
+
+		if (!(sizedifference > MinimumScale(pred))) {
+			return false;
+		}
+
+		if (!prey->IsPlayerRef() && !CanPerformActionOn(pred, prey, true)) {
+			return false;
+		}
+
+		if (!IsHuman(prey)) {
+			return false;
+		}
+
+		return !(!pred->IsPlayerRef() && IsTeammate(pred) && sizedifference > GetHugShrinkThreshold(pred));
+	}
+
+	bool HugAnimationController::CanHug(Actor* pred, Actor* prey) {
+
+		if (Blocked(pred, prey) || !TargetShape::InReach(pred, prey, Reach(pred))) {
+			return false;
+		}
+
+		const float sizedifference = get_scale_difference(pred, prey, SizeType::VisualScale, false, true);
+		const float minimum = MinimumScale(pred);
+
+		if (!(sizedifference > minimum)) {
+			if (pred->IsPlayerRef()) {
+				std::string message = std::format("{} is too big to be hugged: x{:.2f}/{:.2f}", prey->GetDisplayFullName(), sizedifference, minimum);
+				shake_camera(pred, 0.45f, 0.30f);
+				NotifyWithSound(pred, message);
+			} else if (prey->IsPlayerRef() && IsTeammate(pred)) {
+				CantHugPlayerMessage(pred, prey, sizedifference, this->allow_message);
 			}
 			return false;
 		}
-		return false;
+
+		if (!prey->IsPlayerRef() && !CanPerformActionOn(pred, prey, true)) {
+			return false;
+		}
+
+		if (!IsHuman(prey)) { // Allow hugs with humanoids only
+			if (pred->IsPlayerRef()) {
+				std::string message = std::format("You have no desire to hug {}", prey->GetDisplayFullName());
+				NotifyWithSound(pred, message); // Just no. We don't have Creature Anims.
+				shake_camera(pred, 0.45f, 0.30f);
+			}
+			return false;
+		}
+
+		return ShouldAllowWhenTooLarge(pred, prey, sizedifference, this->allow_message);
 	}
 
 	bool HugAnimationController::StartHug(Actor* pred, Actor* prey) {

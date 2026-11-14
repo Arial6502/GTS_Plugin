@@ -13,11 +13,15 @@ namespace GTS {
 	}
 
 	void InitUtils::VersionCheck() {
+		const auto version = REL::Module::get().version();
+		const auto isCompatible = version == SKSE::RUNTIME_SSE_1_5_97 || version == SKSE::RUNTIME_SSE_1_6_1170 || version == SKSE::RUNTIME_SSE_1_7_104;
 
-		const bool CantRun = REL::Module::get().version() < SKSE::RUNTIME_SSE_1_5_97 | REL::Module::get().version() == SKSE::RUNTIME_VR_1_4_15;
-
-		if (CantRun) {
-			ReportAndExit("This mod does not support Skyrim VR or versions of Skyrim older than 1.5.97.");
+		if (!isCompatible) {
+			ReportAndExit(
+				"Incompatible Game Version. Only versions:\n"
+				"1.5.97, 1.6.1170 and 1.7.104\n"
+	            "Are supported."
+			);
 		}
 	}
 

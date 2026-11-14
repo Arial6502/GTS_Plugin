@@ -3,7 +3,7 @@
 #include "Config/Config.hpp"
 
 #include "Hooks/Util/HookUtil.hpp"
-#include "Managers/AttackManager.hpp"
+#include "Managers/AI/Director.hpp"
 #include "Managers/AttributeManager.hpp"
 #include "Managers/FurnitureManager.hpp"
 #include "Managers/Damage/SizeHitEffects.hpp"
@@ -106,7 +106,7 @@ namespace Hooks {
 				GTS_PROFILE_ENTRYPOINT("ActorCharacter::DrawWeaponMagicHands");
 
 				if (a_this) {
-					if (a_draw && AttackManager::ShouldSuppressAttacks(a_this)) {
+					if (a_draw && AI::Director::SuppressesAttacks(a_this)) {
 						return;
 					}
 				}

@@ -10,14 +10,17 @@
 #include "Actions/Core/ActionCleanup.hpp"
 #include "Managers/HighHeel.hpp"
 #include "Utils/Actions/ButtCrushUtils.hpp"
+#include "Utils/Actions/TargetShape.hpp"
 
 using namespace GTS;
 
 namespace {
 
 	constexpr float MINIMUM_BUTTCRUSH_DISTANCE = 95.0f;
-	constexpr float BUTTCRUSH_ANGLE = 70;
-	constexpr float PI = std::numbers::pi_v<float>;
+
+	float MinimumScale(Actor* pred) {
+		return Action_ButtCrush * (AnimationVars::Crawl::IsCrawling(pred) ? 1.5f : 1.0f);
+	}
 
 	void AttachToObjectBTask(Actor* giant, Actor* tiny) {
 		std::string name = std::format("ButtCrush_{}", tiny->formID);
@@ -157,67 +160,13 @@ namespace GTS {
 			return {};
 		}
 
-		if (!pred) {
+		if (!pred || !pred->GetCharController()) {
 			return {};
 		}
-		auto charController = pred->GetCharController();
-		if (!charController) {
-			return {};
-		}
-
-		NiPoint3 predPos = pred->GetPosition();
 
 		auto preys = find_actors();
-
-		// Sort prey by distance
-		std::ranges::sort(preys,[predPos](const Actor* preyA, const Actor* preyB) -> bool {
-			float distanceToA = (preyA->GetPosition() - predPos).Length();
-			float distanceToB = (preyB->GetPosition() - predPos).Length();
-			return distanceToA < distanceToB;
-		});
-
-		// Filter out invalid targets
-		std::erase_if(preys,[pred, this](auto prey){
-			return !this->CanButtCrush(pred, prey);
-		});
-
-		// Filter out actors not in front
-		auto actorAngle = pred->data.angle.z;
-		RE::NiPoint3 forwardVector{ 0.f, 1.f, 0.f };
-		RE::NiPoint3 actorForward = RotateAngleAxis(forwardVector, -actorAngle, { 0.f, 0.f, 1.f });
-
-		NiPoint3 predDir = actorForward;
-		predDir = predDir / predDir.Length();
-		std::erase_if(preys,[predPos, predDir](auto prey) {
-			NiPoint3 preyDir = prey->GetPosition() - predPos;
-			if (preyDir.Length() <= 1e-4) {
-				return false;
-			}
-			preyDir = preyDir / preyDir.Length();
-			float cosTheta = predDir.Dot(preyDir);
-			return cosTheta <= 0; // 180 degress
-		});
-
-		// Filter out actors not in a truncated cone
-		// \      x   /
-		//  \  x     /
-		//   \______/  <- Truncated cone
-		//   | pred |  <- Based on width of pred
-		//   |______|
-		float predWidth = 70 * get_visual_scale(pred);
-		float shiftAmount = fabs((predWidth / 2.0f) / tan(BUTTCRUSH_ANGLE/2.0f));
-
-		NiPoint3 coneStart = predPos - predDir * shiftAmount;
-		preys.erase(std::remove_if(preys.begin(), preys.end(),[coneStart, predWidth, predDir](auto prey)
-		{
-			NiPoint3 preyDir = prey->GetPosition() - coneStart;
-			if (preyDir.Length() <= predWidth*0.4f) {
-				return false;
-			}
-			preyDir = preyDir / preyDir.Length();
-			float cosTheta = predDir.Dot(preyDir);
-			return cosTheta <= cos(BUTTCRUSH_ANGLE*PI/180.0f);
-		}), preys.end());
+		std::erase_if(preys, [pred, this](Actor* prey) { return !this->CanButtCrush(pred, prey); });
+		preys = TargetShape::InFront(pred, std::move(preys), TargetShape::ButtCrush);
 
 		if (numberOfPrey == 1) {
 			return GetMaxActionableTinyCount(pred, preys);
@@ -231,26 +180,33 @@ namespace GTS {
 		return preys;
 	}
 
+	float ButtCrushController::Reach(Actor* pred) {
+		return MINIMUM_BUTTCRUSH_DISTANCE * get_visual_scale(pred);
+	}
+
+	bool ButtCrushController::Qualifies(Actor* pred, Actor* prey) {
+
+		if (pred == prey || prey->IsDead()) {
+			return false;
+		}
+
+		if (get_scale_difference(pred, prey, SizeType::VisualScale, true, false) < MinimumScale(pred) || IsFlying(prey)) {
+			return false;
+		}
+
+		return prey->IsPlayerRef() || CanPerformActionOn(pred, prey, false);
+	}
+
 	bool ButtCrushController::CanButtCrush(Actor* pred, Actor* prey) const {
-		if (pred == prey) {
+
+		if (pred == prey || prey->IsDead() || !TargetShape::InReach(pred, prey, Reach(pred))) {
 			return false;
 		}
 
-		if (prey->IsDead()) {
-			return false;
-		}
+		const float sizedifference = get_scale_difference(pred, prey, SizeType::VisualScale, true, false);
+		const float MINIMUM_BUTTCRUSH_SCALE = MinimumScale(pred);
 
-		float pred_scale = get_visual_scale(pred);
-		float sizedifference = get_scale_difference(pred, prey, SizeType::VisualScale, true, false);
-
-		float MINIMUM_BUTTCRUSH_SCALE = Action_ButtCrush;
-		float MINIMUM_DISTANCE = MINIMUM_BUTTCRUSH_DISTANCE;
-		if (AnimationVars::Crawl::IsCrawling(pred)) {
-			MINIMUM_BUTTCRUSH_SCALE *= 1.5f;
-		}
-
-		float prey_distance = (pred->GetPosition() - prey->GetPosition()).Length();
-		if (prey_distance <= MINIMUM_DISTANCE * pred_scale && sizedifference < MINIMUM_BUTTCRUSH_SCALE) {
+		if (sizedifference < MINIMUM_BUTTCRUSH_SCALE) {
 			if (pred->IsPlayerRef()) {
 				std::string message = fmt::format("{} is too big for Butt Crush: x{:.2f}/{:.2f}", prey->GetDisplayFullName(), sizedifference, MINIMUM_BUTTCRUSH_SCALE);
 				if (!AnimationVars::Crawl::IsCrawling(pred) && pred->IsSneaking()) {
@@ -265,22 +221,21 @@ namespace GTS {
 			}
 			return false;
 		}
-		if (prey_distance <= (MINIMUM_DISTANCE * pred_scale) && sizedifference >= MINIMUM_BUTTCRUSH_SCALE) {
-			if (IsFlying(prey)) {
-				return false; // Disallow to butt crush flying dragons
-			}
-			if ((!prey->IsPlayerRef() && !CanPerformActionOn(pred, prey, false))) {
-				std::string message = std::format("{} is Essential", prey->GetDisplayFullName());
-				NotifyWithSound(pred, message);
-				return false;
-			}
-			return true;
-		} else {
+
+		if (IsFlying(prey)) {
+			return false; // Disallow to butt crush flying dragons
+		}
+
+		if (!prey->IsPlayerRef() && !CanPerformActionOn(pred, prey, false)) {
+			std::string message = std::format("{} is Essential", prey->GetDisplayFullName());
+			NotifyWithSound(pred, message);
 			return false;
 		}
+
+		return true;
 	}
 
-	bool ButtCrushController::StartButtCrush(Actor* pred, Actor* prey, const bool dochecks) {
+	bool ButtCrushController::StartButtCrush(Actor* pred, Actor* prey, const bool dochecks, std::string_view a_Suffix) {
 		auto& buttcrush = ButtCrushController::GetSingleton();
 
 		if (dochecks) {
@@ -293,6 +248,12 @@ namespace GTS {
 			if (TinyCalamity_ShouldShrinkFirst(pred, prey, Action_ButtCrush, 3.4f, 0.25f, 0.25f)) {
 				return false;
 			}
+
+			// The entry's Verify claims the cooldown, so claiming it here first made the entry refuse.
+			if (Actions::ActionRegistry::Perform(pred, Actions::Crush::EntryAction(pred, a_Suffix)) != Actions::RequestResult::kAccepted) {
+				return false;
+			}
+
 			// Before the grab. Once the tiny is held, collision free and on AnimObjectB, its graph has
 			// no state left that takes the fear transition, so this is the moment that works.
 			Actions::Cleanup::Scare(prey);
@@ -301,7 +262,6 @@ namespace GTS {
 			float WasteStamina = 60.0f * GetButtCrushCost(pred, false);
 
 			AttachToObjectBTask(pred, prey);
-			ApplyActionCooldown(pred, CooldownSource::Action_ButtCrush); // Set butt crush on the cooldown
 
 			ActorHandle giantHandle = pred->CreateRefHandle();
 			std::string taskname = std::format("ButtCrushMagicka_{}", pred->formID);
@@ -316,7 +276,6 @@ namespace GTS {
 				DamageAV(giantref, ActorValue::kStamina, WasteStamina);
 			});
 
-			Actions::ActionRegistry::Perform(pred, Actions::Crush::EntryAction(pred, "Enter"));
 			return true;
 		}
 

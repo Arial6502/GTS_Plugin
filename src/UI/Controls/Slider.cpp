@@ -102,4 +102,32 @@ namespace ImGuiEx {
         return res;
     }
     
+
+    float WeightTotal(std::initializer_list<float> a_weights) {
+
+        float total = 0.0f;
+
+        for (const float weight : a_weights) {
+            total += std::max(weight, 0.0f);
+        }
+
+        return total;
+    }
+
+    bool SliderWeight(const char* a_label, float* a_value, const float a_total,
+        const char* a_tooltip, const bool a_disabled, const float a_max) {
+
+        char cfmt[48] = {};
+
+        if (!a_value || *a_value <= 0.0f || a_total <= 0.0f) {
+            std::snprintf(cfmt, sizeof(cfmt), "%%.0f  (never)");
+        }
+        else {
+            // Two printf passes: this one bakes the share into the format, then ImGui runs that format
+            // over the value. The four percent signs survive the first pass as two and render as one.
+            std::snprintf(cfmt, sizeof(cfmt), "%%.0f  (%.0f%%%%)", 100.0f * *a_value / a_total);
+        }
+
+        return SliderF(a_label, a_value, 0.0f, a_max, a_tooltip, cfmt, a_disabled);
+    }
 }

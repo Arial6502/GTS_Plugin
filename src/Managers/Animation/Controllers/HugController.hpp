@@ -10,6 +10,11 @@ namespace GTS {
 		static bool StartHug(Actor* pred, Actor* prey);
 		void AllowMessage(bool allow);
 
+		// CanHug split in two, without its messages: how far the hug reaches, and whether prey can be
+		// hugged at all.
+		[[nodiscard]] static float Reach(Actor* pred);
+		[[nodiscard]] static bool Qualifies(Actor* pred, Actor* prey);
+
 		private:
 		bool allow_message = false;	
 	};

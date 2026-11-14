@@ -1,7 +1,6 @@
 #include "Managers/Console/ConsoleManager.hpp"
 
 #include "Data/Persistent.hpp"
-#include "Managers/AttackManager.hpp"
 #include "Scale/Scale.hpp"
 #include "Version.hpp"
 #include "git.h"

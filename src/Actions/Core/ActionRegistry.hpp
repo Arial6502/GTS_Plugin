@@ -20,6 +20,7 @@ namespace GTS::Actions {
 		static void AddDriver(std::unique_ptr<IActionDriver> a_Driver);
 
 		static RequestResult Perform(RE::Actor* a_Actor, std::string_view a_Action);
+		[[nodiscard]] static RequestResult Probe(RE::Actor* a_Actor, std::string_view a_Action);
 		static void Abort(RE::Actor* a_Actor);
 		static bool Resume(RE::Actor* a_Actor, ActionId a_Id, std::string_view a_Via = "restore");
 		static void OnAnnotation(RE::Actor* a_Actor, std::string_view a_Tag);
@@ -72,6 +73,8 @@ namespace GTS::Actions {
 		static void ValidateInputs();
 		static void Tick(RE::Actor* a_Actor, ActorAction& a_State, float a_Delta);
 		static void Enter(RE::Actor* a_Actor, ActorAction& a_State, const Slot& a_Slot);
+		[[nodiscard]] static RequestResult CheckAction(RE::Actor* a_Actor, ActorAction& a_State, const IActionNode& a_Node, const ActionDef& a_Def, const GraphSnapshot& a_Snapshot, bool a_Probing, double a_Now);
+		[[nodiscard]] static RequestResult CheckEntry(RE::Actor* a_Actor, const IActionNode& a_Node, const EntryDef& a_Def, const GraphSnapshot& a_Snapshot, bool a_Probing, double a_Now);
 		static void Leave(RE::FormID a_Owner, RE::Actor* a_Actor, ActorAction& a_State, ExitReason a_Reason, std::uint32_t a_Offender);
 		static void RestoreCarry(RE::FormID a_Owner, RE::Actor* a_Actor);
 		static void Teardown(RE::FormID a_Owner, RE::Actor* a_Actor, ExitReason a_Reason);

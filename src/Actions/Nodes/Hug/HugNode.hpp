@@ -83,6 +83,11 @@ namespace GTS::Actions {
 		// The hugged actor, read from the possession slot rather than a second map.
 		[[nodiscard]] static RE::Actor* Hugged(RE::FormID a_Owner);
 
+		// True once there is no size left to take: either the pair has reached the shrink threshold or
+		// the tiny is already as small as an actor gets. Hug.Shrink refuses from here on, and the AI
+		// asks the same question to decide whether holding on is still worth anything.
+		[[nodiscard]] static bool Drained(RE::Actor* a_Giant, RE::Actor* a_Tiny);
+
 		private:
 		static inline ActorStateMap<State> m_State = {};
 	};

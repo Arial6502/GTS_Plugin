@@ -12,13 +12,14 @@
 #include "Debug/Trace/AnimationTracer.hpp"
 #include "Hooks/Hooks.hpp"
 #include "Magic/Magic.hpp"
-#include "Managers/AI/AIManager.hpp"
+#include "Config/Config.hpp"
+#include "Managers/AI/Director.hpp"
+#include "Debug/AIDebug/AIDebugger.hpp"
 #include "Managers/AI/headtracking.hpp"
 #include "Managers/Animation/AnimationManager.hpp"
 #include "Managers/Animation/Controllers/ThighSandwichController.hpp"
 #include "Managers/Animation/Controllers/VoreController.hpp"
 #include "Managers/Animation/Utils/CooldownManager.hpp"
-#include "Managers/AttackManager.hpp"
 #include "Managers/AttributeManager.hpp"
 #include "Managers/Audio/Footstep.hpp"
 #include "Managers/CameraManager.hpp"
@@ -97,8 +98,7 @@ namespace GTS {
 		EventDispatcher::AddListener<RandomGrowth>();            // Random growth perk
 		EventDispatcher::AddListener<VoreController>();          // Vore
 		EventDispatcher::AddListener<ThighSandwichController>(); // Thigh sandwiching
-		EventDispatcher::AddListener<AIManager>();               // Picks GTS actions once everything above is current
-		EventDispatcher::AddListener<AttackManager>();           // Keeps oversized actors from drawing a weapon
+		EventDispatcher::AddListener<AI::Director>();            // Picks GTS actions once everything above is current
 
 		// Game-Facing Apply Layer
 		EventDispatcher::AddListener<DynamicScale>();      // Dynamic caps on max scale
@@ -122,6 +122,7 @@ namespace GTS {
 		// registry because node exits read the slots it owns.
 		EventDispatcher::AddListener<AnimationTracer>();        // "gts trace" animation capture
 		EventDispatcher::AddListener<AnimationDebugger>();      // Animation variable / event debug windows
+		EventDispatcher::AddListener<AIDebugger>();             // AI brain / decision debug windows
 		EventDispatcher::AddListener<Actions::Possession>();    // Who is holding whom, and where
 		EventDispatcher::AddListener<Actions::ActionRegistry>();// "gts action" node machine
 		EventDispatcher::AddListener<Actions::ActionRecovery>();// Clears stale action animvars after a load

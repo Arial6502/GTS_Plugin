@@ -17,6 +17,21 @@ namespace GTS {
 
 	void NotifyWithSound(Actor* actor, std::string_view message);
 
+	// Held while the AI is trying something on an actor's behalf. Failure notices are written for
+	// someone who pressed a key and wants to know why nothing happened; the AI asks constantly and is
+	// refused constantly, and reporting all of that to the player is just noise.
+	class QuietFailures {
+
+		public:
+		QuietFailures();
+		~QuietFailures();
+
+		QuietFailures(const QuietFailures&) = delete;
+		QuietFailures& operator=(const QuietFailures&) = delete;
+
+		[[nodiscard]] static bool Active();
+	};
+
 	template<typename ... Args>
 	void PrintMessageBox(std::string_view rt_fmt_str, Args&&... args) {
 		try {

@@ -88,6 +88,10 @@ namespace GTS {
 		bool DevourmentDevoured = false;
 		bool DevourmentEaten = false;
 		bool WasSneaking = false;
+
+		// Set while the AI is holding a stance on this actor. UpdateCrawlState leaves the actor alone
+		// while it is, otherwise it resets a teammate's crawl back to the setting every frame.
+		bool AIStance = false;
 		bool ImmuneToBreastOneShot = true;
 		bool IsSlowGrowing = false;
 		bool TemporaryDamageImmunity = false;

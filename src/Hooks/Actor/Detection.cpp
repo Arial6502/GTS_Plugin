@@ -155,7 +155,11 @@ namespace Hooks {
                         //or the target if the target is being hugged
                         const bool isTargetBeingHugged = GTS::AnimationVars::Tiny::IsBeingHugged(target) || GTS::AnimationVars::Tiny::IsBeingCrawlHugged(target);
                         const bool isObserverGrabbing = Actions::Possession::Carried(a_observer->formID);
-                        const bool shouldNotBeDetected = (isTargetBeingHugged || isObserverGrabbing) && !IsPlayerTarget;
+
+                        //Covers every slot, so someone held between the breasts is hidden too.
+                        const bool observerHoldsTarget = target && Actions::Possession::HolderOf(target->formID) == a_observer->formID;
+
+                        const bool shouldNotBeDetected = (isTargetBeingHugged || isObserverGrabbing || observerHoldsTarget) && !IsPlayerTarget;
                        
                     	if (shouldNotBeDetected) {
                             *detScore = -1000;

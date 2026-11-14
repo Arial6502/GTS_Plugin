@@ -12,8 +12,8 @@
 #include "Managers/GTSSizeManager.hpp"
 #include "Magic/Effects/Common.hpp"
 
-#include "Managers/AI/Thigh/ThighSandwichAI.hpp"
 #include "Managers/Animation/Utils/TurnTowards.hpp"
+#include "Utils/Actions/TargetShape.hpp"
 
 #include "Utils/DeathReport.hpp"
 
@@ -22,8 +22,6 @@ using namespace GTS;
 
 namespace {
 	constexpr float MINIMUM_SANDWICH_DISTANCE = 70.0f;
-	constexpr float SANDWICH_ANGLE = 60;
-	constexpr float PI = std::numbers::pi_v<float>;
 
 	const std::string rune_node = "GiantessRune";
 
@@ -138,19 +136,6 @@ namespace GTS {
 			float giantScale = get_visual_scale(GiantRef);
 			
 
-			//If AI
-			if ((!GiantRef->IsPlayerRef()) || (GiantRef->IsPlayerRef() && Config::Advanced.bPlayerAI)) {
-
-				if (auto AITransientData = Transient::GetActorData(GiantRef)) {
-					AITransientData->ActionTimer.UpdateDelta(Config::AI.ThighSandwich.fInterval);
-
-					if (!State::Live()) return;
-
-					if (GetPlayerOrControlled()->IsPlayerRef() && AITransientData->ActionTimer.ShouldRunFrame()) {
-						ThighSandwichAI_DecideAction(GiantRef, tinies.size() > 0);
-					}
-				}
-			}
 			if (tinies.empty() || !MoveTinies) {
 				return;
 			}
@@ -231,66 +216,13 @@ namespace GTS {
 		if (AnimationVars::General::IsGTSBusy(pred)) {
 			return {};
 		}
-		if (!pred) {
+		if (!pred || !pred->GetCharController()) {
 			return {};
 		}
-		auto charController = pred->GetCharController();
-		if (!charController) {
-			return {};
-		}
-
-		NiPoint3 predPos = pred->GetPosition();
 
 		auto preys = find_actors();
-
-		// Sort prey by distance
-		std::ranges::sort(preys,[predPos](const Actor* preyA, const Actor* preyB) -> bool{
-			float distanceToA = (preyA->GetPosition() - predPos).Length();
-			float distanceToB = (preyB->GetPosition() - predPos).Length();
-			return distanceToA < distanceToB;
-		});
-
-		// Filter out invalid targets
-		std::erase_if(preys,[pred, this](auto prey){
-			return !this->CanSandwich(pred, prey);
-		});
-
-		// Filter out actors not in front
-		auto actorAngle = pred->data.angle.z;
-		RE::NiPoint3 forwardVector{ 0.f, 1.f, 0.f };
-		RE::NiPoint3 actorForward = RotateAngleAxis(forwardVector, -actorAngle, { 0.f, 0.f, 1.f });
-
-		NiPoint3 predDir = actorForward;
-		predDir = predDir / predDir.Length();
-		std::erase_if(preys,[predPos, predDir](auto prey){
-			NiPoint3 preyDir = prey->GetPosition() - predPos;
-			if (preyDir.Length() <= 1e-4) {
-				return false;
-			}
-			preyDir = preyDir / preyDir.Length();
-			float cosTheta = predDir.Dot(preyDir);
-			return cosTheta <= 0; // 180 degress
-		});
-
-		// Filter out actors not in a truncated cone
-		// \      x   /
-		//  \  x     /
-		//   \______/  <- Truncated cone
-		//   | pred |  <- Based on width of pred
-		//   |______|
-		float predWidth = 70 * get_visual_scale(pred);
-		float shiftAmount = fabs((predWidth / 2.0f) / tan(SANDWICH_ANGLE/2.0f));
-
-		NiPoint3 coneStart = predPos - predDir * shiftAmount;
-		std::erase_if(preys,[coneStart, predWidth, predDir](auto prey){
-			NiPoint3 preyDir = prey->GetPosition() - coneStart;
-			if (preyDir.Length() <= predWidth*0.4f) {
-				return false;
-			}
-			preyDir = preyDir / preyDir.Length();
-			float cosTheta = predDir.Dot(preyDir);
-			return cosTheta <= cos(SANDWICH_ANGLE*PI/180.0f);
-		});
+		std::erase_if(preys, [pred, this](Actor* prey) { return !this->CanSandwich(pred, prey); });
+		preys = TargetShape::InFront(pred, std::move(preys), TargetShape::Sandwich);
 
 		if (numberOfPrey == 1) {
 			return GetMaxActionableTinyCount(pred, preys);
@@ -304,35 +236,34 @@ namespace GTS {
 		return preys;
 	}
 
+	float ThighSandwichController::Reach(Actor* pred) {
+		return MINIMUM_SANDWICH_DISTANCE * (TinyCalamityActive(pred) ? 1.75f : 1.0f) * get_visual_scale(pred);
+	}
+
+	bool ThighSandwichController::Qualifies(Actor* pred, Actor* prey) {
+
+		if (pred == prey || prey->IsDead() || IsBeingHeld(pred, prey)) {
+			return false;
+		}
+
+		if (!(get_scale_difference(pred, prey, SizeType::VisualScale, true, false) > Action_Sandwich)) {
+			return false;
+		}
+
+		return prey->IsPlayerRef() || !IsEssential(pred, prey);
+	}
+
 	bool ThighSandwichController::CanSandwich(Actor* pred, Actor* prey) const {
-		if (pred == prey) {
+
+		if (pred == prey || prey->IsDead() || IsBeingHeld(pred, prey) || !TargetShape::InReach(pred, prey, Reach(pred))) {
 			return false;
 		}
 
-		if (prey->IsDead()) {
-			return false;
-		}
+		const float sizedifference = get_scale_difference(pred, prey, SizeType::VisualScale, true, false);
 
-		if (IsBeingHeld(pred, prey)) {
-			return false;
-		}
-
-		float pred_scale = get_visual_scale(pred);
-
-		float sizedifference = get_scale_difference(pred, prey, SizeType::VisualScale, true, false);
-
-		float MINIMUM_SANDWICH_SCALE = Action_Sandwich;
-
-		float MINIMUM_DISTANCE = MINIMUM_SANDWICH_DISTANCE;
-
-		if (TinyCalamityActive(pred)) {
-			MINIMUM_DISTANCE *= 1.75f;
-		}
-
-		float prey_distance = (pred->GetPosition() - prey->GetPosition()).Length();
-		if (prey_distance <= (MINIMUM_DISTANCE * pred_scale) && sizedifference < MINIMUM_SANDWICH_SCALE) {
+		if (sizedifference < Action_Sandwich) {
 			if (pred->IsPlayerRef()) {
-				std::string message = fmt::format("{} is too big to be smothered between thighs: x{:.2f}/{:.2f}", prey->GetDisplayFullName(), sizedifference, MINIMUM_SANDWICH_SCALE);
+				std::string message = fmt::format("{} is too big to be smothered between thighs: x{:.2f}/{:.2f}", prey->GetDisplayFullName(), sizedifference, Action_Sandwich);
 				shake_camera(pred, 0.45f, 0.30f);
 				NotifyWithSound(pred, message);
 			} else if (this->allow_message && prey->IsPlayerRef() && IsTeammate(pred)) {
@@ -340,15 +271,8 @@ namespace GTS {
 			}
 			return false;
 		}
-		if (prey_distance <= (MINIMUM_DISTANCE * pred_scale) && sizedifference > MINIMUM_SANDWICH_SCALE) {
-			if ((!prey->IsPlayerRef() && IsEssential(pred, prey))) {
-				return false;
-			} else {
-				return true;
-			}
-		} else {
-			return false;
-		}
+
+		return Qualifies(pred, prey);
 	}
 
 	bool ThighSandwichController::StartSandwiching(Actor* pred, Actor* prey, bool dochecks) {

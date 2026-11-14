@@ -38,22 +38,21 @@ namespace SKSE::log {
 		*path /= PluginDeclaration::GetSingleton()->GetName();
 		*path += L".log";
 
-		std::shared_ptr <spdlog::logger> logger;
+		std::vector<spdlog::sink_ptr> sinks;
+
+		{
+			auto file = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path->string(), true);
+			file->set_pattern(PatternDefault);
+			sinks.push_back(std::move(file));
+		}
 
 		if (HasConsole()) {
-			logger = std::make_shared <spdlog::logger>("Global", std::make_shared <spdlog::sinks::stdout_color_sink_mt>());
-			logger->set_pattern(PatternConsole);
-		}
-		/*else if (IsDebuggerPresent()) {
-			logger = std::make_shared <spdlog::logger>("Global", std::make_shared <spdlog::sinks::msvc_sink_mt>());
-			logger->set_pattern(PatternDefault);
-		}*/
-		else {
-			logger = std::make_shared <spdlog::logger>("Global", std::make_shared <spdlog::sinks::basic_file_sink_mt>(path->string(), true));
-			logger->set_pattern(PatternDefault);
+			auto console = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+			console->set_pattern(PatternConsole);
+			sinks.push_back(std::move(console));
 		}
 
-		spdlog::set_default_logger(std::move(logger));
+		spdlog::set_default_logger(std::make_shared<spdlog::logger>("Global", sinks.begin(), sinks.end()));
 
 		//If console force to trace for init.
 		//Else set to info.

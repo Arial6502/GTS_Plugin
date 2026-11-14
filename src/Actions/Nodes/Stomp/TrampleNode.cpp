@@ -21,7 +21,7 @@
   [LOOP, about 1.6s a cycle and six cycles in the capture]
     GTS_Trample_Leg_Raise_L / R -> marks the foot busy, which is also an intro tag
     GTS_Trample_Leg_Lower_L / R [NOT HANDLED, and it was not handled before the port either]
-    GTS_Trample_Impact_L / R    -> one stamp, +1.47 after the raise
+    GTS_Trample_Impact_L / R    -> one stomp, +1.47 after the raise
   [FINISH]
     GTS_Trample_Finisher_L / R -> the last and much heavier hit
     GTS_Trample_Cam_End_L / R  -> camera released, stamina drain stopped, +0.87
@@ -56,8 +56,8 @@ namespace {
 		DamageAV(a_Giant, ActorValue::kStamina, a_Amount * GetWasteMult(a_Giant));
 	}
 
-	// One stamp of the loop.
-	void Stamp(Actor* a_Giant, bool a_Right, FootEvent a_Event, DamageSource a_Source, std::string_view a_Node, std::string_view a_Rumble) {
+	// One stomp of the loop.
+	void Stomp(Actor* a_Giant, bool a_Right, FootEvent a_Event, DamageSource a_Source, std::string_view a_Node, std::string_view a_Rumble) {
 
 		const float perk = GetPerkBonus_Basics(a_Giant);
 		const bool calamity = TinyCalamityActive(a_Giant);
@@ -111,7 +111,7 @@ namespace {
 
 	void OnImpact(const ActionContext& a_Ctx, bool a_Right) {
 
-		Stamp(a_Ctx.Actor(), a_Right,
+		Stomp(a_Ctx.Actor(), a_Right,
 			a_Right ? FootEvent::Right : FootEvent::Left,
 			a_Right ? DamageSource::CrushedRight : DamageSource::CrushedLeft,
 			a_Right ? NODE_FOOT_R : NODE_FOOT_L,

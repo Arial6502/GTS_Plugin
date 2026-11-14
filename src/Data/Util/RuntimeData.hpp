@@ -18,6 +18,8 @@
 #include "Data/Runtime/LSoundDescriptors.hpp"
 #include "Data/Runtime/LMagicEffects.hpp"
 #include "Data/Runtime/LSpells.hpp"
+#include "Data/Runtime/LShouts.hpp"
+#include "Data/Runtime/LWordsOfPower.hpp"
 #include "Data/Runtime/LPerks.hpp"
 #include "Data/Runtime/LExplosions.hpp"
 #include "Data/Runtime/LGlobals.hpp"
