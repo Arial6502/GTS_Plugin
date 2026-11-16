@@ -54,6 +54,8 @@ namespace GTS::AI {
 
 		static void Log(RE::Actor* a_Actor, std::string_view a_Line);
 
+		// The three windows below are seconds of animation played, read from the clips, not real time.
+
 		// How long the registry has to show the branch before a start counts as refused.
 		static constexpr double ConfirmWindow = 2.0;
 
@@ -68,11 +70,11 @@ namespace GTS::AI {
 		static constexpr double RecoverWait = 10.0;
 
 		// How long a forced stance gets to settle before the start goes ahead regardless.
-		static constexpr double StanceWindow = 2.0;
+		static constexpr double StanceWindow = 6.0;
 
-		// A graph refusal means the window was closed, not that the action is wrong, so it is retried
-		// almost immediately rather than remembered.
-		static constexpr double GraphRetry = 0.25;
+		// Animation seconds a queued second step may wait for its first step to finish.
+		static constexpr double QueueWindow = 12.0;
+
 
 		static inline absl::flat_hash_map<RE::FormID, Brain> m_Brains = {};
 	};

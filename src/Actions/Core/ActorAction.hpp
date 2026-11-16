@@ -2,6 +2,7 @@
 
 #include "Actions/Core/ActionTypes.hpp"
 #include "Actions/Core/GraphSnapshot.hpp"
+#include "Debug/Trace/GraphIntrospect.hpp"
 
 namespace GTS::Actions {
 
@@ -14,6 +15,7 @@ namespace GTS::Actions {
 		ActionId HandOffTo = ActionId::kNone;
 
 		double HandOffAt = -1.0;
+		std::string_view HandOffState;
 		ActionId JustLeft = ActionId::kNone;
 
 		// The node that stepped aside for this one, brought back when this one ends. A grab suspended
@@ -31,6 +33,11 @@ namespace GTS::Actions {
 
 		std::uint8_t PendingEntry = 0;
 		GraphSignature Signature = {};
+
+		// Seconds of animation this actor has played while tracked, from the clips' own time. Every
+		// timestamp below is a reading of it, so a wait takes as long as the animation does at any speed.
+		double Clock = 0.0;
+		ClipSamples Clips = {};
 
 		double EnteredAt = 0.0;
 

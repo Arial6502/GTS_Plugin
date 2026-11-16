@@ -114,6 +114,10 @@ namespace {
 	constexpr float LightAttackStamina = 35.0f;
 	constexpr float HeavyAttackStamina = 75.0f;
 
+	// The idle loop, and the loop the grind holds in. GrindStop is the one action taken from the second.
+	constexpr std::string_view LOOP = "ThSandwich_Butt_Loop_State";
+	constexpr std::string_view GRIND_LOOP = "ThSandwich_Butt_DOT_Loop_State";
+
 	constexpr GraphExpect Signature[] = {
 		{ "GTS_IsThighSandwiching", true },
 		{ "GTS_IsButtState",        true },
@@ -171,7 +175,7 @@ namespace {
 
 	bool CanGrow(const ActionContext& a_Ctx) {
 		const State* state = ThighSandwichButtNode::Get(a_Ctx.Owner());
-		return Runtime::HasPerkTeam(a_Ctx.Actor(), Runtime::PERK.GTSPerkButtCrushAug2) && !(state && state->Absorbing);
+		return Runtime::HasPerkTeam(a_Ctx.Actor(), Runtime::PERK.GTSPerkButtCrushAug2) && !(state && (state->Grinding || state->Absorbing));
 	}
 
 	bool VerifyGrow(const ActionContext& a_Ctx) {
@@ -332,18 +336,18 @@ namespace {
 
 	constexpr ActionDef ActionTable[] = {
 		// Back to the thigh loop. A handoff, so the tinies stay held across it.
-		{ .Action = "Sandwich.Butt.Stop",       .Behaviour = "GTSBEH_ButtState_Stop",        .OnTaken = TakeStop,       .HandOff = ActionId::kThighSandwich, .Cooldown = 0.30f, .Input = "Action.ThighSandwich.ButtBranch.Exit" },
+		{ .Action = "Sandwich.Butt.Stop",       .Behaviour = "GTSBEH_ButtState_Stop", .State = LOOP,        .OnTaken = TakeStop,       .HandOff = ActionId::kThighSandwich, .HandOffState = "ThSandwich_Butt_Outro_State", .Cooldown = 0.30f, .Input = "Action.ThighSandwich.ButtBranch.Exit" },
 
-		{ .Action = "Sandwich.Butt.Light",      .Behaviour = "GTSBEH_ButtState_LightAttack", .Guard = CanAct,        .Verify = VerifyLight, .OnTaken = TakeLight, .Cooldown = 0.30f, .Input = "Action.ThighSandwich.ButtBranch.AttackLight" },
-		{ .Action = "Sandwich.Butt.Heavy",      .Behaviour = "GTSBEH_ButtState_HeavyAttack", .Guard = CanAct,        .Verify = VerifyHeavy, .OnTaken = TakeHeavy, .Cooldown = 0.30f, .Input = "Action.ThighSandwich.ButtBranch.AttackHeavy" },
-		{ .Action = "Sandwich.Butt.Grow",       .Behaviour = "GTSBEH_ButtState_Grow",        .Guard = CanGrow,       .Verify = VerifyGrow,  .OnTaken = TakeGrow,  .Cooldown = 0.35f, .Input = "Action.ThighSandwich.ButtBranch.Grow" },
+		{ .Action = "Sandwich.Butt.Light",      .Behaviour = "GTSBEH_ButtState_LightAttack", .State = LOOP, .Guard = CanAct,        .Verify = VerifyLight, .OnTaken = TakeLight, .Cooldown = 0.30f, .Input = "Action.ThighSandwich.ButtBranch.AttackLight" },
+		{ .Action = "Sandwich.Butt.Heavy",      .Behaviour = "GTSBEH_ButtState_HeavyAttack", .State = LOOP, .Guard = CanAct,        .Verify = VerifyHeavy, .OnTaken = TakeHeavy, .Cooldown = 0.30f, .Input = "Action.ThighSandwich.ButtBranch.AttackHeavy" },
+		{ .Action = "Sandwich.Butt.Grow",       .Behaviour = "GTSBEH_ButtState_Grow", .State = LOOP,        .Guard = CanGrow,       .Verify = VerifyGrow,  .OnTaken = TakeGrow,  .Cooldown = 0.35f, .Input = "Action.ThighSandwich.ButtBranch.Grow" },
 
-		{ .Action = "Sandwich.Butt.GrindStart", .Behaviour = "GTSBEH_ButtState_GrindStart",  .Guard = CanGrindStart, .OnTaken = TakeGrindStart, .Cooldown = 0.30f, .Input = "Action.ThighSandwich.ButtBranch.GrindStart" },
-		{ .Action = "Sandwich.Butt.GrindStop",  .Behaviour = "GTSBEH_ButtState_GrindStop",   .Guard = CanGrindStop,  .OnTaken = TakeGrindStop,  .Cooldown = 0.30f, .Input = "Action.ThighSandwich.ButtBranch.GrindStop" },
+		{ .Action = "Sandwich.Butt.GrindStart", .Behaviour = "GTSBEH_ButtState_GrindStart", .State = LOOP,  .Guard = CanGrindStart, .OnTaken = TakeGrindStart, .Cooldown = 0.30f, .Input = "Action.ThighSandwich.ButtBranch.GrindStart" },
+		{ .Action = "Sandwich.Butt.GrindStop",  .Behaviour = "GTSBEH_ButtState_GrindStop", .State = GRIND_LOOP,   .Guard = CanGrindStop,  .OnTaken = TakeGrindStop,  .Cooldown = 0.30f, .Input = "Action.ThighSandwich.ButtBranch.GrindStop" },
 
 		// Offered from the thigh loop as well. The graph allows it from both idles on purpose, and the
 		// legacy code only ever wired this one.
-		{ .Action = "Sandwich.UB",              .Behaviour = Sandwich::BEH_UNBIRTH,          .Guard = CanUnbirth,    .OnTaken = TakeUnbirth, .Cooldown = 0.50f, .Input = "Action.ThighSandwich.ButtBranch.Unbirth" },
+		{ .Action = "Sandwich.UB",              .Behaviour = Sandwich::BEH_UNBIRTH, .State = LOOP,          .Guard = CanUnbirth,    .OnTaken = TakeUnbirth, .Cooldown = 0.50f, .Input = "Action.ThighSandwich.ButtBranch.Unbirth" },
 
 		// No key and no guard: the grind asks for this itself once a tiny is low enough. The graph only
 		// offers it from the grind state, so it cannot be reached any other way.

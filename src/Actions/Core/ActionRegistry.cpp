@@ -228,6 +228,7 @@ namespace GTS::Actions {
 		a_State.Signature = entry < a_Slot.EntrySignatures.size() && !a_Slot.EntrySignatures[entry].Empty() ? a_Slot.EntrySignatures[entry] : a_Slot.Signature;
 		a_State.HandOffTo = ActionId::kNone;
 		a_State.HandOffAt = -1.0;
+		a_State.HandOffState = {};
 		a_State.JustLeft = ActionId::kNone;
 		a_State.PartnersReleased = false;
 		a_State.PartnersReleasedAt = -1.0;
@@ -238,8 +239,8 @@ namespace GTS::Actions {
 		const bool handedBack = std::ranges::contains(kMachineVia, via);
 
 		a_State.AwaitingConfirm = !handedBack && entry < a_Slot.Node->Entries().size() ? a_Slot.Node->Entries()[entry].Confirm : std::string_view{};
-		a_State.AwaitingSince = now;
-		a_State.EnteredAt = now;
+		a_State.AwaitingSince = a_State.Clock;
+		a_State.EnteredAt = a_State.Clock;
 		a_State.PendingSince = -1.0;
 		a_State.ExitRequestedAt = -1.0;
 		a_State.MismatchSince = -1.0;
@@ -316,14 +317,19 @@ namespace GTS::Actions {
 				auto ptr = handle.get();
 
 				if (ptr && ptr->Is3DLoaded()) {
-					Notify(ptr.get(), signal, true);
+					for (auto&& part : std::views::split(signal, '|')) {
+						Notify(ptr.get(), std::string_view(part.begin(), part.end()), true);
+					}
 				}
 			}
 		}
 
 		// Leave reaches here after the giant's 3d is gone.
 		if (a_Actor->Is3DLoaded()) {
-			Notify(a_Actor, signal, true);
+			// A node may name several events, separated by |. Each is sent in order.
+			for (auto&& part : std::views::split(signal, '|')) {
+				Notify(a_Actor, std::string_view(part.begin(), part.end()), true);
+			}
 		}
 	}
 
@@ -387,14 +393,14 @@ namespace GTS::Actions {
 		a_State = ActorAction{};
 		a_State.Owner = owner;
 		a_State.JustLeft = left;
-		a_State.IdleSince = now;
+		a_State.IdleSince = a_State.Clock;
 
 		++m_Counters.Exits;
 		Log(std::format("EXIT|{:08X}|{}|{}", a_Owner, path, ExitReasonName(reason)));
 
 		if (reason == ExitReason::kHandOff) {
 			a_State.Pending = handOff;
-			a_State.PendingSince = now;
+			a_State.PendingSince = a_State.Clock;
 			a_State.EnteredVia = "handoff";
 			++m_Counters.HandOffs;
 			Log(std::format("HANDOFF|{:08X}|{} -> {}", a_Owner, path, ActionName(handOff)));
@@ -531,7 +537,7 @@ namespace GTS::Actions {
 					// An action with a Confirm fills its slot before the animation plays, so it is watched like an entry.
 					if (!def.Confirm.empty()) {
 						state.AwaitingConfirm = def.Confirm;
-						state.AwaitingSince = now;
+						state.AwaitingSince = state.Clock;
 					}
 
 					if (def.Kills) {
@@ -551,6 +557,7 @@ namespace GTS::Actions {
 
 					if (def.HandOff != ActionId::kNone) {
 						ctx.HandOff(def.HandOff);
+						state.HandOffState = def.HandOffState;
 					}
 					else if (def.Aborts) {
 						Log(std::format("TAKE|{:08X}|{}|{}", a_Actor->formID, ActionName(state.Current), a_Action));
@@ -649,7 +656,7 @@ namespace GTS::Actions {
 
 					state.Pending = slot.Node->Id();
 					state.PendingEntry = static_cast<std::uint8_t>(&def - slot.Node->Entries().data());
-					state.PendingSince = now;
+					state.PendingSince = state.Clock;
 					state.EnteredVia = a_Action;
 					state.SpeedInput = def.Input;
 
@@ -671,6 +678,10 @@ namespace GTS::Actions {
 
 		if (index < owner.ActionAsserts.size() && !owner.ActionAsserts[index].Empty() && a_Snapshot.Matches(owner.ActionAsserts[index])) {
 			return RequestResult::kAlreadyRunning;
+		}
+
+		if (!a_Def.State.empty() && !GraphIntrospect::InState(a_Actor, a_Def.State)) {
+			return RequestResult::kWrongState;
 		}
 
 		const auto key = std::pair{a_Actor->formID, a_Def.Action.data()};
@@ -809,10 +820,22 @@ namespace GTS::Actions {
 
 	void ActionRegistry::OnAnnotation(RE::Actor* a_Actor, std::string_view a_Tag) {
 
-		std::lock_guard lock(ActionLock);
-
 		if (!a_Actor || a_Tag.empty()) {
 			return;
+		}
+
+		// This runs inside the actor's graph update, with that graph's lock held. A handler on another
+		// thread may hold ActionLock and be waiting for this graph, so this thread must not wait here.
+		std::unique_lock lock(ActionLock, std::try_to_lock);
+
+		{
+			std::lock_guard deferred(m_DeferredLock);
+
+			// Also deferred while older ones are waiting, so they stay in order.
+			if (!lock.owns_lock() || !m_Deferred.empty()) {
+				m_Deferred.emplace_back(a_Actor->GetHandle(), std::string(a_Tag));
+				return;
+			}
 		}
 
 		auto it = m_State.find(a_Actor->formID);
@@ -871,7 +894,7 @@ namespace GTS::Actions {
 
 		for (const auto& signal : node->ExitSignals()) {
 			if (signal == a_Tag && state.ExitRequestedAt < 0.0) {
-				state.ExitRequestedAt = now;
+				state.ExitRequestedAt = state.Clock;
 				Log(std::format("EXIT_REQ|{:08X}|{}|{}", a_Actor->formID, ActionName(state.Current), a_Tag));
 			}
 		}
@@ -897,7 +920,7 @@ namespace GTS::Actions {
 
 			if (def.ReleasesPartners) {
 				state.PartnersReleased = true;
-				state.PartnersReleasedAt = now;
+				state.PartnersReleasedAt = state.Clock;
 				Cleanup::ReleaseOwned(a_Actor->formID, node->PartnerSlots());
 			}
 
@@ -909,12 +932,34 @@ namespace GTS::Actions {
 				SendAbortSignal(node, a_Actor->formID, a_Actor);
 
 				if (state.ExitRequestedAt < 0.0) {
-					state.ExitRequestedAt = now;
+					state.ExitRequestedAt = state.Clock;
 				}
 			}
 
 			Log(std::format("ANNO|{:08X}|{}|{}|{}", a_Actor->formID, ActionName(state.Current), a_Tag, "handled"));
 			return;
+		}
+
+		// A handoff clip can play the next node's annotations before that node has asserted. They are
+		// run for it, or the effects they carry are lost.
+		if (state.HandOffTo != ActionId::kNone) {
+
+			if (auto* next = Find(state.HandOffTo)) {
+
+				for (const auto& def : next->Annotations()) {
+
+					if (def.Tag != a_Tag) {
+						continue;
+					}
+
+					if (def.Handler) {
+						def.Handler(ctx);
+					}
+
+					Log(std::format("ANNO|{:08X}|{}|{}|handled for the handoff", a_Actor->formID, ActionName(state.HandOffTo), a_Tag));
+					return;
+				}
+			}
 		}
 
 		if (m_Claimed.contains(a_Tag)) {
@@ -1008,7 +1053,7 @@ namespace GTS::Actions {
 				ActorAction& state = m_State[a_Actor->formID];
 				state.Owner = a_Actor->GetHandle();
 				state.Pending = slot.Node->Id();
-				state.PendingSince = Time::WorldTimeElapsed();
+				state.PendingSince = state.Clock;
 				state.EnteredVia = def.Action.empty() ? std::string(a_Behaviour) : std::string(def.Action);
 				return;
 			}
@@ -1035,6 +1080,9 @@ namespace GTS::Actions {
 
 		std::lock_guard lock(ActionLock);
 
+		// Every wait below is measured on this, not on the wall clock.
+		a_State.Clock += GraphIntrospect::Advance(a_Actor, a_State.Clips, a_Delta);
+
 		const GraphSnapshot snapshot = GraphVars::Read(a_Actor);
 		const double now = Time::WorldTimeElapsed();
 
@@ -1046,13 +1094,13 @@ namespace GTS::Actions {
 				return;
 			}
 
-			const bool draining = a_State.ExitRequestedAt >= 0.0 && (now - a_State.ExitRequestedAt) <= Grace(a_Actor, DrainGrace);
+			const bool draining = a_State.ExitRequestedAt >= 0.0 && (a_State.Clock - a_State.ExitRequestedAt) <= DrainGrace;
 
 			// Every frame, since a slot can hold more than one actor. Only the state below latches once.
 			if (const DeathOutcome death = Possession::DropDead(a_Actor->formID, slot.Node->PartnerSlots()); death != DeathOutcome::kNone && !a_State.PartnersReleased) {
 
 				a_State.PartnersReleased = true;
-				a_State.PartnersReleasedAt = now;
+				a_State.PartnersReleasedAt = a_State.Clock;
 				a_State.PartnerDied = true;
 				a_State.DeathIntended = death == DeathOutcome::kIntended;
 
@@ -1065,7 +1113,7 @@ namespace GTS::Actions {
 			if (handingOff) {
 
 				if (a_State.HandOffAt < 0.0) {
-					a_State.HandOffAt = now;
+					a_State.HandOffAt = a_State.Clock;
 				}
 
 				const Slot& target = m_Slots[IndexOf(a_State.HandOffTo)];
@@ -1076,19 +1124,24 @@ namespace GTS::Actions {
 					return;
 				}
 
-				if ((now - a_State.HandOffAt) > Grace(a_Actor, PendingGrace)) {
+				// The clock only runs once the graph has left the handoff clip.
+				if (!a_State.HandOffState.empty() && GraphIntrospect::InState(a_Actor, a_State.HandOffState)) {
+					a_State.HandOffAt = a_State.Clock;
+				}
+
+				if ((a_State.Clock - a_State.HandOffAt) > PendingGrace) {
 					Log(std::format("LOST|{:08X}|{}|{} never asserted, handoff dropped", a_Actor->formID, Describe(a_Actor->formID, a_State), ActionName(a_State.HandOffTo)));
 					a_State.HandOffTo = ActionId::kNone;
 					a_State.HandOffAt = -1.0;
 				}
 			}
 
-			const double finishWindow = Grace(a_Actor, a_State.PartnerDied && !a_State.DeathIntended ? DeathGrace : DrainGrace);
+			const double finishWindow = a_State.PartnerDied && !a_State.DeathIntended ? DeathGrace : DrainGrace;
 
 			const bool finishing = a_State.PartnersReleased && !draining && !handingOff
-				&& a_State.PartnersReleasedAt >= 0.0 && (now - a_State.PartnersReleasedAt) <= finishWindow;
+				&& a_State.PartnersReleasedAt >= 0.0 && (a_State.Clock - a_State.PartnersReleasedAt) <= finishWindow;
 
-			if (a_State.PartnerDied && !finishing && !draining && !handingOff) {
+			if (a_State.PartnerDied && !finishing && !draining && !handingOff && !Possession::AnyIn(a_Actor->formID, slot.Node->PartnerSlots())) {
 				Log(std::format("LOST|{:08X}|{}|the partner died and the animation never ended", a_Actor->formID, Describe(a_Actor->formID, a_State)));
 				Leave(a_Actor->formID, a_Actor, a_State, ExitReason::kActorLost, 0);
 				return;
@@ -1108,15 +1161,15 @@ namespace GTS::Actions {
 				a_State.MismatchSince = -1.0;
 			}
 			else if (a_State.MismatchSince < 0.0) {
-				a_State.MismatchSince = now;
+				a_State.MismatchSince = a_State.Clock;
 			}
-			else if ((now - a_State.MismatchSince) >= MismatchGrace) {
+			else if ((a_State.Clock - a_State.MismatchSince) >= MismatchGrace) {
 				const bool expected = draining || slot.Node->Exit() == ExitPolicy::kUnannounced;
 				Leave(a_Actor->formID, a_Actor, a_State, expected ? ExitReason::kCompleted : ExitReason::kDesync, snapshot.FirstMismatch(a_State.Signature));
 				return;
 			}
 
-			if (!a_State.AwaitingConfirm.empty() && (now - a_State.AwaitingSince) > Grace(a_Actor, ConfirmGrace)) {
+			if (!a_State.AwaitingConfirm.empty() && (a_State.Clock - a_State.AwaitingSince) > ConfirmGrace) {
 				Log(std::format("LOST|{:08X}|{}|{} never arrived", a_Actor->formID, Describe(a_Actor->formID, a_State), a_State.AwaitingConfirm));
 				Leave(a_Actor->formID, a_Actor, a_State, ExitReason::kUnconfirmed, 0);
 				return;
@@ -1159,7 +1212,7 @@ namespace GTS::Actions {
 				return;
 			}
 
-			if (a_State.PendingSince >= 0.0 && (now - a_State.PendingSince) > Grace(a_Actor, PendingGrace)) {
+			if (a_State.PendingSince >= 0.0 && (a_State.Clock - a_State.PendingSince) > PendingGrace) {
 
 				Log(std::format("LOST|{:08X}|{}|the graph never asserted the signature", a_Actor->formID, ActionName(a_State.Pending)));
 				a_State.Pending = ActionId::kNone;
@@ -1213,6 +1266,8 @@ namespace GTS::Actions {
 
 		++m_Frame;
 		ActionLog::SetFrame(m_Frame);
+
+		RunDeferred();
 
 		const float delta = Time::WorldTimeDelta();
 
@@ -1300,7 +1355,7 @@ namespace GTS::Actions {
 				}
 
 				// Kept for SettleGrace after going idle, so the idle branch can adopt a signature the graph still asserts.
-				const bool settled = after->second.IdleSince < 0.0 || (Time::WorldTimeElapsed() - after->second.IdleSince) > SettleGrace;
+				const bool settled = after->second.IdleSince < 0.0 || (after->second.Clock - after->second.IdleSince) > SettleGrace;
 
 				if (after->second.Idle() && settled && !m_Watching && MovementRegistry::Current(actor) == MovementId::kNone) {
 					drop.emplace_back(id, false);
@@ -1316,6 +1371,8 @@ namespace GTS::Actions {
 				Forget(id);
 			}
 		}
+
+		PublishSpeeds();
 
 		if (m_Watching) {
 			PollVars();
@@ -1593,23 +1650,53 @@ namespace GTS::Actions {
 
 	float ActionRegistry::AnimSpeed(RE::Actor* a_Actor) {
 
-		std::lock_guard lock(ActionLock);
-		const auto* state = StateOf(a_Actor);
-		return state && state->Active() ? state->AnimSpeed : 1.0f;
+		std::lock_guard lock(m_SpeedLock);
+		const auto it = a_Actor ? m_Speeds.find(a_Actor->formID) : m_Speeds.end();
+		return it != m_Speeds.end() ? it->second.Anim : 1.0f;
 	}
 
 	float ActionRegistry::HHSpeed(RE::Actor* a_Actor) {
 
-		std::lock_guard lock(ActionLock);
-		const auto* state = StateOf(a_Actor);
-		return state && state->Active() ? state->HHSpeed : 1.0f;
+		std::lock_guard lock(m_SpeedLock);
+		const auto it = a_Actor ? m_Speeds.find(a_Actor->formID) : m_Speeds.end();
+		return it != m_Speeds.end() ? it->second.HH : 1.0f;
 	}
 
 	bool ActionRegistry::HHDisabled(RE::Actor* a_Actor) {
 
-		std::lock_guard lock(ActionLock);
-		const auto* state = StateOf(a_Actor);
-		return state && state->Active() && state->HHDisabled;
+		std::lock_guard lock(m_SpeedLock);
+		const auto it = a_Actor ? m_Speeds.find(a_Actor->formID) : m_Speeds.end();
+		return it != m_Speeds.end() && it->second.HHDisabled;
+	}
+
+	void ActionRegistry::PublishSpeeds() {
+
+		absl::flat_hash_map<RE::FormID, Speeds> fresh = {};
+
+		for (const auto& [id, state] : m_State) {
+			if (state.Active()) {
+				fresh.emplace(id, Speeds{ state.AnimSpeed, state.HHSpeed, state.HHDisabled });
+			}
+		}
+
+		std::lock_guard lock(m_SpeedLock);
+		m_Speeds.swap(fresh);
+	}
+
+	void ActionRegistry::RunDeferred() {
+
+		std::vector<std::pair<RE::ActorHandle, std::string>> waiting = {};
+
+		{
+			std::lock_guard lock(m_DeferredLock);
+			waiting.swap(m_Deferred);
+		}
+
+		for (const auto& [handle, tag] : waiting) {
+			if (auto actor = handle.get(); actor && actor->Is3DLoaded()) {
+				OnAnnotation(actor.get(), tag);
+			}
+		}
 	}
 
 	void ActionRegistry::DriveAnimSpeed(RE::Actor* a_Actor, ActorAction& a_State, float a_Delta) {
@@ -1816,6 +1903,26 @@ namespace GTS::Actions {
 					GraphIntrospect::Describe(a_Slot, a_Old),
 					GraphIntrospect::Describe(a_Slot, a_New)));
 			});
+
+		{
+			std::vector<std::string> active = {};
+			GraphIntrospect::ReadActive(actor, active);
+
+			std::vector<std::string> gone = {};
+			std::vector<std::string> added = {};
+			std::ranges::set_difference(m_GraphActive, active, std::back_inserter(gone));
+			std::ranges::set_difference(active, m_GraphActive, std::back_inserter(added));
+
+			for (const auto& entry : gone) {
+				ActionLog::Write(std::format("GRAPH|{:08X}|-|{}", m_VarTarget, entry));
+			}
+
+			for (const auto& entry : added) {
+				ActionLog::Write(std::format("GRAPH|{:08X}|+|{}", m_VarTarget, entry));
+			}
+
+			m_GraphActive = std::move(active);
+		}
 	}
 
 	bool ActionRegistry::StartWatch(RE::Actor* a_Target) {
@@ -1832,6 +1939,7 @@ namespace GTS::Actions {
 		m_Watching = true;
 		m_VarTarget = 0;
 		m_VarSlots.clear();
+		m_GraphActive.clear();
 
 		std::size_t total = 0;
 
@@ -2070,6 +2178,17 @@ namespace GTS::Actions {
 
 		m_State.clear();
 		m_Cooldowns.clear();
+
+		{
+			std::lock_guard speeds(m_SpeedLock);
+			m_Speeds.clear();
+		}
+
+		{
+			std::lock_guard deferred(m_DeferredLock);
+			m_Deferred.clear();
+		}
+
 		m_Refused.clear();
 		m_Dead.clear();
 		m_Live.clear();

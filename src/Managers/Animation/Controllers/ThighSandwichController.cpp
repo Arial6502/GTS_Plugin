@@ -1,5 +1,6 @@
 #include "Managers/Animation/Controllers/ThighSandwichController.hpp"
 #include "Actions/Core/ActionRegistry.hpp"
+#include "Actions/Core/Possession.hpp"
 #include "Managers/Damage/Utils/SizeDamageUtils.hpp"
 
 #include "Managers/Animation/AnimationManager.hpp"
@@ -187,6 +188,12 @@ namespace GTS {
 						RestartTinyPhysics(GiantRef, tiny);
 						expired.push_back(form);
 						anyDied = true;
+
+						// The butt branch has its own outro for an emptied sandwich. Released here, ahead of the
+						// registry in the listener order, so the death is not treated as one nobody asked for.
+						if (tiny_is_actor && AnimationVars::Action::IsInSecondSandwichBranch(GiantRef)) {
+							Actions::Possession::ReleaseOne(GiantRef->formID, Actions::PossessionSlot::kThighs, tiny_is_actor->GetHandle());
+						}
 					}
 				}
 			}
@@ -195,9 +202,9 @@ namespace GTS {
 				this->tinies.erase(form);
 			}
 
-			/*if (anyDied && this->tinies.empty() && AnimationVars::Action::IsInSecondSandwichBranch(GiantRef)) {
-
-			}*/
+			if (anyDied && this->tinies.empty() && AnimationVars::Action::IsInSecondSandwichBranch(GiantRef)) {
+				Actions::ActionRegistry::Notify(GiantRef, "GTSBEH_TinyDied", true);
+			}
 		}
 	}
 

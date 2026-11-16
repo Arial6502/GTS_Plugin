@@ -245,7 +245,7 @@ namespace {
 
 	bool CanLeave(const ActionContext& a_Ctx) {
 		const State* state = GrabPlayNode::Get(a_Ctx.Owner());
-		return !(state && state->Devouring);
+		return Living(a_Ctx) && !(state && (state->Devouring || state->Grinding || state->Ending));
 	}
 
 	//----------------------------------------------------------------------------------------------
@@ -436,7 +436,6 @@ namespace {
 	void OnVoreSwallow(const ActionContext& a_Ctx) {
 		Runtime::PlaySoundAtNode(Runtime::SNDR.GTSSoundSwallow, a_Ctx.Actor(), 1.0f, HEAD);
 		Grabbing::Play::GTSGrab_FullyEatTiny(a_Ctx.Actor());
-		a_Ctx.RequestExit();
 	}
 
 	// The tiny died in here. There is nobody to hand back, so the group ends.
@@ -473,8 +472,12 @@ namespace {
 		}
 
 		ActionRegistry::Notify(a_Ctx.Actor(), Grabbing::BEH_ABORT);
+		ActionRegistry::Notify(a_Ctx.Actor(), Grabbing::BEH_TINY_DIED);
 		Grabbing::HandEmptied(a_Ctx.Actor());
-		a_Ctx.RequestExit();
+
+		// No exit yet. The graph ignores the abort while it is blending into its own no tiny exit, and
+		// then returns to the play idle. The abort is sent again at GTS_HS_Exit_NoTiny and GTSBEH_Next.
+		GrabPlayNode::GetOrAdd(a_Ctx.Owner()).Ending = true;
 	}
 
 	void OnSandRelease(const ActionContext& a_Ctx) { EndIfTinyGone(a_Ctx); }
@@ -485,6 +488,13 @@ namespace {
 	// anything else while the giant idles would read as this branch's doing and the body would be kept
 	// instead of ending the branch.
 	void OnIdleReturn(const ActionContext& a_Ctx) {
+
+		if (const auto* state = GrabPlayNode::Get(a_Ctx.Owner()); state && state->Ending) {
+			ActionRegistry::Notify(a_Ctx.Actor(), Grabbing::BEH_ABORT);
+			ActionRegistry::Notify(a_Ctx.Actor(), Grabbing::BEH_TINY_DIED);
+			a_Ctx.RequestExit();
+			return;
+		}
 
 		if (Possession::FirstAlive(a_Ctx.Owner(), PossessionSlot::kHand)) {
 			Possession::ClearIntent(a_Ctx.Owner(), PossessionSlot::kHand);
@@ -502,7 +512,6 @@ namespace {
 		}
 
 		EndIfTinyGone(a_Ctx);
-		a_Ctx.RequestExit();
 	}
 
 	//----------------------------------------------------------------------------------------------
@@ -512,19 +521,19 @@ namespace {
 	constexpr PossessionSlot Owned[] = { PossessionSlot::kHand };
 
 	constexpr ActionDef ActionTable[] = {
-		{ .Action = "GrabPlay.Crush",      .Behaviour = "GTSBEH_Hand_Crush_Heavy", .Guard = CanAct,       .OnTaken = TakeCrush,      .Kills = true, .Cooldown = 0.30f, .Input = "Action.Grab.GrabPlay.Crush" },
-		{ .Action = "GrabPlay.Poke",       .Behaviour = "GTSBEH_Hand_Poke",        .Guard = CanAct,       .OnTaken = TakePoke,       .Cooldown = 0.30f,                .Input = "Action.Grab.GrabPlay.Poke" },
-		{ .Action = "GrabPlay.Flick",      .Behaviour = "GTSBEH_Hand_Flick_Heavy", .Guard = CanAct,       .OnTaken = TakeFlick,      .Cooldown = 0.30f,                .Input = "Action.Grab.GrabPlay.Flick" },
-		{ .Action = "GrabPlay.Sandwich",   .Behaviour = "GTSBEH_Hand_Sandwich",    .Guard = CanAct,       .OnTaken = TakeSandwich,   .Kills = true, .Cooldown = 0.30f, .Input = "Action.Grab.GrabPlay.Sandwich" },
-		{ .Action = "GrabPlay.Kiss",       .Behaviour = "GTSBEH_Hand_Kiss",        .Guard = CanAct,       .OnTaken = TakeKiss,       .Cooldown = 0.30f,                .Input = "Action.Grab.GrabPlay.Kiss" },
-		{ .Action = "GrabPlay.Vore",       .Behaviour = "GTSBEH_Hand_Vore",        .Guard = CanAct,       .OnTaken = TakeVore,       .Kills = true, .Cooldown = 0.50f, .Input = "Action.Grab.GrabPlay.Vore" },
-		{ .Action = "GrabPlay.KissVore",   .Behaviour = "GTSBEH_Hand_Kiss_Vore",   .Guard = CanAct,       .OnTaken = TakeKissVore,   .Kills = true, .Cooldown = 0.50f, .Input = "Action.Grab.GrabPlay.KissVore" },
+		{ .Action = "GrabPlay.Crush",      .Behaviour = "GTSBEH_Hand_Crush_Heavy", .State = "GTS_Hand_Idle_State", .Guard = CanAct,       .OnTaken = TakeCrush,      .Kills = true, .Cooldown = 0.30f, .Input = "Action.Grab.GrabPlay.Crush" },
+		{ .Action = "GrabPlay.Poke",       .Behaviour = "GTSBEH_Hand_Poke", .State = "GTS_Hand_Idle_State",        .Guard = CanAct,       .OnTaken = TakePoke,       .Cooldown = 0.30f,                .Input = "Action.Grab.GrabPlay.Poke" },
+		{ .Action = "GrabPlay.Flick",      .Behaviour = "GTSBEH_Hand_Flick_Heavy", .State = "GTS_Hand_Idle_State", .Guard = CanAct,       .OnTaken = TakeFlick,      .Cooldown = 0.30f,                .Input = "Action.Grab.GrabPlay.Flick" },
+		{ .Action = "GrabPlay.Sandwich",   .Behaviour = "GTSBEH_Hand_Sandwich", .State = "GTS_Hand_Idle_State",    .Guard = CanAct,       .OnTaken = TakeSandwich,   .Kills = true, .Cooldown = 0.30f, .Input = "Action.Grab.GrabPlay.Sandwich" },
+		{ .Action = "GrabPlay.Kiss",       .Behaviour = "GTSBEH_Hand_Kiss", .State = "GTS_Hand_Idle_State",        .Guard = CanAct,       .OnTaken = TakeKiss,       .Cooldown = 0.30f,                .Input = "Action.Grab.GrabPlay.Kiss" },
+		{ .Action = "GrabPlay.Vore",       .Behaviour = "GTSBEH_Hand_Vore", .State = "GTS_Hand_Idle_State",        .Guard = CanAct,       .OnTaken = TakeVore,       .Kills = true, .Cooldown = 0.50f, .Input = "Action.Grab.GrabPlay.Vore" },
+		{ .Action = "GrabPlay.KissVore",   .Behaviour = "GTSBEH_Hand_Kiss_Vore", .State = "GTS_Hand_Kiss_Sneak_State|GTS_Hand_Kiss_Stand_State",   .Guard = CanAct,       .OnTaken = TakeKissVore,   .Kills = true, .Cooldown = 0.50f, .Input = "Action.Grab.GrabPlay.KissVore" },
 
-		{ .Action = "GrabPlay.GrindStart", .Behaviour = "GTSBEH_Hand_Grind_Start", .Guard = CanAct,       .OnTaken = TakeGrindStart, .Cooldown = 0.30f, .Input = "Action.Grab.GrabPlay.GrindStart" },
-		{ .Action = "GrabPlay.GrindStop",  .Behaviour = "GTSBEH_Hand_Grind_Stop",  .Guard = CanGrindStop, .OnTaken = TakeGrindStop,  .Cooldown = 0.30f, .Input = "Action.Grab.GrabPlay.GrindStop" },
+		{ .Action = "GrabPlay.GrindStart", .Behaviour = "GTSBEH_Hand_Grind_Start", .State = "GTS_Hand_Idle_State", .Guard = CanAct,       .OnTaken = TakeGrindStart, .Cooldown = 0.30f, .Input = "Action.Grab.GrabPlay.GrindStart" },
+		{ .Action = "GrabPlay.GrindStop",  .Behaviour = "GTSBEH_Hand_Grind_Stop", .State = "GTS_Hand_Grind_Sneak_Loop_State|GTS_Hand_Grind_Stand_Loop_State",  .Guard = CanGrindStop, .OnTaken = TakeGrindStop,  .Cooldown = 0.30f, .Input = "Action.Grab.GrabPlay.GrindStop" },
 
 		// Back to the carry. A handoff, so the tiny stays in the hand across it.
-		{ .Action = "GrabPlay.Exit",       .Behaviour = "GTSBEH_Hand_Exit",        .Guard = CanLeave,     .OnTaken = TakeExit, .HandOff = ActionId::kGrab, .Cooldown = 0.30f, .Input = "Action.Grab.GrabPlay.Exit" },
+		{ .Action = "GrabPlay.Exit",       .Behaviour = "GTSBEH_Hand_Exit", .State = "GTS_Hand_Idle_State",        .Guard = CanLeave,     .OnTaken = TakeExit, .HandOff = ActionId::kGrab, .Cooldown = 0.30f, .Input = "Action.Grab.GrabPlay.Exit" },
 
 		{ .Action = "GrabPlay.Cancel",     .Behaviour = "",                        .Aborts = true },
 	};
@@ -593,13 +602,22 @@ namespace GTS::Actions {
 	// The hand, like the grab it sits inside. A tiny in the breasts is not part of this branch.
 	std::span<const PossessionSlot> GrabPlayNode::OwnedSlots() const { return ::Owned; }
 	std::span<const GraphExpect> GrabPlayNode::Signature() const { return ::Signature; }
-	std::string_view GrabPlayNode::AbortSignal() const { return Grabbing::BEH_ABORT; }
+	std::string_view GrabPlayNode::AbortSignal() const { return Grabbing::BEH_LEAVE; }
 	std::span<const std::string_view> GrabPlayNode::ExitSignals() const { return ::ExitSignals; }
 	// GTS_IsInGrabPlayState is read by the graph and written by nobody, so it never asserts and the
 	// signature can never match. The hand is what this state actually depends on.
 	Liveness GrabPlayNode::Alive(RE::FormID a_Owner, RE::Actor* a_Actor) const {
 
-		return Possession::Occupied(a_Owner, PossessionSlot::kHand) ? Liveness::kAlive : Liveness::kOver;
+		if (Possession::Occupied(a_Owner, PossessionSlot::kHand)) {
+			return Liveness::kAlive;
+		}
+
+		// The swallow empties the hand about two seconds before the vore clip ends. Ending there let the
+		// registry adopt the rest of the clip as a plain vore. GTS_HS_CamOff is the exit.
+		const State* state = Get(a_Owner);
+		const bool swallowing = state && state->Devouring && GraphIntrospect::InMachine(a_Actor, "GTS_Hand_Behave");
+
+		return swallowing ? Liveness::kAlive : Liveness::kOver;
 	}
 
 	std::span<const ActionDef> GrabPlayNode::Actions() const { return ::ActionTable; }
@@ -617,6 +635,8 @@ namespace GTS::Actions {
 
 		const RE::FormID owner = a_Ctx.Owner();
 		auto* giant = a_Ctx.Actor();
+
+		Grabbing::WatchEmptyCarry(giant);
 
 		// The cameras and the attach target belong to this branch either way, handoff included. The
 		// target is where the tiny is pinned right now, and the kiss vore moves it to ObjectB. Left

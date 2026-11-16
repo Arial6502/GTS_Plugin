@@ -46,10 +46,6 @@ namespace GTS::Actions {
 			bool Reported = false;
 		};
 
-		// A kill that failed leaves its intent set. Past this it no longer counts. Longer than any kill
-		// animation, since the calamity erase still fires footsteps 11s in.
-		static constexpr double IntentGrace = 60.0;
-
 		static void Intend(RE::FormID a_Giant, ActionId a_Action, std::string_view a_Cause);
 		static void ClearIntent(RE::FormID a_Giant);
 

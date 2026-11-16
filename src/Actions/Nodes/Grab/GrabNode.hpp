@@ -35,6 +35,7 @@ namespace GTS::Actions {
 
 		void OnEnter(const ActionContext& a_Ctx) override;
 		void OnExit(const ActionContext& a_Ctx, ExitReason a_Reason) override;
+		void OnUpdate(const ActionContext& a_Ctx, float a_Delta) override;
 
 		void OnForget(RE::FormID a_Owner) override;
 		void OnReset() override;
@@ -51,6 +52,10 @@ namespace GTS::Actions {
 			// The throw has let go. Everything after that is the giant's follow through, with nobody
 			// left in the hand.
 			bool Thrown = false;
+
+			// A vore has added the tiny to the vore list and has not swallowed yet. If the graph is back
+			// in the carry while this is set, the vore was cut short and has to be undone.
+			bool Eating = false;
 		};
 
 		static State* Get(RE::FormID a_Owner);

@@ -459,8 +459,8 @@ namespace {
 	// The same keys as ButtCrushNode. Each node scopes its own binding to itself, so the key reaches
 	// whichever of the two is running.
 	constexpr ActionDef Actions[] = {
-		{ .Action = "Crush.Grow",   .Behaviour = "GTSBEH_ButtCrush_Grow",   .Guard = CanGrow, .Verify = Crush::VerifyGrow, .Cooldown = 0.35f, .Input = "Action.Crush.Grow" },
-		{ .Action = "Crush.Attack", .Behaviour = "GTSBEH_ButtCrush_Attack", .Exits = true, .Cooldown = 0.35f, .Input = "Action.Crush.Attack" },
+		{ .Action = "Crush.Grow",   .Behaviour = "GTSBEH_ButtCrush_Grow", .State = "ButtCrush_Crawl_Loop_State|ButtCrush_Crawl_Loop_Statee|ButtCrush_Loop_State|ButtCrush_Sneak_Loop_State",   .Guard = CanGrow, .Verify = Crush::VerifyGrow, .Cooldown = 0.35f, .Input = "Action.Crush.Grow" },
+		{ .Action = "Crush.Attack", .Behaviour = "GTSBEH_ButtCrush_Attack", .State = "ButtCrush_Crawl_Loop_State|ButtCrush_Crawl_Loop_Statee|ButtCrush_Loop_State|ButtCrush_Sneak_Loop_State", .Exits = true, .Kills = true, .Cooldown = 0.35f, .Input = "Action.Crush.Attack" },
 	};
 
 	constexpr AnnotationDef Annotations[] = {

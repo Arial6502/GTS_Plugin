@@ -246,21 +246,20 @@ namespace {
 
 		const std::string name = std::format(TASKID_FMT_STAMINA, a_Giant->formID);
 		auto handle = a_Giant->CreateRefHandle();
-		const double start = Time::WorldTimeElapsed();
 
-		TaskManager::Run(name, [=](auto&) {
+		TaskManager::Run(name, [=, clock = std::make_shared<AnimationClock>()](auto& a_Update) {
 
-			if (!handle) {
+			auto ptr = handle.get();
+
+			if (!ptr) {
 				return false;
 			}
 
-			if (Time::WorldTimeElapsed() - start < 0.6) {
+			if (clock->Tick(ptr.get(), a_Update.delta) < 0.6) {
 				return true;
 			}
 
-			if (auto ptr = handle.get()) {
-				DamageAV(ptr.get(), ActorValue::kStamina, a_Damage);
-			}
+			DamageAV(ptr.get(), ActorValue::kStamina, a_Damage);
 
 			return false;
 		});
@@ -783,12 +782,22 @@ namespace {
 	}
 
 	// Shrinking and healing both stop once there is nothing left to take.
+	// The crush or the release is playing. Neither has a transition to the other hug actions.
+	bool Ending(RE::FormID a_Owner) {
+		const HugNode::State* state = HugNode::Get(a_Owner);
+		return state && (state->Crushing || state->Released || state->PutDown);
+	}
+
 	bool CanDrain(const ActionContext& a_Ctx) {
 
 		auto* giant = a_Ctx.Actor();
 		auto* tiny = HugNode::Hugged(a_Ctx.Owner());
 
 		if (!giant || !tiny) {
+			return false;
+		}
+
+		if (Ending(a_Ctx.Owner())) {
 			return false;
 		}
 
@@ -824,6 +833,10 @@ namespace {
 		auto* tiny = HugNode::Hugged(a_Ctx.Owner());
 
 		if (!giant || !tiny) {
+			return false;
+		}
+
+		if (Ending(a_Ctx.Owner())) {
 			return false;
 		}
 
@@ -917,6 +930,10 @@ namespace {
 			return false;
 		}
 
+		if (Ending(a_Ctx.Owner())) {
+			return false;
+		}
+
 		if (!Runtime::HasPerkTeam(giant, Runtime::PERK.GTSPerkHugsLovingEmbrace)) {
 			return false;
 		}
@@ -996,9 +1013,9 @@ namespace {
 	};
 
 	constexpr ActionDef Actions[] = {
-		{ .Action = "Hug.Shrink",  .Behaviour = BEH_SHRINK_GIANT, .Guard = CanDrain,  .Verify = VerifyDrain, .OnTaken = TakeShrink, .Asserts = AssertsShrinking, .Cooldown = 0.20f, .Input = "Action.Hugs.Shrink" },
+		{ .Action = "Hug.Shrink",  .Behaviour = BEH_SHRINK_GIANT, .State = "Gts_Paired_Atk_A_Hug_Loop", .Guard = CanDrain,  .Verify = VerifyDrain, .OnTaken = TakeShrink, .Asserts = AssertsShrinking, .Cooldown = 0.20f, .Input = "Action.Hugs.Shrink" },
 		{ .Action = "Hug.Heal",    .Behaviour = "",               .Guard = CanHeal,   .Verify = VerifyHeal,  .OnTaken = TakeHeal,   .Asserts = AssertsHealing,   .Cooldown = 0.20f, .Input = "Action.Hugs.Heal" },
-		{ .Action = "Hug.Crush",   .Behaviour = BEH_CRUSH_GIANT,  .Guard = CanCrush,  .Verify = VerifyCrush, .OnTaken = TakeCrush,  .Asserts = AssertsCrushing,  .Cooldown = 0.35f, .Input = "Action.Hugs.Crush" },
+		{ .Action = "Hug.Crush",   .Behaviour = BEH_CRUSH_GIANT, .State = "Gts_Paired_Atk_A_Hug_Loop",  .Guard = CanCrush,  .Verify = VerifyCrush, .OnTaken = TakeCrush,  .Asserts = AssertsCrushing,  .Cooldown = 0.35f, .Input = "Action.Hugs.Crush" },
 		// Both releases send from OnTaken rather than through Behaviour, because the graph variable
 		// that picks the friendly animation has to be right before the event goes out.
 		{ .Action = "Hug.Release", .Behaviour = "",               .Guard = CanRelease, .OnTaken = TakeRelease, .Exits = true, .Cooldown = 0.20f, .Input = "Action.Hugs.Exit" },

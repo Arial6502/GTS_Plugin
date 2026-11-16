@@ -217,6 +217,10 @@ namespace GTS::Actions::Sandwich {
 				if (Empty(a_Giant)) {
 					Sound_PlayLaughs(a_Giant, 1.0f, 0.14f, EmotionTriggerSource::Superiority, CooldownSource::Emotion_Voice_Long);
 					Task_FacialEmotionTask_Smile(a_Giant, 1.15f, "Kill_Smile", 0.15f);
+
+					// The butt branch only leaves an empty sandwich on this event. Without it the graph goes
+					// back to the thigh loop holding nobody.
+					ActionRegistry::Notify(a_Giant, BEH_TINY_DIED, true);
 				}
 			}
 		}

@@ -22,6 +22,9 @@ namespace GTS::AI {
 		// The way out of this node. A branch whose nodes each have their own exit marks one row per
 		// node rather than naming a single action for the whole branch.
 		bool Exit = false;
+
+		// Sent after this one, once the node accepts it.
+		std::string_view Then = {};
 	};
 
 	// One branch of the Actions system the AI knows how to drive. Data, in the same spirit as EntryDef

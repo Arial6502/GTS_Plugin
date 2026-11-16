@@ -253,7 +253,7 @@ namespace {
 
 	bool CanLeave(const ActionContext& a_Ctx) {
 		const State* state = CleavageNode::Get(a_Ctx.Owner());
-		return !(state && state->Consuming);
+		return !(state && (state->Consuming || state->Suffocating));
 	}
 
 	//----------------------------------------------------------------------------------------------
@@ -776,20 +776,20 @@ namespace {
 	};
 
 	constexpr ActionDef ActionTable[] = {
-		{ .Action = "Cleavage.Light",     .Behaviour = "GTSBEH_Boobs_Crush_Light",    .Guard = CanAct,           .OnTaken = TakeLight,         .Kills = true, .Cooldown = 0.30f, .Input = "Action.Cleavage.AttackLight" },
-		{ .Action = "Cleavage.Heavy",     .Behaviour = "GTSBEH_Boobs_Crush_Heavy",    .Guard = CanAct,           .OnTaken = TakeHeavy,         .Kills = true, .Cooldown = 0.30f, .Input = "Action.Cleavage.AttackHeavy" },
+		{ .Action = "Cleavage.Light",     .Behaviour = "GTSBEH_Boobs_Crush_Light", .State = "GTS_Boob_Idle_State",    .Guard = CanAct,           .OnTaken = TakeLight,         .Kills = true, .Cooldown = 0.30f, .Input = "Action.Cleavage.AttackLight" },
+		{ .Action = "Cleavage.Heavy",     .Behaviour = "GTSBEH_Boobs_Crush_Heavy", .State = "GTS_Boob_Idle_State",    .Guard = CanAct,           .OnTaken = TakeHeavy,         .Kills = true, .Cooldown = 0.30f, .Input = "Action.Cleavage.AttackHeavy" },
 
-		{ .Action = "Cleavage.Suffocate", .Behaviour = "GTSBEH_Boobs_SufoStart",      .Guard = CanAct,           .OnTaken = TakeSuffocate,     .Kills = true, .Cooldown = 0.35f, .Input = "Action.Cleavage.Suffocate" },
+		{ .Action = "Cleavage.Suffocate", .Behaviour = "GTSBEH_Boobs_SufoStart", .State = "GTS_Boob_Idle_State",      .Guard = CanAct,           .OnTaken = TakeSuffocate,     .Kills = true, .Cooldown = 0.35f, .Input = "Action.Cleavage.Suffocate" },
 		{ .Action = "Cleavage.SufoStop",  .Behaviour = "GTSBEH_Boobs_SufoStop",       .Guard = CanStopSuffocate, .OnTaken = TakeSuffocateStop, .Cooldown = 0.30f },
 
-		{ .Action = "Cleavage.DotStart",  .Behaviour = "GTSBEH_Boobs_Crush_Dot",      .Guard = CanAct,           .OnTaken = TakeDotStart,      .Kills = true, .Cooldown = 0.30f, .Input = "Action.Cleavage.Strangle" },
-		{ .Action = "Cleavage.DotStop",   .Behaviour = "GTSBEH_Boobs_Crush_Dot_Stop", .OnTaken = TakeDotStop,    .Cooldown = 0.30f },
+		{ .Action = "Cleavage.DotStart",  .Behaviour = "GTSBEH_Boobs_Crush_Dot", .State = "GTS_Boob_DOT_Loop_State|GTS_Boob_Idle_State",      .Guard = CanAct,           .OnTaken = TakeDotStart,      .Kills = true, .Cooldown = 0.30f, .Input = "Action.Cleavage.Strangle" },
+		{ .Action = "Cleavage.DotStop",   .Behaviour = "GTSBEH_Boobs_Crush_Dot_Stop", .State = "GTS_Boob_DOT_Loop_State", .OnTaken = TakeDotStop,    .Cooldown = 0.30f },
 
-		{ .Action = "Cleavage.Absorb",    .Behaviour = "GTSBEH_Boobs_Absorb",         .Guard = CanAct,           .OnTaken = TakeAbsorb,        .Kills = true, .Cooldown = 0.50f, .Input = "Action.Cleavage.Absorb" },
-		{ .Action = "Cleavage.Vore",      .Behaviour = "GTSBEH_Boobs_Vore",           .Guard = CanAct,           .OnTaken = TakeVore,          .Kills = true, .Cooldown = 0.50f, .Input = "Action.Cleavage.Vore" },
+		{ .Action = "Cleavage.Absorb",    .Behaviour = "GTSBEH_Boobs_Absorb", .State = "GTS_Boob_Idle_State",         .Guard = CanAct,           .OnTaken = TakeAbsorb,        .Kills = true, .Cooldown = 0.50f, .Input = "Action.Cleavage.Absorb" },
+		{ .Action = "Cleavage.Vore",      .Behaviour = "GTSBEH_Boobs_Vore", .State = "GTS_Boob_Idle_State",           .Guard = CanAct,           .OnTaken = TakeVore,          .Kills = true, .Cooldown = 0.50f, .Input = "Action.Cleavage.Vore" },
 
 		// Back to the carry, with the tiny still stored in the breasts.
-		{ .Action = "Cleavage.Exit",      .Behaviour = "GTSBEH_Boobs_Exit",           .Guard = CanLeave,         .OnTaken = TakeExit, .HandOff = ActionId::kGrab, .Cooldown = 0.30f, .Input = "Action.Cleavage.Exit" },
+		{ .Action = "Cleavage.Exit",      .Behaviour = "GTSBEH_Boobs_Exit", .State = "GTS_Boob_Idle_State",           .Guard = CanLeave,         .OnTaken = TakeExit, .HandOff = ActionId::kGrab, .Cooldown = 0.30f, .Input = "Action.Cleavage.Exit" },
 
 		{ .Action = "Cleavage.Cancel",    .Behaviour = "",                            .Aborts = true },
 	};
@@ -879,6 +879,8 @@ namespace GTS::Actions {
 		const RE::FormID owner = a_Ctx.Owner();
 		auto* giant = a_Ctx.Actor();
 
+		Grabbing::WatchEmptyCarry(giant);
+
 		// The cameras and the Z override belong to this branch either way, handoff included.
 		if (giant) {
 			ManageCamera(giant, false, CameraTracking::Spine_02);
@@ -937,6 +939,7 @@ namespace GTS::Actions {
 			// abort signal is the grab's already.
 			if (!Possession::CarriedAlive(owner)) {
 				ActionRegistry::Notify(giant, Grabbing::BEH_ABORT, true);
+				ActionRegistry::Notify(giant, Grabbing::BEH_TINY_DIED, true);
 				Grabbing::HandEmptied(giant);
 			}
 		}

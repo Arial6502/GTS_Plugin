@@ -12,6 +12,7 @@ namespace GTS::Actions::Sandwich {
 
 	// Leaves the root Giantess_State from any point inside it. Both branches run in that state.
 	constexpr std::string_view BEH_ABORT = "GTSBeh_ExitEvents";
+	constexpr std::string_view BEH_TINY_DIED = "GTSBEH_TinyDied";
 
 	// SandwichingData stays the authority for who is in the sandwich, the way VoreData does for vore.
 	// The possession slot mirrors it so the registry can see the pair.

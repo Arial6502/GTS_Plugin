@@ -1,5 +1,6 @@
 #include "Actions/Nodes/ThighSandwich/ThighSandwichNode.hpp"
 
+#include "Actions/Core/ActionCleanup.hpp"
 #include "Actions/Core/ActionRegistry.hpp"
 #include "Actions/Core/PlayerTarget.hpp"
 #include "Config/Keybinds.hpp"
@@ -121,6 +122,9 @@ namespace {
 	constexpr std::string_view TASKID_DRAIN = "StaminaDrain_Sandwich";
 	constexpr std::string_view TASKID_DRAIN_IDLE = "StaminaDrain_Sandwich_Idle";
 
+	// The idle loop. Every action in this node starts from it.
+	constexpr std::string_view LOOP = "ThSandwich_Loop_State";
+
 	constexpr std::string_view RUMBLE_BODY = "BodyRumble";
 	constexpr std::string_view RUMBLE_LIGHT = "LLSandwich";
 	constexpr std::string_view RUMBLE_HEAVY = "LLSandwichHeavy";
@@ -167,7 +171,7 @@ namespace {
 	// butt branch already refuses on the same grounds.
 	bool CanAttack(const ActionContext& a_Ctx) {
 		const State* state = ThighSandwichNode::Get(a_Ctx.Owner());
-		return a_Ctx.Actor() && !(state && state->Absorbing);
+		return a_Ctx.Actor() && !Sandwich::Empty(a_Ctx.Actor()) && !(state && state->Absorbing);
 	}
 
 	bool VerifyLight(const ActionContext& a_Ctx) {
@@ -254,8 +258,9 @@ namespace {
 		// The controller leaves the chosen targets on the giant's transient until the animation asks
 		// for them, so this is where they become the sandwich.
 		if (auto* transient = Transient::GetActorData(giant)) {
+			// The list outlives a start that never got this far, so it can hold someone who has died since.
 			for (auto* tiny : transient->toSandwich) {
-				if (tiny) {
+				if (tiny && !tiny->IsDead() && tiny->Is3DLoaded()) {
 					data.AddTiny(tiny);
 				}
 			}
@@ -268,6 +273,10 @@ namespace {
 			AllowToBeCrushed(tiny, false);
 			SetBeingHeld(tiny, true);
 			DisableCollisions(tiny, giant);
+
+			if (!tiny->IsPlayerRef()) {
+				Cleanup::Scare(tiny);
+			}
 		}
 
 		data.MoveActors(true);
@@ -453,13 +462,13 @@ namespace {
 	};
 
 	constexpr ActionDef ActionTable[] = {
-		{ .Action = "Sandwich.Attack",      .Behaviour = "GTSBEH_ThighSandwich_Attack",   .Guard = CanAttack,     .Verify = VerifyLight, .OnTaken = TakeAttack,      .Cooldown = 0.30f, .Input = "Action.ThighSandwich.AttackLight" },
-		{ .Action = "Sandwich.AttackHeavy", .Behaviour = "GTSBEH_ThighSandwich_Attack_H", .Guard = CanAttack,     .Verify = VerifyHeavy, .OnTaken = TakeAttackHeavy, .Cooldown = 0.30f, .Input = "Action.ThighSandwich.AttackHeavy" },
-		{ .Action = "Sandwich.Exit",        .Behaviour = "GTSBEH_ThighSandwich_ExitLoop", .Guard = CanExit,       .Exits = true, .Cooldown = 0.30f, .Input = "Action.ThighSandwich.Exit" },
+		{ .Action = "Sandwich.Attack",      .Behaviour = "GTSBEH_ThighSandwich_Attack", .State = LOOP,   .Guard = CanAttack,     .Verify = VerifyLight, .OnTaken = TakeAttack,      .Cooldown = 0.30f, .Input = "Action.ThighSandwich.AttackLight" },
+		{ .Action = "Sandwich.AttackHeavy", .Behaviour = "GTSBEH_ThighSandwich_Attack_H", .State = LOOP, .Guard = CanAttack,     .Verify = VerifyHeavy, .OnTaken = TakeAttackHeavy, .Cooldown = 0.30f, .Input = "Action.ThighSandwich.AttackHeavy" },
+		{ .Action = "Sandwich.Exit",        .Behaviour = "GTSBEH_ThighSandwich_ExitLoop", .State = LOOP, .Guard = CanExit,       .Exits = true, .Cooldown = 0.30f, .Input = "Action.ThighSandwich.Exit" },
 
 		// Hands the group over to the butt branch. 
-		{ .Action = "Sandwich.Butt.Start",  .Behaviour = "GTSBEH_ButtState_Start",        .Guard = CanButtStart,  .OnTaken = TakeButtStart, .HandOff = ActionId::kThighSandwichButt, .Cooldown = 0.30f, .Input = "Action.ThighSandwich.ButtBranch.Enter" },
-		{ .Action = "Sandwich.UB",          .Behaviour = Sandwich::BEH_UNBIRTH,           .Guard = CanUnbirth,    .OnTaken = TakeUnbirth, .Cooldown = 0.50f, .Input = "Action.ThighSandwich.ButtBranch.Unbirth" },
+		{ .Action = "Sandwich.Butt.Start",  .Behaviour = "GTSBEH_ButtState_Start", .State = LOOP,        .Guard = CanButtStart,  .OnTaken = TakeButtStart, .HandOff = ActionId::kThighSandwichButt, .Cooldown = 0.30f, .Input = "Action.ThighSandwich.ButtBranch.Enter" },
+		{ .Action = "Sandwich.UB",          .Behaviour = Sandwich::BEH_UNBIRTH, .State = LOOP,           .Guard = CanUnbirth,    .OnTaken = TakeUnbirth, .Cooldown = 0.50f, .Input = "Action.ThighSandwich.ButtBranch.Unbirth" },
 
 		// Unguarded, no key. For a cancel from outside the group.
 		{ .Action = "Sandwich.Cancel",      .Behaviour = "",                              .Aborts = true },

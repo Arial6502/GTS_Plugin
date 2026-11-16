@@ -721,8 +721,8 @@ namespace {
 	// with BoobCrushNode. Action names only ever resolve against the node that is already active, so
 	// two nodes claiming one name is well defined - unlike entry names, which must be unique.
 	constexpr ActionDef Actions[] = {
-		{ .Action = "Crush.Grow",   .Behaviour = "GTSBEH_ButtCrush_Grow",   .Guard = CanGrow,   .Verify = Crush::VerifyGrow, .Cooldown = 0.35f, .Input = "Action.Crush.Grow" },
-		{ .Action = "Crush.Attack", .Behaviour = "GTSBEH_ButtCrush_Attack", .Guard = CanAttack, .Exits = true, .Cooldown = 0.35f, .Input = "Action.Crush.Attack" },
+		{ .Action = "Crush.Grow",   .Behaviour = "GTSBEH_ButtCrush_Grow", .State = "ButtCrush_Crawl_Loop_State|ButtCrush_Crawl_Loop_Statee|ButtCrush_Loop_State|ButtCrush_Sneak_Loop_State",   .Guard = CanGrow,   .Verify = Crush::VerifyGrow, .Cooldown = 0.35f, .Input = "Action.Crush.Grow" },
+		{ .Action = "Crush.Attack", .Behaviour = "GTSBEH_ButtCrush_Attack", .State = "ButtCrush_Crawl_Loop_State|ButtCrush_Crawl_Loop_Statee|ButtCrush_Loop_State|ButtCrush_Sneak_Loop_State", .Guard = CanAttack, .Exits = true, .Kills = true, .Cooldown = 0.35f, .Input = "Action.Crush.Attack" },
 	};
 
 	constexpr AnnotationDef Annotations[] = {

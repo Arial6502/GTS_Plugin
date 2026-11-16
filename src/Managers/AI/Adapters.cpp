@@ -1,4 +1,5 @@
 #include "Managers/AI/Adapters.hpp"
+#include "Managers/AI/Eligibility.hpp"
 #include "Managers/Animation/Controllers/GrabAnimationController.hpp"
 #include "Managers/Animation/Controllers/HugController.hpp"
 #include "Actions/Nodes/Hug/HugNode.hpp"
@@ -149,6 +150,18 @@ namespace {
 		       !IsActionOnCooldown(a_Actor, CooldownSource::Misc_TinyCalamity_WrathfulCalamity);
 	}
 
+	// Growing has a point while someone nearby is still too big for the grab and the vore.
+	bool GrowthReady(RE::Actor* a_Actor) {
+		return std::ranges::any_of(AI::Eligibility::Candidates(a_Actor), [&](RE::Actor* a_Prey) {
+			return get_scale_difference(a_Actor, a_Prey, SizeType::VisualScale, false, true) < Action_Grab;
+		});
+	}
+
+	// Shrinking is for when the fight is over and nobody is left to act on.
+	bool ShrinkReady(RE::Actor* a_Actor) {
+		return !a_Actor->IsInCombat() && AI::Eligibility::Candidates(a_Actor).empty();
+	}
+
 	// Growth.Random is the involuntary one and belongs to RandomGrowth, which decides for itself. The
 	// AI grows on purpose, so it asks for the manual action and is refused by its guard like anyone else.
 	const std::array GrowthStarts = {
@@ -166,6 +179,9 @@ namespace {
 		AI::Choice{ "Grab.Release",        ActionId::kGrab,     &Config::AI.Grab.fReleaseProb },
 		AI::Choice{ "Grab.Unstore",        ActionId::kGrab,     &Config::AI.Grab.fUnstoreProb },
 		AI::Choice{ "Grab.Play",           ActionId::kGrab,     &Config::AI.Grab.fGrabPlayStartProb },
+		// The cleavage needs someone stored first, so the store queues the enter. The enter has its own
+		// row for a giant that already has someone stored.
+		AI::Choice{ "Grab.Store",          ActionId::kGrab,     &Config::AI.Grab.fCleavageProb, nullptr, false, "Cleavage.Enter" },
 		AI::Choice{ "Cleavage.Enter",      ActionId::kGrab,     &Config::AI.Grab.fCleavageProb },
 
 		AI::Choice{ "GrabPlay.Crush",      ActionId::kGrabPlay, &Config::AI.Grab.fGrabPlayHeavyCrushProb },
@@ -187,7 +203,8 @@ namespace {
 		AI::Choice{ "Cleavage.SufoStop",   ActionId::kCleavage, &Config::AI.Grab.fCleavageSufoStopProb },
 		AI::Choice{ "Cleavage.DotStart",   ActionId::kCleavage, &Config::AI.Grab.fStrangleChance },
 		AI::Choice{ "Cleavage.DotStop",    ActionId::kCleavage, &Config::AI.Grab.fCleavageDotStopProb },
-		AI::Choice{ "Cleavage.Exit",       ActionId::kCleavage, &Config::AI.Grab.fCleavageStopProb },
+		// Leaving the cleavage also takes the actor back out of the breasts.
+		AI::Choice{ "Cleavage.Exit",       ActionId::kCleavage, &Config::AI.Grab.fCleavageStopProb, nullptr, false, "Grab.Unstore" },
 	};
 
 	// Healing a hostile makes no sense, and the kill rows respect the two friendly-fire toggles.
@@ -229,6 +246,82 @@ namespace {
 		}
 
 		return true;
+	}
+
+	// How far past the bones the area between the legs reaches, since thighs and feet are wider than
+	// the line between their bones.
+	constexpr float ThighAreaPadding = 1.35f;
+
+	// The thigh crush can only hurt someone between the legs. The area is the four sided shape with
+	// the butt and foot bones as corners, taken from where the sitting pose has put them.
+	bool ThighFinished(RE::Actor* a_Performer, RE::Actor*) {
+
+		constexpr std::array<std::string_view, 4> Corners = {
+			"NPC L Butt", "NPC L Foot [Lft ]", "NPC R Foot [Rft ]", "NPC R Butt",
+		};
+
+		std::array<RE::NiPoint3, 4> area = {};
+		RE::NiPoint3 centre = {};
+
+		for (std::size_t i = 0; i < Corners.size(); ++i) {
+
+			auto* node = find_node(a_Performer, Corners[i]);
+
+			if (!node) {
+				return false;
+			}
+
+			area[i] = node->world.translate;
+			centre += area[i] * 0.25f;
+		}
+
+		for (auto& corner : area) {
+			corner = centre + (corner - centre) * ThighAreaPadding;
+		}
+
+		const auto inside = [&](const RE::NiPoint3& a_Point) {
+
+			int sign = 0;
+
+			for (std::size_t i = 0; i < area.size(); ++i) {
+
+				const RE::NiPoint3& from = area[i];
+				const RE::NiPoint3& to = area[(i + 1) % area.size()];
+				const float cross = (to.x - from.x) * (a_Point.y - from.y) - (to.y - from.y) * (a_Point.x - from.x);
+				const int side = cross > 0.0f ? 1 : -1;
+
+				if (sign != 0 && side != sign) {
+					return false;
+				}
+
+				sign = side;
+			}
+
+			return true;
+		};
+
+		const std::vector<RE::Actor*> candidates = AI::Eligibility::Candidates(a_Performer);
+
+		const bool empty = std::ranges::none_of(candidates, [&](RE::Actor* a_Prey) {
+			return inside(a_Prey->GetPosition());
+		});
+
+		if (DebugDraw::Wants(a_Performer, DrawTarget::kAnyGTS)) {
+
+			const DebugStyle style = { .Color = empty ? DebugCol::Red : DebugCol::Green, .Thickness = 2.0f, .LifetimeMs = 100 };
+
+			for (std::size_t i = 0; i < area.size(); ++i) {
+				DebugDraw::Line(area[i], area[(i + 1) % area.size()], style);
+			}
+
+			for (RE::Actor* prey : candidates) {
+				if (inside(prey->GetPosition())) {
+					DebugDraw::Sphere(prey->GetPosition(), 8.0f, style);
+				}
+			}
+		}
+
+		return empty;
 	}
 
 	const std::array HugSubs = {
@@ -341,6 +434,7 @@ namespace {
 			.Interval = &Config::AI.ThighCrush.fInterval,
 			.Idle = &Config::AI.ThighCrush.fIdleProb,
 			.Shape = &TargetShape::ThighCrush,
+			.Finished = &ThighFinished,
 			.Reach = &ThighCrushController::Reach,
 			.Qualifies = &ThighCrushController::Qualifies,
 			.Start = [](RE::Actor* a_Pred, RE::Actor*) {
@@ -420,6 +514,7 @@ namespace {
 			.Nodes = GrowthNodes,
 			.Enabled = &Config::AI.Growth.bEnableAction,
 			.Chance = &Config::AI.Growth.fProbability,
+			.Ready = &GrowthReady,
 			.Starts = GrowthStarts,
 		},
 
@@ -428,6 +523,7 @@ namespace {
 			.Nodes = ShrinkNodes,
 			.Enabled = &Config::AI.Shrink.bEnableAction,
 			.Chance = &Config::AI.Shrink.fProbability,
+			.Ready = &ShrinkReady,
 			.Starts = ShrinkStarts,
 		},
 	};

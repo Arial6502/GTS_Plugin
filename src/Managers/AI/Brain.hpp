@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Actions/Core/ActionTypes.hpp"
+#include "Debug/Trace/GraphIntrospect.hpp"
 
 namespace GTS::AI {
 
@@ -44,6 +45,10 @@ namespace GTS::AI {
 		// has happened rather than reading Want.
 		bool Rolled = false;
 
+		// GTS_Transitioning has been seen since the stance was asked for, or the actor was already in
+		// it. The graph raises the flag a frame or two late, so its absence alone proves nothing.
+		bool Changed = false;
+
 		// Set once the branch has been told to wrap up, so the exit is sent once rather than every tick.
 		bool Ending = false;
 		bool Forced = false;
@@ -58,12 +63,22 @@ namespace GTS::AI {
 		Phase Stage = Phase::kIdle;
 		double StageSince = 0.0;
 
+		// Seconds of animation the actor has played during the plan, and the reading when the phase
+		// began. Waits on an animation are measured on this. StageSince stays for the pacing timeouts.
+		double Clock = 0.0;
+		double StageClock = 0.0;
+		ClipSamples Clips = {};
+
 		Plan Intent = {};
 		std::uint8_t Applied = 0;
 
 		double NextThink = 0.0;
 		double NextSub = 0.0;
 		double NextRetarget = 0.0;
+
+		// The second half of a two step choice, sent as soon as the node accepts it.
+		std::string_view Queued = {};
+		double QueuedClock = 0.0;
 
 		// Consecutive sub-action picks that found nothing to send. A branch mid animation has nothing
 		// available for a moment, which is not the same as having nothing left to do.

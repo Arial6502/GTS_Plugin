@@ -301,9 +301,8 @@ namespace GTS::Actions::Grabbing {
 		}
 
 		const RE::ActorHandle handle = a_Tiny->GetHandle();
-		const double start = Time::WorldTimeElapsed();
 
-		TaskManager::RunFor(std::format("GrabBreastRelease_{}", a_Tiny->formID), 1.0f, [=](auto&) {
+		TaskManager::RunFor(std::format("GrabBreastRelease_{}", a_Tiny->formID), 1.0f, [=, clock = std::make_shared<AnimationClock>()](auto& a_Update) {
 
 			auto ptr = handle.get();
 
@@ -311,7 +310,7 @@ namespace GTS::Actions::Grabbing {
 				return false;
 			}
 
-			if ((Time::WorldTimeElapsed() - start) > 0.50) {
+			if (clock->Tick(ptr.get(), a_Update.delta) > 0.50) {
 				SetBetweenBreasts(ptr.get(), false);
 				return false;
 			}
@@ -988,6 +987,52 @@ namespace GTS::Actions::Grabbing {
 
 		DrainStamina(a_Giant, "GrabAttack", Runtime::PERK.GTSPerkDestructionBasics, false, 0.75f);
 		ActionRegistry::Abort(a_Giant);
+	}
+
+	void WatchEmptyCarry(RE::Actor* a_Giant) {
+
+		if (!a_Giant) {
+			return;
+		}
+
+		const RE::ActorHandle handle = a_Giant->GetHandle();
+
+		TaskManager::Run(std::format("GrabEmptyCarry_{}", a_Giant->formID), [=](auto&) {
+
+			auto ptr = handle.get();
+
+			if (!ptr) {
+				return false;
+			}
+
+			auto* giant = ptr.get();
+			const RE::FormID owner = giant->formID;
+
+			// No clock. The watch lasts for as long as the graph is inside the grab root with no node
+			// running, and a node that starts will start its own watch when it exits.
+			if (!giant->Is3DLoaded() || ActionRegistry::Busy(giant) || !GraphIntrospect::InMachine(giant, "Giantess_Grab_Behave|GTS_Hand_Behave")) {
+				return false;
+			}
+
+			// Asks the slots, not the actors in them. A held actor stays listed while a cell change has
+			// them unloaded, and that hold must not be ended here.
+			if (Possession::Occupied(owner, Hand) || Possession::Occupied(owner, Breasts)) {
+				return true;
+			}
+
+			if (!GraphIntrospect::InState(giant, "Giantess_Grab_Loop_MT|Giantess_Grab_Loop_Magic|Giantess_Grab_Loop_Weap|GTS_Hand_Idle_State")) {
+				return true;
+			}
+
+			logger::info("Grab on {:08X} was left holding nobody, leaving the grab root", owner);
+
+			AnimationVars::Grab::SetHasGrabbedTiny(giant, false);
+			AnimationVars::Grab::SetGrabState(giant, false);
+			ActionRegistry::Notify(giant, BEH_ABORT, true);
+			ActionRegistry::Notify(giant, BEH_TINY_DIED, true);
+			HandEmptied(giant);
+			return false;
+		});
 	}
 
 	void DamageActorInHand(RE::Actor* a_Giant, float a_Damage) {

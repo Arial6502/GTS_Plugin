@@ -218,6 +218,27 @@ namespace {
 	constexpr std::string_view RUMBLE_THROW = "GrabThrowL";
 	constexpr std::string_view RUMBLE_VORE = "GrabVoreL";
 
+	constexpr std::string_view CARRY_STATES = "Giantess_Grab_Loop_MT|Giantess_Grab_Loop_Magic|Giantess_Grab_Loop_Weap";
+
+	// Takes back what a vore did to the tiny before its swallow: the vore list entry that KillAll would
+	// act on, the being-eaten flag, the shrink and the kill intent.
+	void UndoVore(RE::Actor* a_Giant, RE::FormID a_Owner) {
+
+		auto& data = VoreController::GetSingleton().GetVoreData(a_Giant);
+
+		for (auto* prey : data.GetVories()) {
+			SetBeingEaten(prey, false);
+			AllowToBeCrushed(prey, true);
+			TaskManager::Cancel(std::format("ShrinkTo_{}", prey->formID));
+			data.Forget(prey);
+		}
+
+		data.ReleaseAll();
+		Possession::ClearIntent(a_Owner, Grabbing::Hand);
+
+		logger::info("Grab vore on {:08X} ended before the swallow, undone", a_Owner);
+	}
+
 	// Written by the DLL rather than the graph, which is why the entry carries a Confirm. See the
 	// class comment.
 	constexpr GraphExpect Signature[] = {
@@ -319,6 +340,13 @@ namespace {
 	// Entering the cleavage state only needs someone in the breasts. The hand is free to be holding
 	// somebody else.
 	bool CanCleave(const ActionContext& a_Ctx) {
+
+		// The graph's own condition on GTSBEH_Boobs_Enter. It is not zero while the hand holds someone
+		// or the store animation is still playing.
+		if (AnimationVars::Other::CurrentDefaultState(a_Ctx.Actor()) != 0) {
+			return false;
+		}
+
 		return Possession::FirstAlive(a_Ctx.Owner(), PossessionSlot::kBreasts) != nullptr;
 	}
 
@@ -475,6 +503,7 @@ namespace {
 		}
 
 		ActionRegistry::Notify(giant, Grabbing::BEH_ABORT);
+		ActionRegistry::Notify(giant, Grabbing::BEH_TINY_DIED);
 		Grabbing::HandEmptied(giant);
 		a_Ctx.RequestExit();
 	}
@@ -613,6 +642,8 @@ namespace {
 
 		auto* giant = a_Ctx.Actor();
 
+		GrabNode::GetOrAdd(a_Ctx.Owner()).Eating = true;
+
 		ManageCamera(giant, true, CameraTracking::Grab_Left);
 
 		auto& data = VoreController::GetSingleton().GetVoreData(giant);
@@ -673,6 +704,8 @@ namespace {
 	void OnSneakVoreKillAll(const ActionContext& a_Ctx) {
 
 		auto* giant = a_Ctx.Actor();
+
+		GrabNode::GetOrAdd(a_Ctx.Owner()).Eating = false;
 		auto& data = VoreController::GetSingleton().GetVoreData(giant);
 
 		for (auto* prey : data.GetVories()) {
@@ -698,6 +731,8 @@ namespace {
 	void OnEatStart(const ActionContext& a_Ctx) {
 
 		auto* giant = a_Ctx.Actor();
+
+		GrabNode::GetOrAdd(a_Ctx.Owner()).Eating = true;
 
 		ManageCamera(giant, true, CameraTracking::Grab_Left);
 		Grabbing::StartHandRumble(RUMBLE_VORE, giant, 0.5f, 0.10f);
@@ -753,6 +788,8 @@ namespace {
 	void OnEatSwallowEnd(const ActionContext& a_Ctx) {
 
 		auto* giant = a_Ctx.Actor();
+
+		GrabNode::GetOrAdd(a_Ctx.Owner()).Eating = false;
 		auto* tiny = Held(a_Ctx);
 
 		if (!tiny) {
@@ -879,19 +916,19 @@ namespace {
 		// Same name as the entry. A stored tiny keeps this node running, so a second grab lands here.
 		{ .Action = "Grab.Enter",    .Behaviour = "GTSBEH_GrabStart",    .Guard = CatchSecond, .Cooldown = 0.30f, .Confirm = "GTSGrab_Catch_Actor" },
 
-		{ .Action = "Grab.Attack",   .Behaviour = "GTSBEH_GrabAttack",   .Guard = InHand,      .Verify = VerifyAttack, .Kills = true, .Cooldown = 0.30f, .Input = "Action.Grab.Attack" },
-		{ .Action = "Grab.Throw",    .Behaviour = "GTSBEH_GrabThrow",    .Guard = InHand,      .Verify = VerifyThrow,  .Cooldown = 0.30f, .Input = "Action.Grab.Throw" },
-		{ .Action = "Grab.Vore",     .Behaviour = "GTSBEH_GrabVore",     .Guard = InHand,      .Kills = true, .Cooldown = 0.50f, .Input = "Action.Grab.Vore" },
-		{ .Action = "Grab.Release",  .Behaviour = "GTSBEH_GrabRelease",  .Guard = CanRelease,  .OnTaken = TakeRelease, .Cooldown = 0.30f, .Input = "Action.Grab.Release" },
+		{ .Action = "Grab.Attack",   .Behaviour = "GTSBEH_GrabAttack", .State = "Giantess_Grab_Loop_MT|Giantess_Grab_Loop_Magic|Giantess_Grab_Loop_Weap",   .Guard = InHand,      .Verify = VerifyAttack, .Kills = true, .Cooldown = 0.30f, .Input = "Action.Grab.Attack" },
+		{ .Action = "Grab.Throw",    .Behaviour = "GTSBEH_GrabThrow", .State = "Giantess_Grab_Loop_MT|Giantess_Grab_Loop_Magic|Giantess_Grab_Loop_Weap",    .Guard = InHand,      .Verify = VerifyThrow,  .Cooldown = 0.30f, .Input = "Action.Grab.Throw" },
+		{ .Action = "Grab.Vore",     .Behaviour = "GTSBEH_GrabVore", .State = "Giantess_Grab_Loop_MT|Giantess_Grab_Loop_Magic|Giantess_Grab_Loop_Weap",     .Guard = InHand,      .Kills = true, .Cooldown = 0.50f, .Input = "Action.Grab.Vore" },
+		{ .Action = "Grab.Release",  .Behaviour = "GTSBEH_GrabRelease", .State = "Giantess_Grab_Loop_MT|Giantess_Grab_Loop_Magic|Giantess_Grab_Loop_Weap",  .Guard = CanRelease,  .OnTaken = TakeRelease, .Cooldown = 0.30f, .Input = "Action.Grab.Release" },
 
-		{ .Action = "Grab.Store",    .Behaviour = "GTSBEH_BreastsAdd",   .Guard = CanStore,    .Cooldown = 0.30f, .Input = "Action.Grab.Breasts.Place" },
-		{ .Action = "Grab.Unstore",  .Behaviour = "GTSBEH_BreastsRemove",.Guard = CanTakeBack, .Cooldown = 0.30f, .Input = "Action.Grab.Breasts.Remove" },
+		{ .Action = "Grab.Store",    .Behaviour = "GTSBEH_BreastsAdd", .State = "Giantess_Grab_Loop_MT|Giantess_Grab_Loop_Magic|Giantess_Grab_Loop_Weap",   .Guard = CanStore,    .Cooldown = 0.30f, .Input = "Action.Grab.Breasts.Place" },
+		{ .Action = "Grab.Unstore",  .Behaviour = "GTSBEH_BreastsRemove", .Guard = CanTakeBack, .Cooldown = 0.30f, .Input = "Action.Grab.Breasts.Remove" },
 
 		// Into the two nested branches. Both are handoffs: the hand keeps its actor across them.
-		{ .Action = "Grab.Play",     .Behaviour = "GTSBEH_Hand_Enter",   .Guard = InHand,      .OnTaken = TakePlay,  .HandOff = ActionId::kGrabPlay,  .Cooldown = 0.30f, .Input = "Action.Grab.GrabPlay.Enter" },
-		{ .Action = "Cleavage.Enter", .Behaviour = "GTSBEH_Boobs_Enter",  .Guard = CanCleave, .OnTaken = TakeCleavage, .HandOff = ActionId::kCleavage, .Cooldown = 0.30f, .Input = "Action.Cleavage.Enter" },
+		{ .Action = "Grab.Play",     .Behaviour = "GTSBEH_Hand_Enter", .State = "Giantess_Grab_Loop_MT|Giantess_Grab_Loop_Magic|Giantess_Grab_Loop_Weap",   .Guard = InHand,      .OnTaken = TakePlay,  .HandOff = ActionId::kGrabPlay,  .Cooldown = 0.30f, .Input = "Action.Grab.GrabPlay.Enter" },
+		{ .Action = "Cleavage.Enter", .Behaviour = "GTSBEH_Boobs_Enter", .Guard = CanCleave, .OnTaken = TakeCleavage, .HandOff = ActionId::kCleavage, .Cooldown = 0.30f, .Input = "Action.Cleavage.Enter" },
 
-		{ .Action = "Grab.Exit",     .Behaviour = "GTSBEH_ExitGrab",     .Guard = HasTiny,     .Exits = true, .Cooldown = 0.30f },
+		{ .Action = "Grab.Exit",     .Behaviour = "GTSBEH_ExitGrab", .State = "Gts_Grab_Offset",     .Guard = HasTiny,     .Exits = true, .Cooldown = 0.30f },
 
 		// No key and no guard. A hit, the AI giving up, or the tiny being lost.
 		{ .Action = "Grab.Cancel",   .Behaviour = "",                    .Aborts = true },
@@ -972,7 +1009,7 @@ namespace {
 namespace GTS::Actions {
 
 	std::span<const GraphExpect> GrabNode::Signature() const { return ::Signature; }
-	std::string_view GrabNode::AbortSignal() const { return Grabbing::BEH_ABORT; }
+	std::string_view GrabNode::AbortSignal() const { return Grabbing::BEH_LEAVE; }
 	std::span<const std::string_view> GrabNode::ExitSignals() const { return ::ExitSignals; }
 	std::span<const EntryDef> GrabNode::Entries() const { return ::Entries; }
 	// Alive while the giant carries anyone, in the hand or the breasts. Storing, taking back and
@@ -1043,6 +1080,8 @@ namespace GTS::Actions {
 		const RE::FormID owner = a_Ctx.Owner();
 		auto* giant = a_Ctx.Actor();
 
+		Grabbing::WatchEmptyCarry(giant);
+
 		// A handoff is the grab passing to grab play or to the cleavage state. The actor stays held
 		// and the hand keeps carrying, so nothing here is undone.
 		if (KeepsState(a_Reason)) {
@@ -1075,12 +1114,36 @@ namespace GTS::Actions {
 			// the breasts are not this node's to empty.
 			const State* state = m_State.Find(owner);
 
+			if (state && state->Eating) {
+				UndoVore(giant, owner);
+			}
+
 			if (auto* tiny = Possession::FirstActor(owner, PossessionSlot::kHand); tiny && !(state && state->Thrown)) {
 				Grabbing::LetGo(giant, tiny, false);
 			}
 		}
 
 		m_State.Forget(owner);
+	}
+
+	void GrabNode::OnUpdate(const ActionContext& a_Ctx, float) {
+
+		State* state = m_State.Find(a_Ctx.Owner());
+
+		if (!state || !state->Eating) {
+			return;
+		}
+
+		auto* giant = a_Ctx.Actor();
+
+		// Asked of the graph, not of a clock. The vore states sit between the carry and the swallow, so
+		// being back in the carry with the flag still set means the swallow never came.
+		if (!giant || !GraphIntrospect::InState(giant, CARRY_STATES)) {
+			return;
+		}
+
+		state->Eating = false;
+		UndoVore(giant, a_Ctx.Owner());
 	}
 
 	void GrabNode::OnForget(RE::FormID a_Owner) {

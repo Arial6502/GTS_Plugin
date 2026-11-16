@@ -93,6 +93,7 @@ namespace GTS::Actions {
 		static constexpr float RampPerSecond = 2.7f;
 		static constexpr float DecayPerSecond = 4.0f;
 
+		// Seconds of animation, measured on ActorAction::Clock.
 		static constexpr double MismatchGrace = 0.25;
 		static constexpr double DrainGrace = 30.0;
 		static constexpr double PendingGrace = 2.0;
@@ -115,11 +116,29 @@ namespace GTS::Actions {
 		static inline absl::flat_hash_set<std::string> m_Live = {};
 		static inline absl::flat_hash_set<std::string> m_Claimed = {};
 
+		// The graph update hook reads these while it holds the actor's graph lock, so they sit behind
+		// their own lock. Taking ActionLock there deadlocks against a handler that is waiting for that graph.
+		struct Speeds {
+			float Anim = 1.0f;
+			float HH = 1.0f;
+			bool HHDisabled = false;
+		};
+
+		static inline std::mutex m_SpeedLock = {};
+		static inline absl::flat_hash_map<RE::FormID, Speeds> m_Speeds = {};
+		static void PublishSpeeds();
+
+		// Annotations that arrived while another thread held ActionLock. Run at the next OnMainUpdate.
+		static inline std::mutex m_DeferredLock = {};
+		static inline std::vector<std::pair<RE::ActorHandle, std::string>> m_Deferred = {};
+		static void RunDeferred();
+
 		static inline Counters m_Counters = {};
 		static inline std::uint64_t m_Frame = 0;
 		static inline bool m_Watching = false;
 
 		static inline RE::FormID m_VarTarget = 0;
 		static inline std::vector<GraphVarSlot> m_VarSlots = {};
+		static inline std::vector<std::string> m_GraphActive = {};
 	};
 }

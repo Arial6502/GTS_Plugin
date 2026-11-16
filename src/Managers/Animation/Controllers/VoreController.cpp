@@ -79,6 +79,20 @@ namespace GTS {
 		this->tinies.try_emplace(tiny->formID, tiny->CreateRefHandle());
 	}
 
+	void VoreData::Forget(Actor* tiny) {
+
+		if (!tiny) {
+			return;
+		}
+
+		std::unique_lock lock(_lock);
+		this->tinies.erase(tiny->formID);
+
+		if (auto transient = Transient::GetActorData(tiny)) {
+			transient->CanBeVored = true;
+		}
+	}
+
 	void VoreData::Swallow() {
 		std::unique_lock lock(_lock);
 		for (auto& tinyref : this->tinies | std::views::values) {

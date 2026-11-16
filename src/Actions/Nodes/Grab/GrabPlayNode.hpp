@@ -38,6 +38,9 @@ namespace GTS::Actions {
 
 			// The grind is running. Its own stop is the only way out of it.
 			bool Grinding = false;
+
+			// The tiny died and GTSBEH_AbortGrab was sent. Set until the graph leaves the grab root.
+			bool Ending = false;
 		};
 
 		static State* Get(RE::FormID a_Owner);

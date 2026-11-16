@@ -141,7 +141,9 @@ namespace GTS::Actions {
 	}
 
 	bool Possession::IntentExpired(const Death& a_Death) {
-		return a_Death.IntendedAt < 0.0 || (Time::WorldTimeElapsed() - a_Death.IntendedAt) > IntentGrace;
+		// No clock. ActionRegistry clears the intent when the node that set it ends and when the next
+		// action that does not kill is taken.
+		return a_Death.IntendedAt < 0.0;
 	}
 
 	bool Possession::Killed(RE::FormID a_Giant) {

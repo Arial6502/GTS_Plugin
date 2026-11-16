@@ -504,8 +504,9 @@ namespace {
 		return true;
 	}
 
-	bool CanExit(const ActionContext&) {
-		return !IsFreeCameraEnabled();
+	bool CanExit(const ActionContext& a_Ctx) {
+		const State* state = ThighCrushNode::Get(a_Ctx.Owner());
+		return !IsFreeCameraEnabled() && !(state && state->Stage == Stage::kStandingUp);
 	}
 
 	// Input names are the existing keybind events. Renaming one drops the user's saved binding.
@@ -514,8 +515,8 @@ namespace {
 	};
 
 	constexpr ActionDef Actions[] = {
-		{ .Action = "ThighCrush.Attack", .Behaviour = "GTSBeh_StartThighCrush", .Guard = CanAttack, .Verify = VerifyAttack, .Cooldown = 0.35f, .Input = "Action.ThighCrush.Attack" },
-		{ .Action = "ThighCrush.Exit",   .Behaviour = "GTSBeh_LeaveSitdown",    .Guard = CanExit, .Exits = true, .Input = "Action.ThighCrush.Exit" },
+		{ .Action = "ThighCrush.Attack", .Behaviour = "GTSBeh_StartThighCrush", .State = "ThCrsh_Loop_State", .Guard = CanAttack, .Verify = VerifyAttack, .Cooldown = 0.35f, .Input = "Action.ThighCrush.Attack" },
+		{ .Action = "ThighCrush.Exit",   .Behaviour = "GTSBeh_LeaveSitdown", .State = "ThCrsh_Loop_State",    .Guard = CanExit, .Exits = true, .Input = "Action.ThighCrush.Exit" },
 	};
 
 	constexpr AnnotationDef Annotations[] = {

@@ -24,6 +24,9 @@ namespace GTS {
 			// Release all vories (shall fall into mouth with animation)
 			void ReleaseAll();
 
+			// Drops a tiny from the list without killing it, for a vore that was cut short.
+			void Forget(Actor* tiny);
+
 			bool GetTimer();
 
 			// Get a list of all actors currently being vored

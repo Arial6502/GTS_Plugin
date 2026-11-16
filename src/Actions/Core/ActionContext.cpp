@@ -36,7 +36,7 @@ namespace GTS::Actions {
 	}
 
 	double ActionContext::TimeActive() const {
-		return Time::WorldTimeElapsed() - m_State.EnteredAt;
+		return m_State.Clock - m_State.EnteredAt;
 	}
 
 	Stance ActionContext::Stance() const {
@@ -73,12 +73,12 @@ namespace GTS::Actions {
 
 	void ActionContext::HandOff(ActionId a_Target) const {
 		m_State.HandOffTo = a_Target;
-		m_State.ExitRequestedAt = Time::WorldTimeElapsed();
+		m_State.ExitRequestedAt = m_State.Clock;
 	}
 
 	void ActionContext::RequestExit() const {
 		if (m_State.ExitRequestedAt < 0.0) {
-			m_State.ExitRequestedAt = Time::WorldTimeElapsed();
+			m_State.ExitRequestedAt = m_State.Clock;
 		}
 	}
 

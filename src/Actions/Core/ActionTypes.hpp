@@ -165,6 +165,7 @@ namespace GTS::Actions {
 		kAlreadyRunning,
 		kOnCooldown,
 		kGraphRefused,
+		kWrongState,
 	};
 
 	constexpr std::string_view ExitReasonName(ExitReason a_Reason) {
@@ -198,6 +199,7 @@ namespace GTS::Actions {
 			case RequestResult::kAlreadyRunning:{ return "already running"; }
 			case RequestResult::kOnCooldown:    { return "on cooldown"; }
 			case RequestResult::kGraphRefused:  { return "graph refused behaviour"; }
+			case RequestResult::kWrongState:    { return "graph is in another state"; }
 			default:                            { return "?"; }
 		}
 	}

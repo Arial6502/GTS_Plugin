@@ -437,7 +437,8 @@ namespace {
         }
 
         ImUtil_Unique {
-            PSString THelp = "Growing and shrinking need no target, so they start on the spot.\n"
+            PSString THelp = "Growing is only considered while someone nearby is still too big to grab.\n"
+                             "Shrinking is only considered out of combat with nobody around to act on.\n"
                              "Both are refused when the actor is already at their smallest or largest,\n"
                              "so a high chance here does not mean it happens every time.";
 

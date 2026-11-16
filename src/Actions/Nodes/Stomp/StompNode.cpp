@@ -1639,10 +1639,10 @@ namespace {
 	// The grind and the trample loop are asked for by the proximity check that runs when a stomp
 	// lands, never by a key. Both continue the animation that is already playing.
 	constexpr ActionDef Actions[] = {
-		{ .Action = "Stomp.GrindL",      .Behaviour = "GTSBEH_StartFootGrindL",  .Asserts = AssertsGrinding },
-		{ .Action = "Stomp.GrindR",      .Behaviour = "GTSBEH_StartFootGrindR",  .Asserts = AssertsGrinding },
-		{ .Action = "Stomp.UnderGrindL", .Behaviour = "GTSBEH_StartUnderGrindL", .Asserts = AssertsGrinding },
-		{ .Action = "Stomp.UnderGrindR", .Behaviour = "GTSBEH_StartUnderGrindR", .Asserts = AssertsGrinding },
+		{ .Action = "Stomp.GrindL",      .Behaviour = "GTSBEH_StartFootGrindL", .State = "GTS_Sneak_Stomp_L|GTS_Sneak_Stomp_L_State|GTS_Stomp_L_Normal_State|Ginatess_Stomp_L_Normal_State|Ginatess_Stomp_L_State",  .Asserts = AssertsGrinding },
+		{ .Action = "Stomp.GrindR",      .Behaviour = "GTSBEH_StartFootGrindR", .State = "GTS_Sneak_Stomp_R|GTS_Sneak_Stomp_R_State|GTS_Stomp_R_Normal_State|Ginatess_Stomp_R_Cute_State|Ginatess_Stomp_R_State",  .Asserts = AssertsGrinding },
+		{ .Action = "Stomp.UnderGrindL", .Behaviour = "GTSBEH_StartUnderGrindL", .State = "GTS_UnderStomp_L_Sneak_State|Giantess_UnderStomp_L_Blend_State", .Asserts = AssertsGrinding },
+		{ .Action = "Stomp.UnderGrindR", .Behaviour = "GTSBEH_StartUnderGrindR", .State = "GTS_UnderStomp_R_Sneak_State|Giantess_UnderStomp_R_Blend_State", .Asserts = AssertsGrinding },
 
 		{ .Action = "Stomp.TrampleL",    .Behaviour = "GTSBEH_Trample_Start_L",  .HandOff = ActionId::kTrample },
 		{ .Action = "Stomp.TrampleR",    .Behaviour = "GTSBEH_Trample_Start_R",  .HandOff = ActionId::kTrample },
@@ -1801,6 +1801,11 @@ namespace GTS::Actions {
 	Liveness StompNode::Alive(RE::FormID a_Owner, RE::Actor* a_Actor) const {
 
 		if (a_Actor && (AnimationVars::Crawl::IsHandStomping(a_Actor) || AnimationVars::Crawl::IsHandStompingStrong(a_Actor))) {
+			return Liveness::kAlive;
+		}
+
+		// The graph drops GTS_IsStomping when a grind starts, and the grind is still this node.
+		if (a_Actor && AnimationVars::Action::IsFootGrinding(a_Actor)) {
 			return Liveness::kAlive;
 		}
 

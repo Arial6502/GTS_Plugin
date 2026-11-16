@@ -13,10 +13,16 @@ namespace {
 
 	constexpr std::uint32_t AlwaysSneak = static_cast<std::uint32_t>(RE::PACKAGE_DATA::GeneralFlag::kAlwaysSneak);
 
-	// Actor::Update derives the sneak state from the current package every frame and forces the actor
-	// back when it disagrees, so setting ActorState1::sneaking by hand is undone the same frame. This is
-	// the channel it actually reads.
 	void PackageSneak(RE::Actor* a_Actor, bool a_Enable) {
+
+		// Actor::Update picks the sneak state each frame and sends the sneak action when it differs.
+		// In combat it only reads CombatController +0x34. Out of combat it reads forceSneak, the flag
+		// the console SetForceSneak sets, and the package AlwaysSneak flag.
+		a_Actor->AsActorState()->actorState2.forceSneak = a_Enable;
+
+		if (RE::CombatController* combat = a_Actor->GetActorRuntimeData().combatController) {
+			combat->unk34 = a_Enable ? 1 : 0;
+		}
 
 		auto* process = a_Actor->GetActorRuntimeData().currentProcess;
 
@@ -145,11 +151,11 @@ namespace GTS::AI {
 		switch (a_Stance) {
 			case Stance::kCrawl:
 			{
-				return AnimationVars::Crawl::IsCrawling(a_Actor);
+				return a_Actor->IsSneaking() && AnimationVars::Crawl::IsCrawling(a_Actor) && !AnimationVars::General::IsTransitioning(a_Actor);
 			}
 			case Stance::kSneak:
 			{
-				return a_Actor->IsSneaking() && !AnimationVars::Crawl::IsCrawling(a_Actor);
+				return a_Actor->IsSneaking() && !AnimationVars::Crawl::IsCrawling(a_Actor) && !AnimationVars::General::IsTransitioning(a_Actor);
 			}
 			default:
 			{

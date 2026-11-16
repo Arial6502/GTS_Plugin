@@ -122,10 +122,10 @@ namespace {
 	constexpr AnnotationDef Annotations[] = {
 		{ .Tag = "GTS_Crawl_Knee_Trans_Impact", .Handler = OnKneeTransition },
 		{ .Tag = "GTS_Crawl_Hand_Trans_Impact", .Handler = OnHandTransition },
-		{ .Tag = "GTSCrawl_KneeImpact_L",       .Handler = OnKneeImpactLeft },
-		{ .Tag = "GTSCrawl_KneeImpact_R",       .Handler = OnKneeImpactRight },
-		{ .Tag = "GTSCrawl_HandImpact_L",       .Handler = OnHandImpactLeft },
-		{ .Tag = "GTSCrawl_HandImpact_R",       .Handler = OnHandImpactRight },
+		{ .Tag = "GTSCrawl_KneeImpact_L",       .Handler = OnKneeImpactLeft, .AnyStance = true },
+		{ .Tag = "GTSCrawl_KneeImpact_R",       .Handler = OnKneeImpactRight, .AnyStance = true },
+		{ .Tag = "GTSCrawl_HandImpact_L",       .Handler = OnHandImpactLeft, .AnyStance = true },
+		{ .Tag = "GTSCrawl_HandImpact_R",       .Handler = OnHandImpactRight, .AnyStance = true },
 	};
 }
 

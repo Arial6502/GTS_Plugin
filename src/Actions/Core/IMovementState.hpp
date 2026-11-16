@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Actions/Core/IActionNode.hpp"
+#include "Debug/Trace/GraphIntrospect.hpp"
 
 namespace GTS::Actions {
 
@@ -41,6 +42,10 @@ namespace GTS::Actions {
 		MovementId Pending = MovementId::kNone;
 
 		GraphSignature Signature = {};
+
+		// Seconds of animation played while tracked. The timestamps below are readings of it.
+		double Clock = 0.0;
+		ClipSamples Clips = {};
 
 		double EnteredAt = 0.0;
 		double PendingSince = -1.0;

@@ -28,11 +28,20 @@ namespace GTS::Actions {
 		std::string_view Action;
 		std::string_view Behaviour;
 
+		// The behaviour graph state this can be taken from, by name. Several are separated by |, and
+		// empty means any state. Checked against the live graph, not against annotations.
+		std::string_view State;
+
 		bool (*Guard)(const ActionContext&) = nullptr;
 		bool (*Verify)(const ActionContext&) = nullptr;
 		void (*OnTaken)(const ActionContext&) = nullptr;
 
 		ActionId HandOff = ActionId::kNone;
+
+		// The graph state the handoff clip plays in. The handoff is not given up on while the graph is
+		// still in it, however long the clip runs. Empty leaves only PendingGrace.
+		std::string_view HandOffState;
+
 		bool Exits = false;
 		bool Aborts = false;
 
@@ -51,6 +60,8 @@ namespace GTS::Actions {
 		bool Shared = false;
 		bool ReleasesPartners = false;
 		bool EndsIfPartnerGone = false;
+		// Movement states only. The handler also runs while no stance is active.
+		bool AnyStance = false;
 	};
 
 	class IActionNode {

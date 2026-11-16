@@ -99,6 +99,11 @@ namespace GTS {
 				walk.Best = distance;
 				walk.Improved = now;
 			}
+
+			// A stance change holds the actor in place for longer than the stall limit.
+			if (AnimationVars::General::IsTransitioning(a_Actor)) {
+				walk.Improved = now;
+			}
 		}
 
 		if (!fresh) {

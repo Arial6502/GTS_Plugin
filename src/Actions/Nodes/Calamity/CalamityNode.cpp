@@ -122,13 +122,13 @@ namespace {
 	}
 
 	// Grows the rune in, or shrinks it away again. The two directions run on different clocks: growing
-	// follows the game's own slowdown, shrinking follows the animation speed.
+	// follows the game's own slowdown, shrinking follows the animation itself, read from the clips.
 	void AnimateRune(Actor* a_Giant, bool a_Shrinking, float a_Speed, float a_Scale) {
 
 		const double start = Time::WorldTimeElapsed();
 		ActorHandle handle = a_Giant->CreateRefHandle();
 
-		TaskManager::Run(std::format(TASKID_FMT_RUNE, a_Giant->formID, a_Shrinking), [=](auto&) {
+		TaskManager::Run(std::format(TASKID_FMT_RUNE, a_Giant->formID, a_Shrinking), [=, clock = std::make_shared<AnimationClock>()](auto& a_Update) {
 
 			auto giantPtr = handle.get();
 
@@ -141,7 +141,7 @@ namespace {
 
 			if (a_Shrinking) {
 
-				const double elapsed = std::clamp(((Time::WorldTimeElapsed() - start) * AnimationManager::GetAnimSpeed(giant)) * a_Speed, 0.01, 0.98);
+				const double elapsed = std::clamp(clock->Tick(giant, a_Update.delta) * a_Speed, 0.01, 0.98);
 
 				if (node) {
 					node->local.scale = static_cast<float>(std::clamp(0.60 - elapsed, 0.01, 1.0));

@@ -123,6 +123,7 @@ namespace GTS::AI {
 	void Director::Enter(RE::Actor* a_Actor, Brain& a_Brain, Phase a_Phase, double a_Now) {
 		a_Brain.Stage = a_Phase;
 		a_Brain.StageSince = a_Now;
+		a_Brain.StageClock = a_Brain.Clock;
 		Log(a_Actor, std::format("PHASE {}", PhaseName(a_Phase)));
 	}
 
@@ -161,6 +162,10 @@ namespace GTS::AI {
 
 		if (a_Brain.Applied & Effect::kStance) {
 			AI::Posture::Enforce(a_Actor);
+
+			if (AnimationVars::General::IsTransitioning(a_Actor)) {
+				a_Brain.Intent.Changed = true;
+			}
 		}
 	}
 
@@ -400,11 +405,12 @@ namespace GTS::AI {
 			switch (result) {
 				case Actions::RequestResult::kAccepted:
 				{
+					a_Brain.Queued = choice->Then;
+					a_Brain.QueuedClock = a_Brain.Clock;
 					break;
 				}
 				case Actions::RequestResult::kGraphRefused:
 				{
-					a_Brain.NextSub = a_Now + GraphRetry;
 					break;
 				}
 				default:
@@ -709,6 +715,7 @@ namespace GTS::AI {
 			return false;
 		}
 
+		a_Brain.Intent.Changed = AI::Posture::Settled(a_Actor, a_Brain.Intent.Want);
 		AI::Posture::Hold(a_Actor, a_Brain.Intent.Want);
 		Apply(a_Actor, a_Brain, Effect::kStance);
 
@@ -744,7 +751,9 @@ namespace GTS::AI {
 
 		// A stance that will not settle is not worth losing the plan over, so the start goes ahead
 		// either way once the window is up.
-		if (AI::Posture::Settled(a_Actor, a_Brain.Intent.Want) || a_Now - a_Brain.StageSince > StanceWindow) {
+		const bool settled = a_Brain.Intent.Changed && AI::Posture::Settled(a_Actor, a_Brain.Intent.Want);
+
+		if (settled || a_Brain.Clock - a_Brain.StageClock > StanceWindow) {
 			Enter(a_Actor, a_Brain, Phase::kStart, a_Now);
 		}
 	}
@@ -783,6 +792,12 @@ namespace GTS::AI {
 			if (adapter.Shape && !TargetShape::InCone(a_Actor, target, *adapter.Shape)) {
 				FaceTowardsPoint(a_Actor, target->GetPosition());
 			}
+		}
+
+		// Turning to face the target in a crawl raises GTS_Transitioning, and the registry refuses every
+		// send while it is set.
+		if (AnimationVars::General::IsTransitioning(a_Actor) && a_Brain.Clock - a_Brain.StageClock < StanceWindow) {
+			return;
 		}
 
 		bool started = false;
@@ -828,7 +843,7 @@ namespace GTS::AI {
 
 			// A branch that acts on someone has nothing left to do once they are dead or gone. The node
 			// keeps running either way, so the exit has to be sent rather than waited for.
-			if (!a_Brain.Intent.Ending && adapter.Qualifies && a_Now - a_Brain.StageSince > ConfirmWindow) {
+			if (!a_Brain.Intent.Ending && adapter.Qualifies && a_Brain.Clock - a_Brain.StageClock > ConfirmWindow) {
 
 				RE::Actor* target = TargetOf(a_Brain);
 				const bool finished = adapter.Finished && adapter.Finished(a_Actor, target);
@@ -841,26 +856,55 @@ namespace GTS::AI {
 					const std::string_view exit = ExitFor(adapter, state ? state->Current : Actions::ActionId::kNone);
 
 					if (!exit.empty()) {
-						a_Brain.Intent.Ending = true;
 						const QuietFailures quiet;
-						Actions::ActionRegistry::Perform(a_Actor, exit);
-						Log(a_Actor, std::format("BAIL {}, sent {}", finished ? "nothing left to do" : "partner gone", exit));
+
+						// Tried again next tick when it is refused, which is the usual case mid animation.
+						if (Actions::ActionRegistry::Probe(a_Actor, exit) == Actions::RequestResult::kAccepted &&
+							Actions::ActionRegistry::Perform(a_Actor, exit) == Actions::RequestResult::kAccepted) {
+							a_Brain.Intent.Ending = true;
+							Log(a_Actor, std::format("BAIL {}, sent {}", finished ? "nothing left to do" : "partner gone", exit));
+						}
+
 						return;
 					}
 				}
 			}
 
 			// Nothing more is sent once the exit is on its way, or it plays over the top of it.
-			if (!a_Brain.Intent.Ending) {
-				PickSub(a_Actor, a_Brain, adapter, a_Now);
+			if (a_Brain.Intent.Ending) {
+				return;
 			}
 
+			// The first step is still playing while this is refused, so it is asked again every tick.
+			if (!a_Brain.Queued.empty()) {
+
+				if (a_Brain.Clock - a_Brain.QueuedClock > QueueWindow) {
+					Log(a_Actor, std::format("SUB queued {} dropped", a_Brain.Queued));
+					a_Brain.Queued = {};
+					return;
+				}
+
+				const QuietFailures quiet;
+
+				if (Actions::ActionRegistry::Probe(a_Actor, a_Brain.Queued) == Actions::RequestResult::kAccepted &&
+					Actions::ActionRegistry::Perform(a_Actor, a_Brain.Queued) == Actions::RequestResult::kAccepted) {
+					Log(a_Actor, std::format("SUB queued {}", a_Brain.Queued));
+					a_Brain.Queued = {};
+					a_Brain.NextSub = a_Now + std::max(Value(adapter.Interval, 1.0f), 0.1f);
+				}
+
+				return;
+			}
+
+			PickSub(a_Actor, a_Brain, adapter, a_Now);
 			return;
 		}
 
+		a_Brain.Queued = {};
+
 		// The graph needs a moment to reach the node after a start, so an empty branch only counts once
 		// that window has passed.
-		if (a_Now - a_Brain.StageSince < ConfirmWindow) {
+		if (a_Brain.Clock - a_Brain.StageClock < ConfirmWindow) {
 			return;
 		}
 
@@ -878,8 +922,11 @@ namespace GTS::AI {
 		// Everything but the stance comes off straight away. Changing the behaviour graph while the
 		// actor is still mid action swaps the skeleton out from under whatever is running, so the
 		// stance waits for the action to end.
-		if ((a_Brain.Applied & Effect::kStance) && Actions::ActionRegistry::Busy(a_Actor) &&
-			a_Now - a_Brain.StageSince < RecoverWait) {
+		// A node can end before its animation does: the cleavage node is over at GTS_BS_CamOff and the
+		// graph still has the outro to play. GTS_Busy stays set until that is finished.
+		const bool busy = Actions::ActionRegistry::Busy(a_Actor) || AnimationVars::General::IsBusy(a_Actor);
+
+		if ((a_Brain.Applied & Effect::kStance) && busy && a_Brain.Clock - a_Brain.StageClock < RecoverWait) {
 
 			const std::uint8_t stance = static_cast<std::uint8_t>(a_Brain.Applied & Effect::kStance);
 
@@ -906,6 +953,10 @@ namespace GTS::AI {
 		// Whoever else wants to move this actor is refused for the whole plan, not only while a path is
 		// live. Handing movement back between phases let the game walk her away from the target the
 		// brain had just chosen.
+		if (a_Brain.Stage != Phase::kIdle) {
+			a_Brain.Clock += GraphIntrospect::Advance(a_Actor, a_Brain.Clips, Time::WorldTimeDelta());
+		}
+
 		if (a_Brain.Stage != Phase::kIdle && a_Brain.Stage != Phase::kRecover) {
 			Apply(a_Actor, a_Brain, Effect::kMovement);
 		}

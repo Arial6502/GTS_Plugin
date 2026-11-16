@@ -22,6 +22,10 @@ namespace GTS {
 		double ChangedAt = -1.0;
 	};
 
+	// One playing clip and how far into it the graph was, as read on the previous frame. The pointer is
+	// only compared, never followed.
+	using ClipSamples = absl::InlinedVector<std::pair<const void*, float>, 8>;
+
 	class GraphIntrospect {
 
 		public:
@@ -91,10 +95,38 @@ namespace GTS {
 
 		static bool Read(RE::Actor* a_Actor, const GraphVarSlot& a_Slot, std::uint32_t& a_Out);
 
+		// What the behaviour graph is running: "SM machine=state" for each active state machine, with a
+		// trailing * while it has a transition in progress, and "CLIP file" for each playing clip. Sorted.
+		static void ReadActive(RE::Actor* a_Actor, std::vector<std::string>& a_Out);
+
+		// True when any active state machine is in one of the named states. a_State may list several,
+		// separated by |. Does not allocate.
+		[[nodiscard]] static bool InState(RE::Actor* a_Actor, std::string_view a_State);
+
+		// True when a state machine with one of these names is active, whatever state it is in.
+		[[nodiscard]] static bool InMachine(RE::Actor* a_Actor, std::string_view a_Machine);
+
+		// Seconds of animation the actor played since the last call with the same a_Previous, read from
+		// the clips' own time. This is what a wait on an animation is measured in: it runs slow when the
+		// animation is slowed and stops when it is paused.
+		static float Advance(RE::Actor* a_Actor, ClipSamples& a_Previous, float a_Delta);
+
 		[[nodiscard]] static std::string Describe(const GraphVarSlot& a_Slot, std::uint32_t a_Raw);
 		[[nodiscard]] static std::string_view KindName(GraphVarKind a_Kind);
 
 		// Covers GTS_, GTSBEH_, GTSTDM_ and anything else the project spells with the prefix.
 		[[nodiscard]] static bool IsGTSName(std::string_view a_Name);
+	};
+
+	// Seconds of animation an actor has played since the first Tick. For a task that waits on one.
+	struct AnimationClock {
+
+		double Played = 0.0;
+		ClipSamples Clips = {};
+
+		double Tick(RE::Actor* a_Actor, double a_Delta) {
+			Played += GraphIntrospect::Advance(a_Actor, Clips, static_cast<float>(a_Delta));
+			return Played;
+		}
 	};
 }

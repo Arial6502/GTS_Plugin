@@ -13,6 +13,11 @@ namespace GTS::Actions::Grabbing {
 	// Leaves the grab root from any point inside it, including the sub branches.
 	constexpr std::string_view BEH_ABORT = "GTSBEH_AbortGrab";
 
+	// AbortGrab only has a transition from the carry. Out of a crush, a hand sandwich or the cleavage the
+	// graph leaves on GTSBEH_TinyDied, so both are sent, in this order.
+	constexpr std::string_view BEH_TINY_DIED = "GTSBEH_TinyDied";
+	constexpr std::string_view BEH_LEAVE = "GTSBEH_AbortGrab|GTSBEH_TinyDied";
+
 
 	void StartHandRumble(std::string_view a_Tag, RE::Actor* a_Giant, float a_Power, float a_HalfLife, bool a_Left = true);
 	void StopHandRumble(std::string_view a_Tag, RE::Actor* a_Giant, bool a_Left = true);
@@ -91,6 +96,10 @@ namespace GTS::Actions::Grabbing {
 	// AI, and the hand slam animations. Everything here goes through the action layer.
 	[[nodiscard]] bool Grab(RE::Actor* a_Giant, RE::Actor* a_Tiny);
 	void Abort(RE::Actor* a_Giant);
+
+	// Started when a grab node exits. If the graph is then found in the carry or the play idle with
+	// nobody in either slot and no node running, it is sent out of the grab root.
+	void WatchEmptyCarry(RE::Actor* a_Giant);
 
 	// Ends one actor's hold. The node is only aborted when nobody else is still carried.
 	void DropOne(RE::Actor* a_Giant, RE::Actor* a_Tiny);

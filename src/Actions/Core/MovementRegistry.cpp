@@ -154,7 +154,7 @@ namespace GTS::Actions {
 		a_State.PendingSince = -1.0;
 		a_State.MismatchSince = -1.0;
 		a_State.LeavingAt = -1.0;
-		a_State.EnteredAt = Time::WorldTimeElapsed();
+		a_State.EnteredAt = a_State.Clock;
 		a_State.Signature = a_Slot.Signature;
 
 		const GraphSnapshot snapshot = GraphVars::Read(a_Actor);
@@ -234,7 +234,7 @@ namespace GTS::Actions {
 
 				// Already leaving. Retried rather than refused outright, in case the first send did not
 				// take, but not once a frame.
-				if (def.Exits && state.LeavingAt >= 0.0 && (now - state.LeavingAt) < PendingGrace) {
+				if (def.Exits && state.LeavingAt >= 0.0 && (state.Clock - state.LeavingAt) < PendingGrace) {
 					return RequestResult::kAlreadyPending;
 				}
 
@@ -261,14 +261,14 @@ namespace GTS::Actions {
 				}
 
 				if (def.Exits) {
-					state.LeavingAt = now;
+					state.LeavingAt = state.Clock;
 				}
 
 				// Only a request that turns the stance on waits for a signature. One that turns it off
 				// is done: the stance ends when the graph drops the variable, which Tick sees.
 				if (!def.Exits && state.Current != slot.State->Id()) {
 					state.Pending = slot.State->Id();
-					state.PendingSince = now;
+					state.PendingSince = state.Clock;
 					state.EnteredVia = a_Action;
 				}
 
@@ -349,6 +349,30 @@ namespace GTS::Actions {
 		}
 
 		if (it == m_State.end() || !it->second.Active()) {
+
+			// Sneak clips fire the crawl impacts with no stance running.
+			for (const auto& slot : m_Slots) {
+
+				if (!slot.State) {
+					continue;
+				}
+
+				for (const auto& def : slot.State->Annotations()) {
+
+					if (!def.AnyStance || def.Tag != a_Tag || !def.Handler) {
+						continue;
+					}
+
+					const GraphSnapshot snapshot = GraphVars::Read(a_Actor);
+					ActorAction scratch = {};
+					const ActionContext ctx(a_Actor, a_Actor->formID, scratch, snapshot);
+					def.Handler(ctx);
+
+					Log(std::format("MOVE_ANNO|{:08X}|none|{}", a_Actor->formID, a_Tag));
+					return true;
+				}
+			}
+
 			return false;
 		}
 
@@ -388,6 +412,11 @@ namespace GTS::Actions {
 
 		auto it = m_State.find(a_Actor->formID);
 		const bool tracked = it != m_State.end();
+
+		// Every wait below is measured on this, not on the wall clock.
+		if (tracked) {
+			it->second.Clock += GraphIntrospect::Advance(a_Actor, it->second.Clips, a_Delta);
+		}
 
 		const GraphSnapshot snapshot = GraphVars::Read(a_Actor);
 		const double now = Time::WorldTimeElapsed();
@@ -433,7 +462,7 @@ namespace GTS::Actions {
 				return;
 			}
 
-			if (state.PendingSince >= 0.0 && (now - state.PendingSince) > PendingGrace) {
+			if (state.PendingSince >= 0.0 && (state.Clock - state.PendingSince) > PendingGrace) {
 				Log(std::format("MOVE_LOST|{:08X}|{}|never asserted", a_Actor->formID, MovementName(state.Pending)));
 				state.Pending = MovementId::kNone;
 				state.PendingSince = -1.0;
@@ -449,9 +478,9 @@ namespace GTS::Actions {
 				state.MismatchSince = -1.0;
 			}
 			else if (state.MismatchSince < 0.0) {
-				state.MismatchSince = now;
+				state.MismatchSince = state.Clock;
 			}
-			else if ((now - state.MismatchSince) >= MismatchGrace) {
+			else if ((state.Clock - state.MismatchSince) >= MismatchGrace) {
 				Leave(a_Actor->formID, a_Actor, state, ExitReason::kCompleted);
 				return;
 			}
